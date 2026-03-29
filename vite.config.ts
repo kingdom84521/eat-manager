@@ -5,5 +5,5 @@ import tailwindcss from "@tailwindcss/vite";
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   // ⚠️ 改成你的 repo 名稱
-  base: "/wellness/",
+  base: "/eat-manager/",
 });
