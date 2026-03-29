@@ -27,11 +27,13 @@
         ┌───────────▼───────────┐
         │    Google Sheets DB   │
         │  ┌──────────────────┐ │
+        │  │ foods (一般食物)  │ │
+        │  │ remedies (補品    │ │
+        │  │   +自然食療+tags) │ │
         │  │ daily_plans      │ │
         │  │ nutrition_log    │ │
         │  │ supplement_log   │ │
         │  │ weight_log       │ │
-        │  │ food_database    │ │
         │  └──────────────────┘ │
         └───────────────────────┘
 ```
@@ -50,13 +52,51 @@
 ### 1. 建立 Spreadsheet
 建一個新的 Google Sheet，建立以下分頁 (tabs)：
 
+#### 參考資料表
+
+##### `foods` — 一般食物
+
+| 欄位 | 說明 | 範例 |
+|---|---|---|
+| id | 唯一識別碼 | chicken_breast_711 |
+| name | 食物名稱 | 7-11 雞胸肉 |
+| serving | 份量 | 1包~100g |
+| cal | 熱量(kcal) | 125 |
+| protein | 蛋白質(g) | 23 |
+| fat | 脂肪(g) | 2.5 |
+| carbs | 碳水(g) | 2 |
+| sugar | 糖(g)，可空 | |
+| sodium | 鈉(mg) | 450 |
+| source | 資料來源 | 包裝標示 |
+| tags | 健康標籤(逗號分隔) | inflammation,blood_sugar |
+
+##### `remedies` — 補品 & 自然食療
+
+| 欄位 | 說明 | 範例 |
+|---|---|---|
+| id | 唯一識別碼 | berberine |
+| type | supplement / remedy / behavior | supplement |
+| name | 名稱 | 小檗鹼 Berberine |
+| dose | 劑量/用法 | 500mg × 3次/日 |
+| cal | 估算熱量，可空 | 0 |
+| tags | 健康標籤(逗號分隔) | insulin_resistance,blood_sugar,cholesterol |
+| mechanism | 作用機制 | 啟動AMPK改善胰島素敏感性 |
+| timing | 最佳服用時機，可空 | 三餐前各500mg |
+| caution | 注意事項，可空 | 有服降血糖藥先諮詢醫師 |
+| isCore | 是否核心項目 | TRUE / FALSE |
+| tcm_effect | 中醫功效，可空 | 清熱利濕 |
+| tcm_nature | 中醫性質，可空 | 寒/涼/平/溫/熱 |
+
+**可用的 tags：** insulin_resistance, inflammation, dehumidify, cholesterol, gut_health, antioxidant, liver, blood_pressure, sleep, blood_sugar, weight_loss
+
+#### 記錄表
+
 | Tab 名稱 | 用途 | 欄位 |
 |---|---|---|
 | `daily_plans` | 每日隨機方案紀錄 | date, items_json, total_cal, notes |
 | `nutrition_log` | 每餐飲食紀錄 | date, meal, items_json, calories, protein, fat, carbs, sodium |
 | `supplement_log` | 補充劑服用紀錄 | date, items_json, notes |
 | `weight_log` | 體重紀錄 | date, weight_kg, notes |
-| `food_database` | 已確認食物營養資料 | id, name, cal, protein, fat, carbs, sodium, source |
 
 ### 2. 部署 Apps Script API
 在 Sheet 中 Extensions > Apps Script，貼上 `scripts/gas-api.js` 的內容，
@@ -91,10 +131,11 @@ src/
 │   └── utils.ts             # 共用工具
 │
 ├── data/
-│   ├── supplements.ts       # 補充劑資料 (固定)
-│   ├── foods.ts             # 食療食材資料 (固定, 用於隨機產生器)
-│   ├── tcm-dehumidify.ts    # 去濕食材資料
-│   └── saved-foods.ts       # 已知食物營養資料 (7-11, 早餐店等)
+│   ├── types.ts             # 核心型別 (FoodItem, RemedyItem, HealthTag...)
+│   ├── foods.ts             # 一般食物資料 (fallback, Sheets 優先)
+│   ├── remedies.ts          # 補品+自然食療資料 (fallback, Sheets 優先)
+│   ├── schedule.ts          # 時間排程定義
+│   └── resolver.ts          # ID → Item 解析
 │
 ├── pages/
 │   ├── DailyPlan.tsx        # 🎲 每日方案隨機產生器

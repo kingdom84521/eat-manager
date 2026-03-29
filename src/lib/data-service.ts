@@ -9,6 +9,7 @@
  */
 
 import { SheetsAPI, type SheetRow } from "./sheets-api";
+import type { FoodItem, RemedyItem, BehaviorItem, HealthTag, TCMNature } from "../data/types";
 
 // ── Types ───────────────────────────────────────
 
@@ -46,11 +47,14 @@ export interface SupplementEntry {
 
 const CACHE_PREFIX = "wellness_";
 const SHEETS = {
+  // 參考資料表
+  FOODS: "foods",
+  REMEDIES: "remedies",
+  // 記錄表
   DAILY_PLANS: "daily_plans",
   NUTRITION: "nutrition_log",
   SUPPLEMENTS: "supplement_log",
   WEIGHT: "weight_log",
-  FOOD_DB: "food_database",
 } as const;
 
 // ── Cache helpers ───────────────────────────────
@@ -68,7 +72,6 @@ function cacheSet(key: string, data: unknown): void {
   try {
     localStorage.setItem(CACHE_PREFIX + key, JSON.stringify(data));
   } catch {
-    // localStorage full or unavailable
     console.warn("localStorage write failed for", key);
   }
 }
@@ -94,9 +97,96 @@ export function daysAgo(n: number): string {
   ].join("-");
 }
 
+// ── Row → Type converters ───────────────────────
+
+function rowToFood(row: SheetRow): FoodItem {
+  return {
+    id: String(row.id),
+    type: "food",
+    name: String(row.name),
+    serving: String(row.serving ?? ""),
+    cal: Number(row.cal) || 0,
+    protein: Number(row.protein) || 0,
+    fat: Number(row.fat) || 0,
+    carbs: Number(row.carbs) || 0,
+    sugar: row.sugar ? Number(row.sugar) : undefined,
+    sodium: Number(row.sodium) || 0,
+    source: String(row.source ?? ""),
+    tags: row.tags ? String(row.tags).split(",").map((t) => t.trim()).filter(Boolean) as HealthTag[] : undefined,
+  };
+}
+
+function rowToRemedy(row: SheetRow): RemedyItem | BehaviorItem {
+  const type = String(row.type) as "supplement" | "remedy" | "behavior";
+  const tags = row.tags ? String(row.tags).split(",").map((t) => t.trim()).filter(Boolean) as HealthTag[] : [];
+
+  if (type === "behavior") {
+    return {
+      id: String(row.id),
+      type: "behavior",
+      name: String(row.name),
+      dose: String(row.dose ?? ""),
+      tags,
+      mechanism: String(row.mechanism ?? ""),
+    } as BehaviorItem;
+  }
+
+  return {
+    id: String(row.id),
+    type,
+    name: String(row.name),
+    dose: String(row.dose ?? ""),
+    cal: row.cal ? Number(row.cal) : undefined,
+    tags,
+    mechanism: String(row.mechanism ?? ""),
+    timing: row.timing ? String(row.timing) : undefined,
+    caution: row.caution ? String(row.caution) : undefined,
+    isCore: String(row.isCore) === "true" || String(row.isCore) === "TRUE",
+    tcm: row.tcm_effect
+      ? { effect: String(row.tcm_effect), nature: String(row.tcm_nature ?? "平") as TCMNature }
+      : undefined,
+  } as RemedyItem;
+}
+
 // ── DataService ─────────────────────────────────
 
 export const DataService = {
+  // ── Foods (from Sheets, cached) ───────────
+
+  async getFoods(fallback: FoodItem[]): Promise<FoodItem[]> {
+    const cacheKey = SHEETS.FOODS;
+    const cached = cacheGet<FoodItem[]>(cacheKey);
+
+    // Background sync from Sheets
+    SheetsAPI.readAll(SHEETS.FOODS)
+      .then((rows) => {
+        if (rows.length > 0) {
+          cacheSet(cacheKey, rows.map(rowToFood));
+        }
+      })
+      .catch(() => {});
+
+    return cached ?? fallback;
+  },
+
+  // ── Remedies (from Sheets, cached) ────────
+
+  async getRemedies(fallback: (RemedyItem | BehaviorItem)[]): Promise<(RemedyItem | BehaviorItem)[]> {
+    const cacheKey = SHEETS.REMEDIES;
+    const cached = cacheGet<(RemedyItem | BehaviorItem)[]>(cacheKey);
+
+    // Background sync from Sheets
+    SheetsAPI.readAll(SHEETS.REMEDIES)
+      .then((rows) => {
+        if (rows.length > 0) {
+          cacheSet(cacheKey, rows.map(rowToRemedy));
+        }
+      })
+      .catch(() => {});
+
+    return cached ?? fallback;
+  },
+
   // ── Daily Plans ─────────────────────────────
 
   async getDailyPlans(days = 14): Promise<DailyPlan[]> {
