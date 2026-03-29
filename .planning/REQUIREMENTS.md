@@ -29,8 +29,8 @@ Requirements for this milestone. Each maps to roadmap phases.
 ### Settings Page
 
 - [ ] **SET-01**: Settings page accessible via new navigation tab (5th tab)
-- [ ] **SET-02**: Settings persisted to localStorage across sessions
-- [ ] **SET-03**: Settings use a versioned schema for future migration support
+- [x] **SET-02**: Settings persisted to localStorage across sessions
+- [x] **SET-03**: Settings use a versioned schema for future migration support
 - [ ] **SET-04**: All UI text in Traditional Chinese (zh-TW) matching existing app style
 
 ### Google Sheets Connection
@@ -100,8 +100,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DIET-06 | Phase 1 | Complete |
 | DIET-07 | Phase 1 | Complete |
 | SET-01 | Phase 4 | Pending |
-| SET-02 | Phase 2 | Pending |
-| SET-03 | Phase 2 | Pending |
+| SET-02 | Phase 2 | Complete |
+| SET-03 | Phase 2 | Complete |
 | SET-04 | Phase 4 | Pending |
 | GS-01 | Phase 4 | Pending |
 | GS-02 | Phase 4 | Pending |
