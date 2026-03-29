@@ -22,6 +22,7 @@ Users can configure their personal metabolic profile and see nutritional intake 
 - ✓ BMR calculation using Mifflin-St Jeor formula — Phase 1
 - ✓ Integration of dietary guidelines from 3 countries (Taiwan HPA, USDA AMDR, Japan MHLW) — Phase 1
 - ✓ Nutritional intake ratio presets derived from BMR x dietary guidelines — Phase 1
+- ✓ Settings persisted to localStorage with versioned schema — Phase 2
 
 ### Active
 
@@ -29,7 +30,6 @@ Users can configure their personal metabolic profile and see nutritional intake 
 - [ ] Personal BMR configuration UI with user inputs (age, gender, height, weight, activity level)
 - [ ] User can select and switch between guideline presets
 - [ ] Google Sheets connection configuration UI (API URL + Sheet ID input) on the settings page
-- [ ] Settings persisted to localStorage (and optionally synced to Sheets)
 
 ### Out of Scope
 
@@ -64,7 +64,7 @@ Users can configure their personal metabolic profile and see nutritional intake 
 | BMR as foundation for recommendations | Industry-standard approach to personalized nutrition | — Pending |
 
 ---
-*Last updated: 2026-03-29 after Phase 1 completion*
+*Last updated: 2026-03-29 after Phase 2 completion*
 
 ## Evolution
 
