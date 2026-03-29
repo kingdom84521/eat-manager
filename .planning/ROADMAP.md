@@ -42,7 +42,10 @@ Plans:
   1. SettingsService.getUserProfile() returns null on a fresh localStorage, and returns the saved profile after a write without a page reload
   2. Saved settings include a settings_version: 1 field; a future schema migration function can detect and transform version 0 data without corrupting existing values
   3. SettingsService.getComputedTargets() returns null when no profile is saved, and returns correct macronutrient gram targets when a valid profile and active guideline are both saved
-**Plans**: TBD
+**Plans**: 1 plan
+
+Plans:
+- [ ] 02-01-PLAN.md — SettingsService singleton with versioned localStorage schema and computed targets (src/lib/settings-service.ts)
 
 ### Phase 3: SheetsAPI Runtime Config Patch
 **Goal**: SheetsAPI resolves the GAS URL at call time from SettingsService, with fallback to VITE_GAS_URL env var, so a user-configured URL takes effect immediately without a rebuild
@@ -74,7 +77,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Static Data Foundation | 1/2 | In Progress|  |
-| 2. Settings Persistence Layer | 0/? | Not started | - |
+| 1. Static Data Foundation | 2/2 | Complete |  |
+| 2. Settings Persistence Layer | 0/1 | Planned | - |
 | 3. SheetsAPI Runtime Config Patch | 0/? | Not started | - |
 | 4. Settings Page UI + Integration | 0/? | Not started | - |
