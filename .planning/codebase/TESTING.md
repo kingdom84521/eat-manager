@@ -11,7 +11,7 @@
 
 **Run Commands:**
 - No `test` script defined in `package.json`
-- Available scripts are limited to: `dev`, `build`, `preview`, `deploy`
+- Available scripts: `dev`, `build`, `preview`, `deploy`
 
 ## Test File Organization
 
@@ -37,40 +37,46 @@
    - `formatDate()` producing correct Chinese day-of-week labels
    - `clamp()` boundary behavior
 
-3. **Data service** (`src/lib/data-service.ts`):
-   - `todayStr()` and `daysAgo()` date formatting
-   - `rowToFood()` and `rowToRemedy()` conversion from sheet rows (currently private, would need refactoring or testing via public API)
-   - Cache read/write behavior with mocked localStorage
-   - Graceful degradation when SheetsAPI fails
-
-4. **Schedule generation** (`src/pages/DailyPlan.tsx`):
-   - `pickFromPool()` respects used IDs set
-   - `generatePlan()` produces valid slots with no duplicate selections
-   - These functions are currently defined inside the page component file and not exported
-
-5. **Data integrity** (`src/data/foods.ts`, `src/data/remedies.ts`, `src/data/schedule.ts`):
+3. **Data integrity** (`src/data/foods.ts`, `src/data/remedies.ts`, `src/data/schedule.ts`):
    - All IDs referenced in schedule `fixedIds` and `pools.itemIds` resolve to actual items
    - No duplicate IDs across food and remedy maps
    - Required fields are present on all items
+   - All `tags` values are valid `HealthTag` union members
+
+4. **Data service** (`src/lib/data-service.ts`):
+   - `todayStr()` and `daysAgo()` date formatting
+   - `rowToFood()` and `rowToRemedy()` conversion from sheet rows (currently module-private, would need refactoring or testing via public API)
+   - Cache read/write behavior with mocked localStorage
+   - Graceful degradation when SheetsAPI fails
+
+5. **Schedule generation logic** (currently inlined in `src/pages/DailyPlan.tsx`):
+   - `pickFromPool()` respects used IDs set and falls back when pool is exhausted
+   - `generatePlan()` produces valid slots with no duplicate selections
+   - These functions are NOT exported; would need to be extracted to a separate module for unit testing
 
 ## Recommended Setup
 
-**Framework:** Vitest (already using Vite as build tool, zero-config integration)
+**Framework:** Vitest (already using Vite as build tool, near-zero-config integration)
 
 **Installation:**
 ```bash
 npm install -D vitest @testing-library/react @testing-library/jest-dom jsdom
 ```
 
-**Configuration** (`vitest.config.ts` or add to existing `vite.config.ts`):
+**Configuration** (add `test` block to existing `vite.config.ts`):
 ```typescript
 /// <reference types="vitest" />
 import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
+  plugins: [react(), tailwindcss()],
+  base: "/eat-manager/",
   test: {
     environment: "jsdom",
     globals: true,
+    setupFiles: [],
   },
 });
 ```
@@ -86,11 +92,11 @@ export default defineConfig({
 }
 ```
 
-**Suggested test file locations (co-located):**
+**Suggested test file locations (co-located pattern):**
 - `src/data/resolver.test.ts`
+- `src/data/integrity.test.ts`
 - `src/lib/utils.test.ts`
 - `src/lib/data-service.test.ts`
-- `src/data/integrity.test.ts` (data validation tests)
 
 ## Example Test Patterns
 
@@ -126,6 +132,16 @@ describe("resolveItem", () => {
     expect(resolveItem("nonexistent_item")).toBeNull();
   });
 });
+
+describe("resolveAndGroup", () => {
+  it("groups items by type", () => {
+    const result = resolveAndGroup(["egg_boiled", "berberine", "eat_order", "roselle_tea"]);
+    expect(result.foods).toHaveLength(1);
+    expect(result.supplements).toHaveLength(1);
+    expect(result.behaviors).toHaveLength(1);
+    expect(result.remedies).toHaveLength(1);
+  });
+});
 ```
 
 **Data integrity test:**
@@ -133,6 +149,8 @@ describe("resolveItem", () => {
 // src/data/integrity.test.ts
 import { describe, it, expect } from "vitest";
 import { SCHEDULE } from "./schedule";
+import { FOODS, FOOD_MAP } from "./foods";
+import { SUPPLEMENTS, NATURAL_REMEDIES, BEHAVIORS, REMEDY_MAP } from "./remedies";
 import { resolveItem } from "./resolver";
 
 describe("schedule data integrity", () => {
@@ -153,38 +171,16 @@ describe("schedule data integrity", () => {
       }
     }
   });
-});
-```
 
-**Mocking pattern for DataService tests:**
-```typescript
-// src/lib/data-service.test.ts
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { DataService } from "./data-service";
-
-// Mock sheets-api module
-vi.mock("./sheets-api", () => ({
-  SheetsAPI: {
-    readAll: vi.fn().mockRejectedValue(new Error("offline")),
-    readRange: vi.fn().mockRejectedValue(new Error("offline")),
-    append: vi.fn().mockRejectedValue(new Error("offline")),
-    upsert: vi.fn().mockRejectedValue(new Error("offline")),
-  },
-}));
-
-beforeEach(() => {
-  localStorage.clear();
-});
-
-describe("DataService offline behavior", () => {
-  it("returns fallback foods when cache is empty and API fails", async () => {
-    const fallback = [{
-      id: "test", type: "food" as const, name: "Test",
-      serving: "1", cal: 100, protein: 10, fat: 5,
-      carbs: 10, sodium: 50, source: "test",
-    }];
-    const result = await DataService.getFoods(fallback);
-    expect(result).toEqual(fallback);
+  it("no duplicate IDs across foods and remedies", () => {
+    const allIds = [
+      ...FOODS.map((f) => f.id),
+      ...SUPPLEMENTS.map((s) => s.id),
+      ...NATURAL_REMEDIES.map((r) => r.id),
+      ...BEHAVIORS.map((b) => b.id),
+    ];
+    const unique = new Set(allIds);
+    expect(unique.size).toBe(allIds.length);
   });
 });
 ```
@@ -205,6 +201,9 @@ describe("parseCal", () => {
   it("returns 0 for undefined", () => {
     expect(parseCal(undefined)).toBe(0);
   });
+  it("returns 0 for empty string", () => {
+    expect(parseCal("")).toBe(0);
+  });
 });
 
 describe("clamp", () => {
@@ -220,11 +219,66 @@ describe("clamp", () => {
 });
 ```
 
+**Mocking pattern for DataService tests:**
+```typescript
+// src/lib/data-service.test.ts
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { DataService } from "./data-service";
+
+// Mock sheets-api module
+vi.mock("./sheets-api", () => ({
+  SheetsAPI: {
+    readAll: vi.fn().mockRejectedValue(new Error("offline")),
+    readRange: vi.fn().mockRejectedValue(new Error("offline")),
+    append: vi.fn().mockRejectedValue(new Error("offline")),
+    upsert: vi.fn().mockRejectedValue(new Error("offline")),
+    deleteByDate: vi.fn().mockRejectedValue(new Error("offline")),
+  },
+}));
+
+beforeEach(() => {
+  localStorage.clear();
+});
+
+describe("DataService offline behavior", () => {
+  it("returns fallback foods when cache is empty and API fails", async () => {
+    const fallback = [{
+      id: "test", type: "food" as const, name: "Test",
+      serving: "1", cal: 100, protein: 10, fat: 5,
+      carbs: 10, sodium: 50, source: "test",
+    }];
+    const result = await DataService.getFoods(fallback);
+    expect(result).toEqual(fallback);
+  });
+
+  it("returns empty array for weight log when cache is empty", async () => {
+    const result = await DataService.getWeightLog(90);
+    expect(result).toEqual([]);
+  });
+});
+```
+
 ## CI/CD Integration
 
-- No CI pipeline exists (deployment is manual via `npm run deploy` using gh-pages)
-- No pre-commit hooks configured
-- No type-checking in CI (only runs during `npm run build` via `tsc -b`)
+- No CI pipeline exists
+- Deployment is manual via `npm run deploy` using `gh-pages` package
+- No pre-commit hooks configured (no husky, lint-staged)
+- Type-checking only runs during `npm run build` via `tsc -b`
+- GitHub Actions workflow exists at `.github/workflows/` for gh-pages deployment (triggers on push to master)
+
+## Test Types
+
+**Unit Tests:**
+- Not implemented. Best candidates: `src/data/resolver.ts`, `src/lib/utils.ts`, `src/data/` integrity checks
+
+**Integration Tests:**
+- Not implemented. Best candidate: `src/lib/data-service.ts` with mocked localStorage and SheetsAPI
+
+**E2E Tests:**
+- Not implemented. Lower priority given the app's scope (personal wellness tracker)
+
+**Component Tests:**
+- Not implemented. If added, use `@testing-library/react` for page component rendering tests
 
 ---
 
