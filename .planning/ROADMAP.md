@@ -24,11 +24,15 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Depends on**: Nothing (first phase)
 **Requirements**: BMR-01, BMR-02, BMR-03, BMR-04, BMR-05, BMR-06, DIET-01, DIET-02, DIET-03, DIET-04, DIET-05, DIET-06, DIET-07
 **Success Criteria** (what must be TRUE):
-  1. Given known inputs (30yo male, 70kg, 175cm, sedentary), calculateBMR() returns 1673.75 kcal matching published Mifflin-St Jeor reference value
+  1. Given known inputs (30yo male, 70kg, 175cm), calculateBMR() returns 1648.75 kcal (Mifflin-St Jeor formula: 10×70 + 6.25×175 - 5×30 + 5)
   2. calculateTDEE() returns a value rounded to nearest 10 for each of the 5 activity levels
   3. GUIDELINES catalog contains exactly 3 presets (Taiwan HPA, Japan MHLW, USDA AMDR) each with issuing authority name, source citation, and macroRatios as percentages that sum to 100%
-  4. All TypeScript interfaces (UserProfile, BMRResult, GuidelinePreset, MacroRange) are defined and exported; no TypeScript errors on build
-**Plans**: TBD
+  4. All TypeScript interfaces (UserProfile, BMRResult, GuidelinePreset, MacroRatios, MacroGrams) are defined and exported; no TypeScript errors on build
+**Plans**: 2 plans
+
+Plans:
+- [ ] 01-01-PLAN.md — Types extension + BMR/TDEE calculation module (src/data/types.ts + src/data/bmr.ts)
+- [ ] 01-02-PLAN.md — Dietary guidelines catalog module (src/data/dietary-guidelines.ts)
 
 ### Phase 2: Settings Persistence Layer
 **Goal**: SettingsService reads and writes user settings synchronously to localStorage with a versioned schema, callable by any module before the UI exists
@@ -70,7 +74,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Static Data Foundation | 0/? | Not started | - |
+| 1. Static Data Foundation | 0/2 | Not started | - |
 | 2. Settings Persistence Layer | 0/? | Not started | - |
 | 3. SheetsAPI Runtime Config Patch | 0/? | Not started | - |
 | 4. Settings Page UI + Integration | 0/? | Not started | - |
