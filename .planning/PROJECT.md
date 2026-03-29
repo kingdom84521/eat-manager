@@ -19,14 +19,14 @@ Users can configure their personal metabolic profile and see nutritional intake 
 - ✓ Google Apps Script backend proxy for Sheets CRUD — existing
 - ✓ Mobile-first responsive UI with bottom tab navigation — existing
 - ✓ GitHub Pages deployment with HashRouter — existing
+- ✓ BMR calculation using Mifflin-St Jeor formula — Phase 1
+- ✓ Integration of dietary guidelines from 3 countries (Taiwan HPA, USDA AMDR, Japan MHLW) — Phase 1
+- ✓ Nutritional intake ratio presets derived from BMR x dietary guidelines — Phase 1
 
 ### Active
 
 - [ ] Settings page accessible from app navigation
-- [ ] Personal BMR (Basal Metabolic Rate) configuration with user inputs (age, gender, height, weight, activity level)
-- [ ] BMR calculation using at least one standard formula (e.g., Mifflin-St Jeor, Harris-Benedict)
-- [ ] Integration of dietary guidelines from at least 3 countries/organizations
-- [ ] At least 3 nutritional intake ratio presets derived from BMR × dietary guidelines
+- [ ] Personal BMR configuration UI with user inputs (age, gender, height, weight, activity level)
 - [ ] User can select and switch between guideline presets
 - [ ] Google Sheets connection configuration UI (API URL + Sheet ID input) on the settings page
 - [ ] Settings persisted to localStorage (and optionally synced to Sheets)
@@ -64,7 +64,7 @@ Users can configure their personal metabolic profile and see nutritional intake 
 | BMR as foundation for recommendations | Industry-standard approach to personalized nutrition | — Pending |
 
 ---
-*Last updated: 2026-03-29 after initialization*
+*Last updated: 2026-03-29 after Phase 1 completion*
 
 ## Evolution
 
