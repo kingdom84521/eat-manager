@@ -9,12 +9,12 @@ Requirements for this milestone. Each maps to roadmap phases.
 
 ### BMR Calculation
 
-- [ ] **BMR-01**: User can input personal data (age, sex, height in cm, weight in kg) on settings page
-- [ ] **BMR-02**: App calculates BMR using Mifflin-St Jeor formula as default
-- [ ] **BMR-03**: User can select activity level from 5-level scale (sedentary to extra active)
-- [ ] **BMR-04**: App displays TDEE (Total Daily Energy Expenditure) as kcal/day, rounded to nearest 10
-- [ ] **BMR-05**: BMR/TDEE recalculates live as user changes inputs (no submit button)
-- [ ] **BMR-06**: Inline validation on all inputs (age 10-120, height 100-250cm, weight 30-300kg)
+- [x] **BMR-01**: User can input personal data (age, sex, height in cm, weight in kg) on settings page
+- [x] **BMR-02**: App calculates BMR using Mifflin-St Jeor formula as default
+- [x] **BMR-03**: User can select activity level from 5-level scale (sedentary to extra active)
+- [x] **BMR-04**: App displays TDEE (Total Daily Energy Expenditure) as kcal/day, rounded to nearest 10
+- [x] **BMR-05**: BMR/TDEE recalculates live as user changes inputs (no submit button)
+- [x] **BMR-06**: Inline validation on all inputs (age 10-120, height 100-250cm, weight 30-300kg)
 
 ### Dietary Guidelines
 
@@ -86,12 +86,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| BMR-01 | Phase 1 | Pending |
-| BMR-02 | Phase 1 | Pending |
-| BMR-03 | Phase 1 | Pending |
-| BMR-04 | Phase 1 | Pending |
-| BMR-05 | Phase 1 | Pending |
-| BMR-06 | Phase 1 | Pending |
+| BMR-01 | Phase 1 | Complete |
+| BMR-02 | Phase 1 | Complete |
+| BMR-03 | Phase 1 | Complete |
+| BMR-04 | Phase 1 | Complete |
+| BMR-05 | Phase 1 | Complete |
+| BMR-06 | Phase 1 | Complete |
 | DIET-01 | Phase 1 | Pending |
 | DIET-02 | Phase 1 | Pending |
 | DIET-03 | Phase 1 | Pending |

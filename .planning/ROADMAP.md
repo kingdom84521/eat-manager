@@ -31,7 +31,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 2 plans
 
 Plans:
-- [ ] 01-01-PLAN.md — Types extension + BMR/TDEE calculation module (src/data/types.ts + src/data/bmr.ts)
+- [x] 01-01-PLAN.md — Types extension + BMR/TDEE calculation module (src/data/types.ts + src/data/bmr.ts)
 - [ ] 01-02-PLAN.md — Dietary guidelines catalog module (src/data/dietary-guidelines.ts)
 
 ### Phase 2: Settings Persistence Layer
@@ -74,7 +74,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Static Data Foundation | 0/2 | Not started | - |
+| 1. Static Data Foundation | 1/2 | In Progress|  |
 | 2. Settings Persistence Layer | 0/? | Not started | - |
 | 3. SheetsAPI Runtime Config Patch | 0/? | Not started | - |
 | 4. Settings Page UI + Integration | 0/? | Not started | - |
