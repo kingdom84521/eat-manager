@@ -18,13 +18,13 @@ Requirements for this milestone. Each maps to roadmap phases.
 
 ### Dietary Guidelines
 
-- [ ] **DIET-01**: App provides at least 3 dietary guideline presets from different countries/organizations
-- [ ] **DIET-02**: Taiwan (衛福部 DRI) preset with macronutrient ratios
-- [ ] **DIET-03**: USDA (Dietary Guidelines for Americans / AMDR) preset with macronutrient ratios
-- [ ] **DIET-04**: WHO/FAO or Japan (MHLW DRI) preset with macronutrient ratios
-- [ ] **DIET-05**: Each preset displays issuing authority name and source citation
-- [ ] **DIET-06**: User can select and switch between guideline presets
-- [ ] **DIET-07**: App calculates macronutrient gram targets (protein/fat/carbs) from TDEE x selected guideline ratios
+- [x] **DIET-01**: App provides at least 3 dietary guideline presets from different countries/organizations
+- [x] **DIET-02**: Taiwan (衛福部 DRI) preset with macronutrient ratios
+- [x] **DIET-03**: USDA (Dietary Guidelines for Americans / AMDR) preset with macronutrient ratios
+- [x] **DIET-04**: WHO/FAO or Japan (MHLW DRI) preset with macronutrient ratios
+- [x] **DIET-05**: Each preset displays issuing authority name and source citation
+- [x] **DIET-06**: User can select and switch between guideline presets
+- [x] **DIET-07**: App calculates macronutrient gram targets (protein/fat/carbs) from TDEE x selected guideline ratios
 
 ### Settings Page
 
@@ -92,13 +92,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 | BMR-04 | Phase 1 | Complete |
 | BMR-05 | Phase 1 | Complete |
 | BMR-06 | Phase 1 | Complete |
-| DIET-01 | Phase 1 | Pending |
-| DIET-02 | Phase 1 | Pending |
-| DIET-03 | Phase 1 | Pending |
-| DIET-04 | Phase 1 | Pending |
-| DIET-05 | Phase 1 | Pending |
-| DIET-06 | Phase 1 | Pending |
-| DIET-07 | Phase 1 | Pending |
+| DIET-01 | Phase 1 | Complete |
+| DIET-02 | Phase 1 | Complete |
+| DIET-03 | Phase 1 | Complete |
+| DIET-04 | Phase 1 | Complete |
+| DIET-05 | Phase 1 | Complete |
+| DIET-06 | Phase 1 | Complete |
+| DIET-07 | Phase 1 | Complete |
 | SET-01 | Phase 4 | Pending |
 | SET-02 | Phase 2 | Pending |
 | SET-03 | Phase 2 | Pending |

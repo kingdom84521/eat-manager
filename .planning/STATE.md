@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed 01-01-PLAN.md
-last_updated: "2026-03-29T17:02:00.439Z"
+status: verifying
+stopped_at: Completed 01-02-PLAN.md
+last_updated: "2026-03-29T17:09:17.836Z"
 last_activity: 2026-03-29
 progress:
   total_phases: 4
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 2
-  completed_plans: 1
+  completed_plans: 2
   percent: 0
 ---
 
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-03-29)
 
 Phase: 01 (static-data-foundation) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-03-29
 
 Progress: [░░░░░░░░░░] 0%
@@ -53,6 +53,7 @@ Progress: [░░░░░░░░░░] 0%
 
 *Updated after each plan completion*
 | Phase 01-static-data-foundation P01 | 8 | 2 tasks | 2 files |
+| Phase 01-static-data-foundation P02 | 3 | 1 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -66,6 +67,8 @@ Recent decisions affecting current work:
 - [Roadmap]: Derived values (TDEE, macro grams) computed on demand, never stored, to avoid stale cache bugs
 - [Phase 01-static-data-foundation]: ActivityLevelId defined as explicit union in types.ts (not derived from ACTIVITY_LEVELS) to avoid circular imports
 - [Phase 01-static-data-foundation]: BMR reference value is 1648.75 using Mifflin-St Jeor formula; TDEE uses multiply-first-then-round rounding
+- [Phase 01-static-data-foundation]: Taiwan HPA DRI macro ratios sourced from secondary sources — MEDIUM confidence, flagged for v1.1 primary PDF verification
+- [Phase 01-static-data-foundation]: calculateMacroGrams uses Math.round for all gram values (protein/carb: /4 kcal/g, fat: /9 kcal/g)
 
 ### Pending Todos
 
@@ -79,6 +82,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-29T17:02:00.433Z
-Stopped at: Completed 01-01-PLAN.md
+Last session: 2026-03-29T17:09:17.831Z
+Stopped at: Completed 01-02-PLAN.md
 Resume file: None

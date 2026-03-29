@@ -32,7 +32,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 Plans:
 - [x] 01-01-PLAN.md — Types extension + BMR/TDEE calculation module (src/data/types.ts + src/data/bmr.ts)
-- [ ] 01-02-PLAN.md — Dietary guidelines catalog module (src/data/dietary-guidelines.ts)
+- [x] 01-02-PLAN.md — Dietary guidelines catalog module (src/data/dietary-guidelines.ts)
 
 ### Phase 2: Settings Persistence Layer
 **Goal**: SettingsService reads and writes user settings synchronously to localStorage with a versioned schema, callable by any module before the UI exists
