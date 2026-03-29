@@ -1,0 +1,18 @@
+@import "tailwindcss";
+
+@theme {
+  --color-emerald-glow: oklch(0.75 0.18 155);
+  --color-surface: oklch(0.15 0.01 260);
+  --color-surface-raised: oklch(0.2 0.01 260);
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: oklch(0.4 0 0); border-radius: 2px; }
