@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { SUPPLEMENTS, NATURAL_REMEDIES, BEHAVIORS, getRemediesByTag } from "../data/remedies";
+import { SUPPLEMENTS, NATURAL_REMEDIES, BEHAVIORS } from "../data/remedies";
 import { HEALTH_TAG_LABELS, HEALTH_TAG_COLORS, type HealthTag, type ItemType } from "../data/types";
 
 type FilterType = "all" | ItemType;
