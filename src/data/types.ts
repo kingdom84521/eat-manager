@@ -207,3 +207,70 @@ export interface SupplementLogEntry {
   skippedIds?: string[];
   notes?: string;
 }
+
+// ── BMR / TDEE Types ────────────────────────────────
+
+/** 活動量等級 ID — 對應 bmr.ts 的 ACTIVITY_LEVELS 陣列 */
+export type ActivityLevelId =
+  | "sedentary"
+  | "light"
+  | "moderate"
+  | "very"
+  | "extra";
+
+/** 使用者基本資料，用於 BMR 計算 */
+export interface UserProfile {
+  ageYears: number;
+  sex: "male" | "female";
+  /** 身高（公分） */
+  heightCm: number;
+  /** 體重（公斤） */
+  weightKg: number;
+  activityLevelId: ActivityLevelId;
+}
+
+/** BMR + TDEE 計算結果 */
+export interface BMRResult {
+  /** 基礎代謝率 kcal/day（未四捨五入） */
+  bmr: number;
+  /** 每日總消耗熱量 kcal/day（四捨五入至十位數） */
+  tdee: number;
+}
+
+// ── Dietary Guideline Types ───────────────────────
+
+/** 三大營養素佔總熱量的百分比 */
+export interface MacroRatios {
+  /** % of TDEE */
+  protein: number;
+  /** % of TDEE */
+  fat: number;
+  /** % of TDEE */
+  carb: number;
+}
+
+/** 三大營養素的克數目標 */
+export interface MacroGrams {
+  protein: number;
+  fat: number;
+  carb: number;
+}
+
+/** 飲食指南預設組 */
+export interface GuidelinePreset {
+  id: string;
+  /** 顯示名稱（繁體中文） */
+  name: string;
+  /** 發布機構（繁體中文） */
+  authority: string;
+  /** 來源 URL */
+  sourceUrl: string;
+  /** 版本年份 */
+  year: number;
+  /**
+   * 三大營養素佔總熱量百分比。
+   * 三項相加應為 100。
+   * 儲存百分比（非克數）— 克數由 calculateMacroGrams() 動態計算。
+   */
+  macroRatios: MacroRatios;
+}
