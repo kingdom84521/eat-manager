@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { SettingsService } from "../lib/settings-service";
+import { useState, useRef, useEffect } from "react";
+import { SettingsService, computeAgeFromBirthday } from "../lib/settings-service";
 import { ACTIVITY_LEVELS, calculateBMRResult } from "../data/bmr";
 import { GUIDELINES, calculateMacroGrams, GUIDELINE_MAP } from "../data/dietary-guidelines";
 import type { ActivityLevelId } from "../data/types";
@@ -7,7 +7,7 @@ import type { ActivityLevelId } from "../data/types";
 // ── Form State Types ──────────────────────────────
 
 interface ProfileFormState {
-  ageYears: string;
+  birthday: string;
   sex: "male" | "female";
   heightCm: string;
   weightKg: string;
@@ -15,7 +15,7 @@ interface ProfileFormState {
 }
 
 interface ProfileErrors {
-  ageYears?: string;
+  birthday?: string;
   heightCm?: string;
   weightKg?: string;
 }
@@ -24,12 +24,16 @@ interface ProfileErrors {
 
 function validateProfile(form: ProfileFormState): ProfileErrors {
   const errors: ProfileErrors = {};
-  const age = parseFloat(form.ageYears);
   const height = parseFloat(form.heightCm);
   const weight = parseFloat(form.weightKg);
 
-  if (form.ageYears === "" || isNaN(age) || age < 10 || age > 120) {
-    errors.ageYears = "年齡須介於 10–120";
+  if (form.birthday === "") {
+    errors.birthday = "請選擇有效的生日（年齡須介於 10–120 歲）";
+  } else {
+    const age = computeAgeFromBirthday(form.birthday);
+    if (age < 10 || age > 120) {
+      errors.birthday = "請選擇有效的生日（年齡須介於 10–120 歲）";
+    }
   }
   if (form.heightCm === "" || isNaN(height) || height < 100 || height > 250) {
     errors.heightCm = "身高須介於 100–250 公分";
@@ -42,22 +46,22 @@ function validateProfile(form: ProfileFormState): ProfileErrors {
 
 function isProfileComplete(form: ProfileFormState): boolean {
   return (
-    form.ageYears !== "" &&
+    form.birthday !== "" &&
     form.heightCm !== "" &&
     form.weightKg !== "" &&
-    !isNaN(parseFloat(form.ageYears)) &&
     !isNaN(parseFloat(form.heightCm)) &&
     !isNaN(parseFloat(form.weightKg))
   );
 }
 
 function computeTdee(form: ProfileFormState): number | null {
-  const age = parseFloat(form.ageYears);
+  if (form.birthday === "") return null;
+  const age = computeAgeFromBirthday(form.birthday);
   const height = parseFloat(form.heightCm);
   const weight = parseFloat(form.weightKg);
 
   if (
-    isNaN(age) || age < 10 || age > 120 ||
+    age < 10 || age > 120 ||
     isNaN(height) || height < 100 || height > 250 ||
     isNaN(weight) || weight < 30 || weight > 300
   ) {
@@ -71,6 +75,251 @@ function computeTdee(form: ProfileFormState): number | null {
 const INPUT_CLASS =
   "w-full bg-slate-800 rounded-lg px-4 py-3 text-sm text-white placeholder-slate-600 outline-none focus:ring-2 focus:ring-blue-500";
 
+// ── BirthdayPicker Component ──────────────────────
+
+const DOW_LABELS = ["日", "一", "二", "三", "四", "五", "六"];
+
+function formatDisplayDate(iso: string): string {
+  if (!iso) return "";
+  const [y, m, d] = iso.split("-");
+  return `${y} / ${m} / ${d}`;
+}
+
+interface BirthdayPickerProps {
+  value: string; // ISO date "YYYY-MM-DD" or ""
+  onChange: (date: string) => void;
+}
+
+function BirthdayPicker({ value, onChange }: BirthdayPickerProps) {
+  const today = new Date();
+  const currentYear = today.getFullYear();
+
+  // Default view: if value set show that month; otherwise show January 30 years ago
+  const defaultViewYear = value ? parseInt(value.split("-")[0], 10) : currentYear - 30;
+  const defaultViewMonth = value ? parseInt(value.split("-")[1], 10) - 1 : 0;
+
+  const [open, setOpen] = useState(false);
+  const [viewYear, setViewYear] = useState(defaultViewYear);
+  const [viewMonth, setViewMonth] = useState(defaultViewMonth); // 0-indexed
+  const [showYearList, setShowYearList] = useState(false);
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const yearListRef = useRef<HTMLDivElement>(null);
+
+  // Close calendar on outside click
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+        setShowYearList(false);
+      }
+    }
+    if (open) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [open]);
+
+  // Scroll the selected year into view when year list opens
+  useEffect(() => {
+    if (showYearList && yearListRef.current) {
+      const selectedEl = yearListRef.current.querySelector("[data-selected='true']");
+      if (selectedEl) {
+        selectedEl.scrollIntoView({ block: "center" });
+      }
+    }
+  }, [showYearList]);
+
+  function prevMonth() {
+    if (viewMonth === 0) {
+      setViewMonth(11);
+      setViewYear((y) => y - 1);
+    } else {
+      setViewMonth((m) => m - 1);
+    }
+  }
+
+  function nextMonth() {
+    if (viewMonth === 11) {
+      setViewMonth(0);
+      setViewYear((y) => y + 1);
+    } else {
+      setViewMonth((m) => m + 1);
+    }
+  }
+
+  function handleDayClick(day: number) {
+    const mm = String(viewMonth + 1).padStart(2, "0");
+    const dd = String(day).padStart(2, "0");
+    onChange(`${viewYear}-${mm}-${dd}`);
+    setOpen(false);
+    setShowYearList(false);
+  }
+
+  function handleYearSelect(year: number) {
+    setViewYear(year);
+    setShowYearList(false);
+  }
+
+  // Build calendar grid
+  const firstDayOfMonth = new Date(viewYear, viewMonth, 1).getDay(); // 0=Sun
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+  const daysInPrevMonth = new Date(viewYear, viewMonth, 0).getDate();
+
+  // 6 rows x 7 cols = 42 cells
+  const cells: { day: number; month: "prev" | "curr" | "next" }[] = [];
+  for (let i = 0; i < firstDayOfMonth; i++) {
+    cells.push({ day: daysInPrevMonth - firstDayOfMonth + 1 + i, month: "prev" });
+  }
+  for (let d = 1; d <= daysInMonth; d++) {
+    cells.push({ day: d, month: "curr" });
+  }
+  const remaining = 42 - cells.length;
+  for (let d = 1; d <= remaining; d++) {
+    cells.push({ day: d, month: "next" });
+  }
+
+  // Determine selected ISO components
+  const selectedYear = value ? parseInt(value.split("-")[0], 10) : null;
+  const selectedMonth = value ? parseInt(value.split("-")[1], 10) - 1 : null;
+  const selectedDay = value ? parseInt(value.split("-")[2], 10) : null;
+
+  // Today components
+  const todayYear = today.getFullYear();
+  const todayMonth = today.getMonth();
+  const todayDay = today.getDate();
+
+  // Year list range: current year - 120 to current year - 10
+  const minYear = currentYear - 120;
+  const maxYear = currentYear - 10;
+  const yearRange: number[] = [];
+  for (let y = maxYear; y >= minYear; y--) {
+    yearRange.push(y);
+  }
+
+  const monthLabel = `${viewYear} 年 ${viewMonth + 1} 月`;
+
+  return (
+    <div ref={containerRef} className="relative">
+      {/* Date display input */}
+      <button
+        type="button"
+        onClick={() => {
+          setOpen((o) => !o);
+          setShowYearList(false);
+        }}
+        className={`${INPUT_CLASS} text-left cursor-pointer`}
+      >
+        {value ? (
+          <span>{formatDisplayDate(value)}</span>
+        ) : (
+          <span className="text-slate-600">選擇生日</span>
+        )}
+      </button>
+
+      {/* Inline calendar block */}
+      {open && (
+        <div className="mt-2 rounded-xl bg-slate-800 border border-slate-700/60 p-3 select-none">
+          {/* Month/Year header */}
+          <div className="flex items-center justify-between mb-3">
+            <button
+              type="button"
+              onClick={prevMonth}
+              className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 text-sm"
+            >
+              ‹
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowYearList((s) => !s)}
+              className="text-sm font-semibold text-slate-200 hover:text-white px-2 py-1 rounded hover:bg-slate-700"
+            >
+              {monthLabel}
+            </button>
+            <button
+              type="button"
+              onClick={nextMonth}
+              className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 text-sm"
+            >
+              ›
+            </button>
+          </div>
+
+          {/* Year selector overlay */}
+          {showYearList && (
+            <div
+              ref={yearListRef}
+              className="h-48 overflow-y-auto rounded-lg bg-slate-900 border border-slate-700 mb-3"
+            >
+              {yearRange.map((y) => {
+                const isSelected = y === viewYear;
+                return (
+                  <button
+                    key={y}
+                    type="button"
+                    data-selected={isSelected}
+                    onClick={() => handleYearSelect(y)}
+                    className={`w-full text-center py-1.5 text-sm transition-colors ${
+                      isSelected
+                        ? "bg-blue-600 text-white font-bold"
+                        : "text-slate-300 hover:bg-slate-700"
+                    }`}
+                  >
+                    {y}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Day-of-week headers */}
+          <div className="grid grid-cols-7 mb-1">
+            {DOW_LABELS.map((d) => (
+              <div key={d} className="text-center text-xs text-slate-500 py-1">
+                {d}
+              </div>
+            ))}
+          </div>
+
+          {/* Day grid */}
+          <div className="grid grid-cols-7 gap-y-0.5">
+            {cells.map((cell, idx) => {
+              const isCurr = cell.month === "curr";
+              const isSelected =
+                isCurr &&
+                selectedYear === viewYear &&
+                selectedMonth === viewMonth &&
+                selectedDay === cell.day;
+              const isToday =
+                isCurr &&
+                todayYear === viewYear &&
+                todayMonth === viewMonth &&
+                todayDay === cell.day;
+
+              return (
+                <button
+                  key={idx}
+                  type="button"
+                  disabled={!isCurr}
+                  onClick={() => isCurr && handleDayClick(cell.day)}
+                  className={`
+                    w-full aspect-square flex items-center justify-center rounded-full text-xs transition-colors
+                    ${!isCurr ? "text-slate-700 cursor-default" : "text-slate-300 hover:bg-slate-700 cursor-pointer"}
+                    ${isSelected ? "!bg-blue-600 !text-white font-bold" : ""}
+                    ${isToday && !isSelected ? "ring-1 ring-blue-400" : ""}
+                  `}
+                >
+                  {cell.day}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Main Component ────────────────────────────────
 
 export default function Settings() {
@@ -78,7 +327,7 @@ export default function Settings() {
 
   const savedProfile = SettingsService.getUserProfile();
   const [form, setForm] = useState<ProfileFormState>({
-    ageYears: savedProfile ? String(savedProfile.ageYears) : "",
+    birthday: savedProfile ? savedProfile.birthday : "",
     sex: savedProfile ? savedProfile.sex : "male",
     heightCm: savedProfile ? String(savedProfile.heightCm) : "",
     weightKg: savedProfile ? String(savedProfile.weightKg) : "",
@@ -111,7 +360,7 @@ export default function Settings() {
 
     if (Object.keys(errors).length === 0 && isProfileComplete(next)) {
       SettingsService.saveUserProfile({
-        ageYears: parseFloat(next.ageYears),
+        birthday: next.birthday,
         sex: next.sex,
         heightCm: parseFloat(next.heightCm),
         weightKg: parseFloat(next.weightKg),
@@ -123,6 +372,10 @@ export default function Settings() {
   // ── TDEE (live preview from form, not SettingsService) ──
 
   const liveTdee = computeTdee(form);
+
+  // ── Computed age display ──
+
+  const computedAge = form.birthday ? computeAgeFromBirthday(form.birthday) : null;
 
   // ── Guideline Handler ──
 
@@ -165,18 +418,20 @@ export default function Settings() {
       <div className="bg-slate-800/50 rounded-xl p-4 mb-5">
         <h2 className="text-sm font-bold text-slate-300 mb-4">個人資料</h2>
 
-        {/* Age */}
+        {/* Birthday */}
         <div className="mb-3">
-          <label className="block text-xs text-slate-400 mb-1">年齡</label>
-          <input
-            type="number"
-            placeholder="年齡"
-            value={form.ageYears}
-            onChange={(e) => handleProfileChange({ ageYears: e.target.value })}
-            className={INPUT_CLASS}
+          <label className="block text-xs text-slate-400 mb-1">
+            生日
+            {computedAge !== null && (
+              <span className="text-slate-500 ml-2">（{computedAge} 歲）</span>
+            )}
+          </label>
+          <BirthdayPicker
+            value={form.birthday}
+            onChange={(d) => handleProfileChange({ birthday: d })}
           />
-          {profileErrors.ageYears && (
-            <p className="text-red-400 text-xs mt-1">{profileErrors.ageYears}</p>
+          {profileErrors.birthday && (
+            <p className="text-red-400 text-xs mt-1">{profileErrors.birthday}</p>
           )}
         </div>
 
