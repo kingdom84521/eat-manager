@@ -74,7 +74,7 @@ Plans:
 **UI hint**: yes
 
 Plans:
-- [ ] 04-01-PLAN.md — Settings page (Settings.tsx) with BMR form, guideline selector, Sheets config + App.tsx nav integration
+- [x] 04-01-PLAN.md — Settings page (Settings.tsx) with BMR form, guideline selector, Sheets config + App.tsx nav integration
 - [ ] 04-02-PLAN.md — Hardcoded target migration in NutritionTracker.tsx and WeightLog.tsx
 
 ## Progress
@@ -87,4 +87,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 | 1. Static Data Foundation | 2/2 | Complete |  |
 | 2. Settings Persistence Layer | 0/1 | Planned    |  |
 | 3. SheetsAPI Runtime Config Patch | 1/1 | Complete   | 2026-03-30 |
-| 4. Settings Page UI + Integration | 0/2 | Planned | - |
+| 4. Settings Page UI + Integration | 1/2 | In Progress|  |

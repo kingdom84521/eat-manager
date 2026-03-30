@@ -28,16 +28,16 @@ Requirements for this milestone. Each maps to roadmap phases.
 
 ### Settings Page
 
-- [ ] **SET-01**: Settings page accessible via new navigation tab (5th tab)
+- [x] **SET-01**: Settings page accessible via new navigation tab (5th tab)
 - [x] **SET-02**: Settings persisted to localStorage across sessions
 - [x] **SET-03**: Settings use a versioned schema for future migration support
-- [ ] **SET-04**: All UI text in Traditional Chinese (zh-TW) matching existing app style
+- [x] **SET-04**: All UI text in Traditional Chinese (zh-TW) matching existing app style
 
 ### Google Sheets Connection
 
-- [ ] **GS-01**: User can input Google Apps Script Web App URL on settings page
-- [ ] **GS-02**: User can input Google Sheet ID on settings page
-- [ ] **GS-03**: Explicit save button for Sheets connection config (not auto-save)
+- [x] **GS-01**: User can input Google Apps Script Web App URL on settings page
+- [x] **GS-02**: User can input Google Sheet ID on settings page
+- [x] **GS-03**: Explicit save button for Sheets connection config (not auto-save)
 - [x] **GS-04**: SheetsAPI reads GAS URL at call time (runtime config), not module load time
 - [x] **GS-05**: Fallback to .env VITE_GAS_URL when no runtime config is set
 
@@ -99,13 +99,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DIET-05 | Phase 1 | Complete |
 | DIET-06 | Phase 1 | Complete |
 | DIET-07 | Phase 1 | Complete |
-| SET-01 | Phase 4 | Pending |
+| SET-01 | Phase 4 | Complete |
 | SET-02 | Phase 2 | Complete |
 | SET-03 | Phase 2 | Complete |
-| SET-04 | Phase 4 | Pending |
-| GS-01 | Phase 4 | Pending |
-| GS-02 | Phase 4 | Pending |
-| GS-03 | Phase 4 | Pending |
+| SET-04 | Phase 4 | Complete |
+| GS-01 | Phase 4 | Complete |
+| GS-02 | Phase 4 | Complete |
+| GS-03 | Phase 4 | Complete |
 | GS-04 | Phase 3 | Complete |
 | GS-05 | Phase 3 | Complete |
 | INT-01 | Phase 4 | Pending |
