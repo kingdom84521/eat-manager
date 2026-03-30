@@ -3,19 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { todayStr } from "../lib/data-service";
 import { SettingsService } from "../lib/settings-service";
 
-/**
- * TODO: 把你的 nutrition-tracker-tw skill 的邏輯搬進來
- * 核心功能：
- * 1. 「新的一天」重置
- * 2. 記錄每餐 (搜尋食物 or 手動輸入)
- * 3. 即時顯示預算表
- * 4. 已知食物資料庫 (7-11, 早餐店等)
- */
-
 export default function NutritionTracker() {
   const navigate = useNavigate();
   const [date] = useState(todayStr());
-  const [meals, setMeals] = useState<
+  const [meals] = useState<
     { meal: string; name: string; cal: number; protein: number }[]
   >([]);
 
@@ -83,21 +74,12 @@ export default function NutritionTracker() {
         </div>
       )}
 
-      {/* Quick add (placeholder) */}
-      <div className="space-y-2">
-        <button
-          onClick={() =>
-            setMeals([...meals, { meal: "snack", name: "茶葉蛋", cal: 75, protein: 7 }])
-          }
-          className="w-full py-3 rounded-lg bg-slate-800 text-sm text-slate-300 hover:bg-slate-700 transition"
-        >
-          + 快速記錄（TODO: 搜尋 / 拍照 / 手動）
-        </button>
-      </div>
-
-      <p className="text-center text-[10px] text-slate-700 mt-8">
-        TODO: 接上 DataService.logMeal() + 食物資料庫搜尋
-      </p>
+      {/* Empty state when no meals logged */}
+      {meals.length === 0 && (
+        <p className="text-center text-sm text-slate-500 mt-8">
+          尚未記錄任何餐食
+        </p>
+      )}
     </div>
   );
 }
