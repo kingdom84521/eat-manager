@@ -99,6 +99,7 @@ export default function Settings() {
   const [sheetId, setSheetId] = useState(savedSheets?.sheetId ?? "");
   const [sheetsError, setSheetsError] = useState<string | null>(null);
   const [sheetsSaved, setSheetsSaved] = useState(false);
+  const [showSheetsHelp, setShowSheetsHelp] = useState(false);
 
   // ── Profile Handlers ──
 
@@ -313,9 +314,96 @@ export default function Settings() {
         )}
       </div>
 
+      {/* Help Dialog: Google Sheets Setup */}
+      {showSheetsHelp && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+          onClick={() => setShowSheetsHelp(false)}
+        >
+          <div
+            className="bg-slate-800 rounded-2xl p-5 mx-4 max-w-md max-h-[80vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Dialog Header */}
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-bold text-white">如何連接 Google Sheets</h3>
+              <button
+                onClick={() => setShowSheetsHelp(false)}
+                className="w-7 h-7 flex items-center justify-center rounded-full bg-slate-700 text-slate-400 hover:bg-slate-600 hover:text-white text-sm font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Step 1 */}
+            <div>
+              <p className="text-blue-400 font-bold text-sm mb-1">步驟 1：建立 Google 試算表</p>
+              <p className="text-slate-300 text-sm mb-4 leading-relaxed">
+                開啟 Google Sheets，建立一個新的試算表（或使用現有的）。記下網址列中的 Sheet ID — 它是{" "}
+                <span className="text-slate-400 font-mono text-xs">
+                  https://docs.google.com/spreadsheets/d/
+                </span>{" "}
+                後面那段長字串。
+              </p>
+            </div>
+
+            {/* Step 2 */}
+            <div>
+              <p className="text-blue-400 font-bold text-sm mb-1">步驟 2：開啟 Apps Script 編輯器</p>
+              <p className="text-slate-300 text-sm mb-4 leading-relaxed">
+                在試算表中，點選「擴充功能」&gt;「Apps Script」，這會開啟 Apps Script 編輯器。
+              </p>
+            </div>
+
+            {/* Step 3 */}
+            <div>
+              <p className="text-blue-400 font-bold text-sm mb-1">步驟 3：貼上 API 程式碼</p>
+              <p className="text-slate-300 text-sm mb-4 leading-relaxed">
+                將本專案提供的 <span className="text-slate-400 font-mono text-xs">gas-api.js</span>{" "}
+                程式碼完整貼入編輯器中，取代預設內容，然後儲存。
+              </p>
+            </div>
+
+            {/* Step 4 */}
+            <div>
+              <p className="text-blue-400 font-bold text-sm mb-1">步驟 4：部署為 Web App</p>
+              <p className="text-slate-300 text-sm mb-2 leading-relaxed">
+                點選「部署」&gt;「新增部署」&gt;「網頁應用程式」。設定：
+              </p>
+              <div className="bg-slate-700/50 rounded-lg px-3 py-2 mb-4">
+                <p className="text-slate-300 text-sm leading-relaxed">・「執行身分」→ 我</p>
+                <p className="text-slate-300 text-sm leading-relaxed">・「誰可以存取」→ 任何人</p>
+              </div>
+            </div>
+
+            {/* Step 5 */}
+            <div>
+              <p className="text-blue-400 font-bold text-sm mb-1">步驟 5：複製網址</p>
+              <p className="text-slate-300 text-sm mb-4 leading-relaxed">
+                部署完成後，複製產生的 Web App 網址，貼到下方「GAS 網址」欄位。將 Sheet ID 貼到「Sheet ID」欄位。
+              </p>
+            </div>
+
+            {/* Tip */}
+            <p className="text-slate-500 text-xs leading-relaxed">
+              提示：每次修改程式碼後需重新部署才會生效。
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Section 3: Google Sheets Connection */}
       <div className="bg-slate-800/50 rounded-xl p-4 mb-5">
-        <h2 className="text-sm font-bold text-slate-300 mb-4">Google Sheets 連接</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-sm font-bold text-slate-300">Google Sheets 連接</h2>
+          <button
+            onClick={() => setShowSheetsHelp(true)}
+            className="w-6 h-6 rounded-full bg-slate-700 text-slate-400 hover:bg-slate-600 hover:text-white text-xs font-bold flex items-center justify-center"
+            aria-label="顯示設定說明"
+          >
+            ?
+          </button>
+        </div>
 
         {/* GAS URL */}
         <div className="mb-3">
