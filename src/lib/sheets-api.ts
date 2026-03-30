@@ -3,7 +3,7 @@
  * Offline-first: localStorage cache + async sync
  */
 
-const GAS_URL = import.meta.env.VITE_GAS_URL;
+import { SettingsService } from "./settings-service";
 
 // ── Types ───────────────────────────────────────
 
@@ -17,12 +17,19 @@ interface ApiResponse<T = SheetRow[]> {
   data?: T;
 }
 
+// ── URL Resolution ──────────────────────────────
+
+/** 取得 GAS URL：優先使用 SettingsService 的執行期設定，回退至環境變數 */
+function getGasUrl(): string {
+  return SettingsService.getSheetsConfig()?.gasUrl || import.meta.env.VITE_GAS_URL;
+}
+
 // ── Low-level API ───────────────────────────────
 
 async function gasGet(
   params: Record<string, string>
 ): Promise<SheetRow[]> {
-  const url = new URL(GAS_URL);
+  const url = new URL(getGasUrl());
   Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
 
   const res = await fetch(url.toString());
@@ -31,7 +38,7 @@ async function gasGet(
 }
 
 async function gasPost(body: Record<string, unknown>): Promise<ApiResponse> {
-  const res = await fetch(GAS_URL, {
+  const res = await fetch(getGasUrl(), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
