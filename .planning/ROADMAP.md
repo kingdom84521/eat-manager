@@ -24,7 +24,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Depends on**: Nothing (first phase)
 **Requirements**: BMR-01, BMR-02, BMR-03, BMR-04, BMR-05, BMR-06, DIET-01, DIET-02, DIET-03, DIET-04, DIET-05, DIET-06, DIET-07
 **Success Criteria** (what must be TRUE):
-  1. Given known inputs (30yo male, 70kg, 175cm), calculateBMR() returns 1648.75 kcal (Mifflin-St Jeor formula: 10×70 + 6.25×175 - 5×30 + 5)
+  1. Given known inputs (30yo male, 70kg, 175cm), calculateBMR() returns 1648.75 kcal (Mifflin-St Jeor formula: 10x70 + 6.25x175 - 5x30 + 5)
   2. calculateTDEE() returns a value rounded to nearest 10 for each of the 5 activity levels
   3. GUIDELINES catalog contains exactly 3 presets (Taiwan HPA, Japan MHLW, USDA AMDR) each with issuing authority name, source citation, and macroRatios as percentages that sum to 100%
   4. All TypeScript interfaces (UserProfile, BMRResult, GuidelinePreset, MacroRatios, MacroGrams) are defined and exported; no TypeScript errors on build
@@ -70,17 +70,21 @@ Plans:
   3. User can select from 3 guideline presets; macronutrient gram targets update immediately on preset switch and reflect the user's TDEE, not a reference person's TDEE
   4. User can enter a GAS URL and Sheet ID, tap an explicit save button, and the values persist across app restarts; GAS URL is rejected at save time if it does not start with https://script.google.com/
   5. NutritionTracker and WeightLog no longer contain hardcoded personal targets; both pages derive targets from SettingsService (showing a prompt to complete settings when no profile exists)
-**Plans**: TBD
+**Plans**: 2 plans
 **UI hint**: yes
+
+Plans:
+- [ ] 04-01-PLAN.md — Settings page (Settings.tsx) with BMR form, guideline selector, Sheets config + App.tsx nav integration
+- [ ] 04-02-PLAN.md — Hardcoded target migration in NutritionTracker.tsx and WeightLog.tsx
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4
+Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Static Data Foundation | 2/2 | Complete |  |
 | 2. Settings Persistence Layer | 0/1 | Planned    |  |
 | 3. SheetsAPI Runtime Config Patch | 1/1 | Complete   | 2026-03-30 |
-| 4. Settings Page UI + Integration | 0/? | Not started | - |
+| 4. Settings Page UI + Integration | 0/2 | Planned | - |
