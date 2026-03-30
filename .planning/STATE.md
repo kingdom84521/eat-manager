@@ -90,6 +90,7 @@ None yet.
 | 260330-6bd | Add Google Sheets connection help dialog | 2026-03-30 | 01faebc | [260330-6bd-add-google-sheets-connection-help-dialog](./quick/260330-6bd-add-google-sheets-connection-help-dialog/) |
 | 260330-88s | Replace age input with birthday date picker | 2026-03-30 | e894c58 | [260330-88s-replace-age-input-with-birthday-date-pic](./quick/260330-88s-replace-age-input-with-birthday-date-pic/) |
 | 260330-jtp | Remove placeholder fake data from NutritionTracker | 2026-03-30 | 7f05abc | — |
+| 260330-k47 | Remove hardcoded data from foods/remedies/schedule | 2026-03-30 | 4e890cb | — |
 
 ### Blockers/Concerns
 
