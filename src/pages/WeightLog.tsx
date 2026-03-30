@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { DataService, todayStr, type WeightEntry } from "../lib/data-service";
-
-const TARGET_KG = 80;
-const START_KG = 104;
+import { SettingsService } from "../lib/settings-service";
 
 export default function WeightLog() {
+  const navigate = useNavigate();
   const [entries, setEntries] = useState<WeightEntry[]>([]);
   const [inputKg, setInputKg] = useState("");
 
@@ -12,9 +12,29 @@ export default function WeightLog() {
     DataService.getWeightLog(90).then(setEntries);
   }, []);
 
-  const latestKg = entries[0]?.weight_kg ?? START_KG;
-  const toGo = latestKg - TARGET_KG;
-  const progress = ((START_KG - latestKg) / (START_KG - TARGET_KG)) * 100;
+  const profile = SettingsService.getUserProfile();
+
+  if (!profile) {
+    return (
+      <div className="px-4 pt-5">
+        <header className="text-center mb-5">
+          <h1 className="text-xl font-extrabold">⚖️ 體重紀錄</h1>
+        </header>
+        <div className="text-center py-12">
+          <p className="text-slate-400 mb-4">請先完成個人設定</p>
+          <button
+            onClick={() => navigate("/settings")}
+            className="px-4 py-2 rounded-lg bg-blue-600 text-sm font-bold"
+          >
+            前往設定
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const latestKg = entries[0]?.weight_kg ?? profile.weightKg;
+  const toGo = latestKg - profile.weightKg;
 
   const handleLog = async () => {
     const kg = parseFloat(inputKg);
@@ -29,23 +49,23 @@ export default function WeightLog() {
     <div className="px-4 pt-5">
       <header className="text-center mb-5">
         <h1 className="text-xl font-extrabold">⚖️ 體重紀錄</h1>
-        <p className="text-xs text-slate-500 mt-1">目標 {TARGET_KG}kg by 2026 年底</p>
+        <p className="text-xs text-slate-500 mt-1">設定體重 {profile.weightKg}kg</p>
       </header>
 
       {/* Progress */}
       <div className="bg-slate-800/50 rounded-xl p-5 mb-5 text-center">
         <div className="text-4xl font-black text-white mb-1">{latestKg} kg</div>
         <div className="text-sm text-slate-400">
-          還差 <span className="text-amber-400 font-bold">{toGo.toFixed(1)} kg</span>
+          目前 <span className="text-amber-400 font-bold">{latestKg} kg</span> / 設定目標 <span className="text-emerald-400 font-bold">{profile.weightKg} kg</span>
         </div>
-        <div className="w-full h-3 bg-slate-700 rounded-full mt-3 overflow-hidden">
-          <div
-            className="h-full bg-gradient-to-r from-emerald-500 to-cyan-400 rounded-full transition-all"
-            style={{ width: `${Math.max(0, Math.min(100, progress))}%` }}
-          />
-        </div>
-        <div className="text-[10px] text-slate-600 mt-1">
-          {START_KG}kg → {TARGET_KG}kg（已完成 {Math.max(0, progress).toFixed(0)}%）
+        <div className="text-sm mt-2">
+          {toGo > 0 ? (
+            <span className="text-amber-400">還差 {toGo.toFixed(1)} kg</span>
+          ) : toGo < 0 ? (
+            <span className="text-emerald-400">已低於目標 {Math.abs(toGo).toFixed(1)} kg</span>
+          ) : (
+            <span className="text-emerald-400">已達目標！</span>
+          )}
         </div>
       </div>
 
