@@ -1,196 +1,164 @@
 # Domain Pitfalls
 
-**Domain:** Nutrition/BMR settings — React SPA with offline-first localStorage + Google Sheets sync
-**Researched:** 2026-03-29
-**Scope:** BMR calculation, multi-country dietary guideline integration, runtime API configuration UI
+**Domain:** Food/supplement CRUD, ingredient composition, supplement inventory tracking, and routine generation — React SPA backed by Google Sheets via Apps Script
+**Researched:** 2026-03-30
+**Scope:** Adding item management features to an existing offline-first static SPA. Focused on integration pitfalls specific to the Google Sheets backend, public nutrition APIs called from a browser, supplement interaction modelling, and deterministic routine generation.
 
 ---
 
 ## Critical Pitfalls
 
-Mistakes that cause incorrect data, silent breakage, or full rewrites.
+Mistakes that cause rewrites, silent data corruption, or security holes that must be addressed before they are designed around.
 
 ---
 
-### Pitfall 1: GAS_URL Baked at Build Time — Runtime Config Goes Nowhere
+### Pitfall 1: Nutrition API Key Embedded in Client-Side Bundle Is Publicly Accessible
 
 **What goes wrong:**
-`sheets-api.ts` line 6 reads `const GAS_URL = import.meta.env.VITE_GAS_URL` at module load time. If you add a settings UI that writes a user-provided URL to localStorage, the running `SheetsAPI` instance never sees it — it already captured the build-time value. Every API call continues using the env var URL silently.
+USDA FoodData Central requires an API key with every request and explicitly states the key holder is responsible for preventing public exposure. If the key is placed in a Vite `.env` file as `VITE_FDC_API_KEY`, Vite's build pipeline inlines it into the JavaScript bundle — which is served statically from GitHub Pages and is trivially extractable from any browser DevTools or by crawling the source. The FoodData Central API enforces a **1,000 requests/hour per IP** rate limit; a leaked key redirects that quota to arbitrary users.
 
 **Why it happens:**
-ES module top-level constants are evaluated once at import. There is no mechanism to re-evaluate `import.meta.env` at runtime.
+Vite's `VITE_` prefix is a convenience for making env vars available in the browser, but that convenience is indistinguishable from publication. There is no server-side proxy in this architecture to shield the key.
 
 **Consequences:**
-The runtime configuration UI appears to work (it saves to localStorage) but has zero effect on API calls. Users believe they have connected their own Sheet when the app is still talking to the build-time endpoint (or nothing, if the env var was blank).
+- Leaked key exhausts your hourly quota, breaking ingredient lookup for the actual user
+- USDA can revoke the key if misuse is detected, requiring a new key and a rebuild
+- API key exposure at scale has been documented in 3,000+ production GitHub Pages sites
 
 **Prevention:**
-`SheetsAPI` must read the URL dynamically on every call from a resolver function, not from a module-level constant. The resolver checks localStorage first, falls back to the env var. Example shape:
-
-```typescript
-function resolveGasUrl(): string {
-  return localStorage.getItem("settings_gas_url") || import.meta.env.VITE_GAS_URL || "";
-}
-```
-
-Replace the constant with a call to `resolveGasUrl()` inside `gasGet` and `gasPost`.
+Two viable approaches for a static SPA:
+1. **Route through the existing GAS proxy** — add a `nutrition_lookup` action to `gas-api.js` that holds the FDC API key server-side in Apps Script's `PropertiesService`. The browser calls the GAS endpoint with a food name; GAS calls FDC with the key. The GAS URL is already a user-configured secret, so this adds no new exposure surface.
+2. **Use Open Food Facts instead of USDA FDC** — Open Food Facts is a read-only, no-key-required API. Product lookups (`https://world.openfoodfacts.org/api/v2/product/{barcode}`) and search endpoints work without authentication and support CORS for browser requests. Rate limit is 100 req/min for product GETs, 10 req/min for search — well within normal usage.
 
 **Warning signs:**
-- Settings page saves successfully but Sheets sync still targets the old URL
-- No error thrown when the new URL is entered — the old URL just keeps working
-- Checking DevTools Network tab shows requests going to the build-time URL after "connecting" a new sheet
+- `VITE_FDC_API_KEY` appears in `src/` files — it will be in the built bundle
+- `/dist/assets/*.js` is grep-searchable for the key after `npm run build`
 
-**Phase:** Address in the settings implementation phase, before adding any Settings UI. Update `sheets-api.ts` first.
+**Phase:** Must be decided before any nutrition API code is written. Architecture decision shapes the integration phase.
 
 ---
 
-### Pitfall 2: BMR Formula Uses Wrong Constant for Gender
+### Pitfall 2: USDA FoodData Central Does Not Reliably Support CORS from Browser Fetch
 
 **What goes wrong:**
-The Mifflin-St Jeor formula differs between male and female only in the final additive constant: `+5` for male, `-161` for female. The Harris-Benedict equation has completely different coefficients per gender. Swapping or misapplying these constants produces a wrong calorie baseline of 160–166 kcal, which then propagates into every macro target derived from it.
+USDA's official API guide does not document CORS headers for browser-based requests. A documented GitHub issue (`USDA/USDA-APIs#79`) shows the API has at times returned `Access-Control-Allow-Origin: http://localhost:3000, *` — a malformed header with two values that browsers reject as a CORS violation. From a GitHub Pages origin (`https://your-name.github.io`), this fails silently in fetch with a generic CORS error and no useful diagnostic.
 
 **Why it happens:**
-The formulas look structurally identical; it is easy to implement the shared terms correctly but copy the wrong constant, especially when translating from a reference that uses different variable names or orderings.
+USDA FDC is designed for server-to-server use. Browser direct-call is an afterthought. CORS configuration bugs in federal APIs are rarely prioritised.
 
 **Consequences:**
-All BMR-derived targets (calorie budget, protein/carb/fat grams) are silently wrong. A 166 kcal error is large enough to cause real dietary harm if the user follows the recommendations.
+An integration that works in server-side Node.js tests (no CORS enforcement) fails entirely in the browser. If this is discovered late, the entire ingredient lookup feature must be re-architected.
 
 **Prevention:**
-- Encode gender as a typed discriminant, not a boolean or raw string: `"male" | "female"`.
-- Co-locate the formula constants with a source citation comment so the values can be spot-checked:
-  ```typescript
-  // Mifflin-St Jeor (1990): doi:10.1093/ajcn/51.2.241
-  const GENDER_OFFSET = gender === "male" ? 5 : -161;
-  const bmr = 10 * weightKg + 6.25 * heightCm - 5 * ageYears + GENDER_OFFSET;
-  ```
-- Write a unit test that validates known reference values (e.g., 30-year-old male, 70 kg, 175 cm should produce 1,673.75 kcal with Mifflin-St Jeor).
+- Do not rely on USDA FDC for browser-direct calls. Use the GAS proxy approach (see Pitfall 1) or substitute Open Food Facts, which explicitly supports browser access.
+- If FDC must be used directly, verify CORS headers with `curl -I 'https://api.nal.usda.gov/fdc/v1/foods/search?query=apple&api_key=...'` and inspect for a clean `Access-Control-Allow-Origin: *` before committing to the integration.
 
 **Warning signs:**
-- BMR output for male and female with identical other inputs differs by exactly `166` kcal — this is the correct differential; any other difference indicates a formula bug.
-- Results match for one gender but are off by hundreds for the other.
+- `fetch()` call to `api.nal.usda.gov` throws `TypeError: Failed to fetch` in the browser even though the same URL works via curl
+- DevTools console shows a CORS preflight failure (OPTIONS request blocked)
 
-**Phase:** BMR calculation phase. Must be verified with reference values before wiring to UI.
+**Phase:** Feasibility must be verified in the first integration spike. Build a single working `fetch()` call in the browser before writing any ingredient lookup UI.
 
 ---
 
-### Pitfall 3: Metric/Imperial Unit Conversion Not Applied Before Formula
+### Pitfall 3: Apps Script Cold Starts Cause 3–10 Second Response Latency on First Call
 
 **What goes wrong:**
-Both Mifflin-St Jeor and Harris-Benedict require weight in **kilograms** and height in **centimetres**. If the input form accepts pounds and inches (or if a user enters metric values but the code assumes imperial), the formula receives unconverted values and the output is meaningless (e.g., a 170 lb person's weight is used as 170 kg, producing a 50% inflated BMR).
+Apps Script Web Apps have a cold start penalty of several seconds when the script instance has been idle. For CRUD operations on food and supplement items, this means the first operation in a session — save new food item, fetch item list — appears to hang. The existing codebase swallows all Sheets errors with `.catch(() => {})`, so there is no user feedback during the wait.
 
 **Why it happens:**
-Forms that expose unit selection as a UI affordance often leave the conversion as an afterthought. The calculation function receives the raw input and assumes a specific unit.
+Apps Script runs on shared Google infrastructure. Instances are not kept warm between requests. The effect is consistently observed in community reports and Google's own issue tracker.
 
 **Consequences:**
-BMR wildly overestimates or underestimates. With height in inches instead of cm, the height term shrinks by a factor of 2.54, understating BMR by roughly 150–200 kcal. With weight in lbs instead of kg, BMR is inflated by a factor of 2.2.
+- Users believe the save action failed and submit the form twice, creating duplicate records in the Sheet
+- The first `readAll()` for the item catalog appears to return nothing (cache is stale), then updates silently in the background — the user sees a blank list, then a populated one 5+ seconds later
+- Form double-submission is especially dangerous for inventory tracking where quantity changes must be idempotent
 
 **Prevention:**
-- Define a single canonical internal representation (`weightKg`, `heightCm`) and convert at the boundary (form input), not inside the BMR function.
-- The BMR function must accept only kg/cm arguments — enforce this with TypeScript parameter names and JSDoc.
-- If the app is always zh-TW and targeted at Taiwan, default to metric (kg/cm) and avoid offering imperial entirely to reduce surface area.
+- For all write operations (create/update/delete), optimistically update localStorage first and show a success state immediately. The Sheets sync is background-only. This is the existing pattern for weight and nutrition logging and must be extended to item CRUD.
+- Add a visible loading indicator for the initial data fetch — do not show an empty list as if there are no items.
+- Make GAS write handlers idempotent: supplement and food upsert must key on a stable ID, not append blindly. The existing `upsert` action in `gas-api.js` already uses date as the key — replace with the item ID for catalog data.
 
 **Warning signs:**
-- BMR output is a round number divisible by the conversion factor (2.2, 2.54)
-- BMR for height input of "170" (cm, valid) produces a result 2.54x smaller than expected when unit is mistakenly treated as inches
+- POST to GAS takes 5+ seconds in DevTools Network tab on first call after page load
+- Network tab shows two identical POST requests within seconds of each other (user double-submit)
 
-**Phase:** BMR calculation phase.
+**Phase:** Phase covering food CRUD. Update `gas-api.js` to support ID-keyed upsert for catalog items.
 
 ---
 
-### Pitfall 4: Activity Multiplier "Bucketing" Produces Misleading TDEE
+### Pitfall 4: Ingredient Composition Allows Circular References — Infinite Recalculation Loop
 
 **What goes wrong:**
-The standard PAL (Physical Activity Level) multipliers — sedentary 1.2, lightly active 1.375, moderately active 1.55, very active 1.725, extra active 1.9 — are coarse buckets. Research shows TDEE calculators using discrete activity categories produce errors exceeding 250 kcal/day in ~50% of cases, and >500 kcal/day in >20% of cases. Users consistently self-rate their activity level too high.
+If "food composed from ingredients" allows any food to be used as an ingredient in another food, it is possible to create a cycle: FoodA contains FoodB, FoodB contains FoodA. Any recursive calorie recalculation will loop infinitely, eventually crashing the browser tab.
 
 **Why it happens:**
-The categories are ambiguous. A user with a desk job who trains 4 days a week might select "very active" when 1.55 (moderately active) is closer to their actual expenditure.
+Ingredient composition is naturally modelled as a directed graph. Developers implement the graph traversal without adding cycle detection because cycles "seem impossible in practice". One user interaction later, they are not.
 
 **Consequences:**
-TDEE-derived calorie targets are materially inaccurate. If presented without caveat, users may over-eat (if they selected too-high a level) while believing they are following a calibrated plan.
+Browser tab hangs or crashes. If the cyclic data is persisted to localStorage and the recalculation runs on page load, the app becomes permanently unresponsive for that user.
 
 **Prevention:**
-- Use concrete behavioural descriptions for activity levels in zh-TW, not abstract labels. E.g., "坐辦公室，每週運動 0–1 次" rather than "久坐".
-- Display the calculated TDEE with an explicit disclaimer that it is an estimate (±200 kcal).
-- Do not present macro gram targets as precise numbers — show ranges.
+- Enforce a shallow composition model: ingredients must be **atomic** items (nutrition-label foods with no sub-ingredients). Composed foods cannot be used as ingredients in other composed foods.
+- Implement this constraint at the data layer: when selecting ingredients, filter out any food whose `source` is `"composed"`.
+- If deep nesting is ever required, add a depth limit (max 2 levels) and a visited-set cycle check before persisting.
 
 **Warning signs:**
-- Users reporting the calorie budget feels too high/low despite correct formula output
-- Activity level labels are translated directly from English without adaptation for typical Taiwanese lifestyles
+- Ingredient selection UI does not filter out composed foods
+- Calorie recalculation function is recursive without a visited-set parameter
 
-**Phase:** BMR/settings UI phase.
+**Phase:** Food composition implementation phase, before the ingredient selector UI is built.
 
 ---
 
-### Pitfall 5: localStorage Settings Schema Changes Break Existing Users' Data
+### Pitfall 5: Supplement Inventory Quantity Drifts from Actual Consumption — No Deduction Event Log
 
 **What goes wrong:**
-The app currently uses a `wellness_` prefix for cache keys with no versioning. When the settings schema evolves between milestones (e.g., adding a new field, renaming `gasUrl` to `gas_url`, changing the type of `activityLevel` from a string to a numeric index), the app tries to parse old-format JSON and either crashes or silently uses a partially-populated object as if it were valid.
+The naive inventory model is: `remaining = purchased - (dailyDose * daysSincePurchase)`. This drifts immediately when the user skips doses, changes doses, or purchases additional stock mid-cycle. After a few weeks the displayed "14 days remaining" is meaningless.
 
 **Why it happens:**
-`JSON.parse` without schema validation accepts any shape. Default values are only applied to missing top-level keys; nested type mismatches are invisible at runtime without TypeScript running in the browser.
+Event-sourced inventory (deduct on each actual consumption log) is the correct model but requires more data structure. The estimate-based model is simpler and appears correct on day one.
 
 **Consequences:**
-A user who had settings saved from a previous version loads the page and gets NaN BMR or 0 calorie targets, with no visible error. Given the existing pattern of silent error swallowing (9 `.catch(() => {})` instances in `data-service.ts`), this will not surface to the user.
+Users run out of supplements unexpectedly or over-purchase. The inventory feature loses trust and is ignored.
 
 **Prevention:**
-- Introduce a `settings_version` key in the stored settings object (start at `1`).
-- Write a migration function that reads the version and transforms old shapes to the current schema before use.
-- Provide explicit defaults for every field so a missing key is never undefined.
-- Store all settings under a single key (`wellness_settings`) rather than individual keys, to make migrations atomic.
+- Model inventory as two components: `purchasedUnits` (manually entered on purchase) and a deduction log (one entry per day the routine is completed).
+- `remaining = purchasedUnits - sum(deduction_log.units)` — derived, never stored directly.
+- The routine completion action (user marks "took today's supplements") writes a deduction event. Never mutate `purchasedUnits` on routine completion.
+- This means supplement logs (the existing `supplement_log` sheet) must record consumed units per item per day, not just a free-text notes field.
 
 **Warning signs:**
-- App behaves correctly on a fresh install but incorrectly after a code update for users who had existing settings
-- BMR displays as NaN or 0 after a settings schema change
-- `JSON.parse` returning an object that satisfies TypeScript types at compile time but has wrong value types at runtime
+- `remaining` is stored as a field on the supplement record (it will silently become stale)
+- Inventory calculation uses `daysSincePurchase` arithmetic rather than an actual consumption log
 
-**Phase:** Settings data layer phase. Define the schema and version before writing any settings to localStorage.
+**Phase:** Supplement inventory design phase. Data model must be correct before any UI is built.
 
 ---
 
-### Pitfall 6: Dietary Guideline Macros Applied as Absolute Grams Instead of Percentages of TDEE
+### Pitfall 6: Google Sheets Row-per-Item Catalog Becomes Read-Bottleneck as Items Grow
 
 **What goes wrong:**
-National dietary guidelines express macronutrient recommendations as percentage of total energy intake (e.g., USDA: 45–65% carbs, 20–35% fat, 10–35% protein). If these are implemented as hardcoded gram values (e.g., "120g protein") rather than as ratios applied to the user's calculated TDEE, every user gets the same targets regardless of their body size and metabolic needs. This is exactly the current bug in `NutritionTracker.tsx` line 13 (`DAILY_TARGET = { cal: [1600, 1800], protein: [120, 130] }`).
+The existing `SheetsAPI.readAll(sheet)` pattern returns every row in a sheet on every call. For the foods catalog, this is currently bounded by the hardcoded dataset size. Once users can add their own foods and supplements, the sheets grow without bound. Apps Script reads the entire sheet into memory (1 `getValues()` call), serialises it to JSON, and returns it in a single HTTP response. At ~500 rows per sheet, this begins to cause noticeable latency; at ~2,000 rows the 6-minute execution limit becomes a risk under load.
 
 **Why it happens:**
-It is simpler to display fixed numbers. Reference materials often publish sample values in grams for a "reference person" (typically a 2,000 kcal/day adult), which get copy-pasted without adapting them to be percentage-based.
+`getDataRange().getValues()` is the standard Apps Script pattern. It is fast for small sheets. There is no pagination mechanism in the existing GAS API.
 
 **Consequences:**
-The entire purpose of connecting BMR to dietary guidelines is defeated. A 60 kg sedentary person and a 90 kg active person see identical targets. This is the existing hardcoding problem, now with a settings system that appears to personalise but does not.
+- Initial load time grows proportionally with catalog size
+- Users with large supplement collections (50+ items) see slow initial renders
+- Background sync fires on every page load — multiplied across tabs, this generates redundant GAS executions
 
 **Prevention:**
-- Store guideline presets as percentage ratios, not gram values.
-- Compute gram targets at display time: `proteinGrams = (tdee * proteinPct) / 4` (4 kcal/g for protein; 4 for carbs; 9 for fat).
-- When a user's BMR/activity changes, macro gram targets automatically update without touching the guideline data.
+- Add a `updatedAfter` filter parameter to the GAS `read` action so the client can fetch only items modified since its last sync timestamp. Store a `last_synced_at` value in localStorage and include it in catalog fetch requests.
+- Cache catalog data aggressively: only invalidate on explicit user CRUD, not on every page load. The current pattern fires `SheetsAPI.readAll()` in the background on every `getFoods()` and `getRemedies()` call — acceptable for read-only logs, wasteful for a catalog that changes rarely.
+- Set a soft limit of 500 items per catalog sheet with a UI warning, not a silent failure.
 
 **Warning signs:**
-- Two users with different TDEE values see the same macro gram targets after selecting the same guideline preset
-- Gram values in the guideline preset constants match common "2000 kcal reference" numbers exactly
+- `SheetsAPI.readAll()` is called on every page mount without a staleness check
+- No `updatedAt` field on food/supplement records
 
-**Phase:** Dietary guideline integration phase.
-
----
-
-### Pitfall 7: User-Provided GAS URL Accepted Without Validation — XSS and Data Exfiltration Risk
-
-**What goes wrong:**
-If the settings form accepts a free-text GAS URL and passes it directly to `fetch()`, an attacker (or misconfigured user) can enter a `javascript:` URI, a `data:` URI, or a URL pointing to a malicious server. Because `fetch()` will send the request with the full cookie context, this can be used to exfiltrate localStorage contents or probe internal network addresses.
-
-**Why it happens:**
-The existing codebase has no input sanitization (noted in CONCERNS.md). The runtime URL feature is new and will be the first user-controlled input wired directly to a network call.
-
-**Consequences:**
-A pasted URL from an untrusted source (e.g., a shared URL that looked like a GAS endpoint) silently routes all Sheets writes to an attacker-controlled endpoint. All user health data is exfiltrated.
-
-**Prevention:**
-- Validate on save, not on use: check that the URL begins with `https://script.google.com/` before storing it.
-- Reject `javascript:`, `data:`, `file:`, and any non-`https` protocol.
-- Display the stored URL in the UI (not just "connected") so the user can see what endpoint is active.
-
-**Warning signs:**
-- URL input field accepts any string and the value is passed to `fetch()` without inspection
-- No error shown when a non-GAS URL is entered
-
-**Phase:** Settings UI phase, before runtime URL feature is shipped.
+**Phase:** Data model phase. Add `updatedAt` and `last_synced_at` before building CRUD UI.
 
 ---
 
@@ -198,74 +166,154 @@ A pasted URL from an untrusted source (e.g., a shared URL that looked like a GAS
 
 ---
 
-### Pitfall 8: Hardcoded Targets in Existing Pages Not Replaced — Dual Sources of Truth
+### Pitfall 7: Open Food Facts Search Returns Asian Food Data as Sparse or Missing
 
 **What goes wrong:**
-`NutritionTracker.tsx` line 13 and `WeightLog.tsx` lines 4–5 contain hardcoded personal targets. When the settings system is implemented, the new settings-derived values exist in localStorage while the old hardcoded values remain in the page components. If the replacement is incomplete, some UI surfaces read from settings while others read from constants — the app appears partially personalised.
+Open Food Facts is crowd-sourced. Coverage for Western packaged foods is excellent. Coverage for Taiwanese and East Asian foods — particularly traditional ingredients like 燕麥 (oats), 豆腐 (tofu), 山藥 (yam), and 小米 (millet) — is sparse and often missing calorie data. Returning an empty result or a result with `null` nutrients silently produces 0-calorie foods.
 
 **Why it happens:**
-It is easy to add settings reading to the new Settings page and forget to update the existing pages.
+Open Food Facts relies on contributor uploads. Taiwan's food market has fewer contributors than the US/EU.
 
 **Consequences:**
-Users configure their BMR and see correct targets on the Settings page but NutritionTracker still caps calories at 1,800 kcal. Confusing and undermines trust in the feature.
+Users search for common local ingredients and find nothing, or find records with incomplete nutritional data. The ingredient lookup feature feels broken for the target audience.
 
 **Prevention:**
-- Treat the settings migration (replacing hardcoded constants) as a mandatory task in the same phase as settings implementation, not as a follow-up.
-- After implementing settings, grep the codebase for the literal values (`1600`, `1800`, `120`, `130`, `80`, `104`) and verify all have been removed.
+- Treat the public API as a **supplement** to a curated local fallback, not as the primary source. Maintain a hardcoded seed list of common Taiwanese ingredients with verified nutrition data.
+- When an API result has `null` for energy/calories, surface this clearly: "營養資料不完整，請手動輸入熱量" rather than defaulting to 0.
+- Allow manual calorie entry as a fallback path — the API lookup path should never be the only way to add a food.
 
 **Warning signs:**
-- `DAILY_TARGET` constant still present in `NutritionTracker.tsx` after settings milestone ships
-- `TARGET_KG` and `START_KG` still hardcoded in `WeightLog.tsx`
+- No fallback UI for `cal: null` from API results
+- Taiwanese staples (米飯, 地瓜, 豆類) are not in the seed catalog
 
-**Phase:** Settings implementation phase.
+**Phase:** Nutrition API integration phase.
 
 ---
 
-### Pitfall 9: Different Countries' Guidelines Use Incompatible Energy Basis
+### Pitfall 8: Supplement Interaction Data Encoded as Pairwise Flat List Becomes Unmanageable
 
 **What goes wrong:**
-Taiwan's DRIS (dietary reference intakes) may express protein targets per kg body weight (e.g., 0.8 g/kg/day), while USDA expresses protein as a percentage of caloric intake (10–35%), and WHO may use a fixed percentage with a lower-bound absolute floor. Implementing three presets without normalising to the same calculation basis means each preset uses a fundamentally different formula, making the outputs incomparable and the code inconsistent.
+Supplement interactions are naturally modelled as a graph (node = supplement, edge = interaction). A flat list of pairs (`{ a: "magnesium", b: "calcium", type: "reduces_absorption" }`) seems simple for 5 supplements. At 20 supplements there are up to 190 unique pairs. Querying "what does zinc interact with?" requires scanning every pair. Adding a new supplement requires manually defining pairs with every existing supplement.
 
 **Why it happens:**
-Different national nutrition authorities use different frameworks. Developers copy the numbers from different sources without noticing the measurement basis differs.
+Pairwise flat lists are the first instinct for interaction data. The complexity growth (O(n²)) is not felt during initial implementation.
 
 **Consequences:**
-The Taiwan preset computes 56 g protein for a 70 kg person while the USDA preset computes 88–350 g for the same person at 2,000 kcal — both are "correct" per their source but incomparable. The preset selector becomes meaningless.
+- The interaction lookup function runs through hundreds of entries for each routine generation call
+- Maintaining the interaction list becomes a data entry burden that is silently abandoned, leaving the feature presenting incomplete data
+- Conflicting guidance: calcium reduces magnesium absorption, but the interaction direction matters (take separately vs. avoid entirely)
 
 **Prevention:**
-- Normalise all guidelines to a single calculation basis before implementing: percentage of TDEE is the most composable.
-- When a source uses g/kg body weight, convert: `grams = ratePerKg * weightKg`, then express as a percentage of TDEE for storage.
-- Cite sources and basis in code comments so future changes can be verified.
+- Model interactions as a map keyed by supplement ID: `{ [supId]: { conflicts: string[], synergies: string[], separateBy: number } }`. Each supplement stores its own interaction profile.
+- Enforce unidirectional consistency: if supplement A conflicts with B, both A's and B's records must list the conflict. Write a validation function that checks bidirectional consistency on save.
+- Keep the interaction data small and explicit: do not attempt to model every known supplement interaction. Cover only the interactions relevant to the user's actual supplement list.
+- Source: real interactions documented at medical grade include calcium/magnesium (absorption competition), zinc/copper (depletes copper), fat-soluble vitamins requiring dietary fat (A, D, E, K), and iron/vitamin C (enhancer, not conflict).
 
 **Warning signs:**
-- Two presets for the same user at the same TDEE produce protein gram targets that differ by more than 100g
-- Preset constants are a mix of percentages and absolute gram values in the same data structure
+- Interaction data stored as a flat array of `{ a, b, type }` objects
+- No validation that A→B and B→A relationships are consistent
+- Interaction lookup requires `Array.find()` scanning all pairs rather than `O(1)` map lookup
 
-**Phase:** Dietary guideline data modelling phase, before any UI is built.
+**Phase:** Supplement data model phase.
 
 ---
 
-### Pitfall 10: Settings State Not Available to Other Pages — Each Page Re-reads localStorage Independently
+### Pitfall 9: Routine Generator Produces No-Schedule Result When Interactions Are Over-Constrained
 
 **What goes wrong:**
-The existing app has no global state management — each page manages its own state via hooks. If Settings are stored in localStorage and each page reads them independently on mount, a user who changes their BMR in Settings and navigates to NutritionTracker will see stale targets until they reload the page. This reproduces the existing "background sync never updates UI" bug (CONCERNS.md) in the settings domain.
+A greedy constraint-satisfaction routine generator schedules supplements into time slots (morning/midday/evening/night) while satisfying timing rules (with food, on empty stomach) and avoiding co-administration of conflicting supplements. If the user's supplement list has enough conflicts and timing constraints, the scheduler exhausts all valid slot assignments and returns an empty or partial plan — with no explanation.
 
 **Why it happens:**
-Without a shared store or context, there is no signal mechanism for "settings changed". Each page's `useEffect` only fires on mount.
+Greedy algorithms work from the most-constrained item first. If two highly-constrained supplements both require morning/empty-stomach, the second one cannot be placed and the scheduler silently skips it or returns null.
 
 **Consequences:**
-User changes settings, goes to the nutrition tracker, sees old targets. This is especially confusing when the old targets are the previous hardcoded constants — the settings change appears to have done nothing.
+User's supplement routine silently omits items. User believes they are taking all their supplements but is not. This is a health-critical silent failure.
 
 **Prevention:**
-- Use a React Context for settings (or a minimal Zustand/Jotai store) so changes propagate reactively.
-- Alternatively, use the `storage` window event to listen for localStorage changes and re-render.
-- Do not rely on navigation causing a full page remount — with HashRouter and React's component lifecycle, navigating between tabs does not always unmount/remount components.
+- The routine generator must never silently omit supplements. If a supplement cannot be scheduled within the constraints, report it explicitly: "無法排入今日計劃，時間衝突: [名稱]".
+- Relax constraints in order of priority: timing preference (prefer morning) is soft; absorption conflict (take separately) is hard. Implement two passes — first with all constraints, then with soft constraints removed — and surface what was relaxed.
+- At reasonable supplement counts (5–15 items), a greedy approach is fast enough. Only switch to backtracking search if the greedy pass fails.
 
 **Warning signs:**
-- NutritionTracker targets do not update after changing settings without a page reload
-- Settings reads are spread across multiple `useEffect` calls in different page components
+- Routine generator function returns a schedule object without a list of unscheduled items
+- No UI element shows "items not scheduled today" when conflicts prevent full coverage
 
-**Phase:** Settings data layer phase. Decide on propagation strategy before implementing any settings consumer.
+**Phase:** Routine generator implementation phase.
+
+---
+
+### Pitfall 10: localStorage Size Limit Exceeded When Storing Full Food Composition Data
+
+**What goes wrong:**
+The existing codebase stores JSON-stringified arrays in localStorage. A composed food record includes an array of ingredients, each with full nutritional data. A supplement record includes interaction maps, timing metadata, dosage history, and purchase logs. At 100+ food items and 30+ supplements, the total localStorage footprint exceeds the browser's typical 5–10 MB quota. Writes silently fail (the existing `cacheSet` already catches this with `console.warn`), and the stale version of the data is served forever.
+
+**Why it happens:**
+localStorage is designed for small user preferences, not catalog data. The current app's data volume is low because data is hardcoded. User-added CRUD removes that ceiling.
+
+**Consequences:**
+- A user who adds many items reaches the storage limit silently
+- Subsequent writes fail without user notification (current code logs `console.warn` only)
+- The catalog shown in the UI is frozen at the last successfully cached state
+
+**Prevention:**
+- Store the item catalog in localStorage with a size budget: cap food catalog at 200 items and supplement catalog at 50 items with a visible count in the management UI.
+- Do not embed full nutritional data inline in the composition record. Store ingredient references by ID and look up nutrition from the catalog at computation time.
+- For inventory logs (deduction events), store only the last 365 entries per supplement; older entries can be in Sheets only.
+- Surface the storage warning when the write fails — replace the silent `console.warn` with an in-app notification in the item management context.
+
+**Warning signs:**
+- `cacheSet` silently catches `QuotaExceededError` in the existing code — this error path will be hit under real data loads
+- Full nutritional data objects embedded inside composition records rather than referenced by ID
+
+**Phase:** Data model phase. Establish storage budget and ID-reference pattern before building CRUD.
+
+---
+
+### Pitfall 11: Item ID Namespace Collision Between Hardcoded Catalog and User-Created Items
+
+**What goes wrong:**
+The existing hardcoded data uses manually assigned string IDs like `"chicken_breast_711"`, `"mung_barley_soup"`, `"acv_water"`. User-created items need unique IDs. If user-created item IDs can collide with hardcoded IDs (e.g., a user creates a food and the system assigns an ID that matches a hardcoded item), the resolver returns the wrong item for plans that reference the old ID.
+
+**Why it happens:**
+ID generation for user data is an afterthought when the system starts with hardcoded data. Sequential integers (`food_001`) can collide with domain-name IDs.
+
+**Consequences:**
+A user's custom food silently shadows a hardcoded food with the same ID. Daily plans referencing the old ID now display the wrong item.
+
+**Prevention:**
+- Use a namespaced ID scheme for user-created items: `"user_food_<timestamp>"` or `"uf_<uuid>"`. Never use the same namespace as hardcoded items.
+- The resolver lookup order must be explicit: check user catalog first, then hardcoded catalog, and log a warning on ID collision rather than silently preferring one.
+- Before shipping CRUD, audit all existing hardcoded IDs for the pattern they use and ensure the user ID generator cannot produce the same pattern.
+
+**Warning signs:**
+- User-created item IDs are numeric integers or short strings that could match hardcoded patterns
+- `resolveItem()` does not distinguish between hardcoded and user-created sources
+
+**Phase:** Data model restructure phase.
+
+---
+
+### Pitfall 12: React Router Navigation Discards Unsaved CRUD Form State
+
+**What goes wrong:**
+React Router DOM v7's `HashRouter` does not trigger the browser's native `beforeunload` dialog. A user filling in a long food composition form (name, serving size, 6 macro fields, ingredient list) who taps the bottom navigation bar loses all entered data instantly. There is no native SPA guard.
+
+**Why it happens:**
+SPA navigation bypasses browser history events. React Router v7 provides `useBlocker` for this purpose but it must be explicitly wired to every form.
+
+**Consequences:**
+Users lose work. CRUD forms for composed foods with many ingredients are particularly painful to re-enter.
+
+**Prevention:**
+- Use React Router v7's `useBlocker` hook on the food/supplement creation and edit forms. Block navigation when the form has unsaved changes (`formState.isDirty`).
+- Trigger the blocker on bottom-nav tab clicks (which are React Router links) and on browser back button.
+- Show a zh-TW confirmation dialog: "資料尚未儲存，確定要離開？"
+
+**Warning signs:**
+- CRUD forms do not import `useBlocker` from `react-router-dom`
+- Tapping bottom nav during form entry silently discards data with no warning
+
+**Phase:** Food CRUD UI phase.
 
 ---
 
@@ -273,43 +321,43 @@ User changes settings, goes to the nutrition tracker, sees old targets. This is 
 
 ---
 
-### Pitfall 11: BMR Formula Produces Negative or Zero for Edge-Case Inputs
+### Pitfall 13: Apps Script doPost Responds 302 Redirect Instead of JSON After Re-deployment
 
 **What goes wrong:**
-Mifflin-St Jeor can theoretically produce negative values for extreme inputs (very old, very low weight). The formula has no built-in floor. A user who enters 0 or leaves a field blank receives NaN or a negative calorie target, which then causes division-by-zero or negative macro gram calculations.
+When an Apps Script Web App is redeployed (new version), the `/exec` URL may temporarily redirect to a new deployment URL. `fetch()` follows the redirect, but Apps Script's CORS headers are not reliably included on the redirect response. The browser blocks the redirected response, and the app receives an opaque network error rather than a meaningful API error.
 
 **Prevention:**
-- Validate all inputs before calculating: minimum age 15, minimum weight 30 kg, minimum height 100 cm.
-- Add a minimum floor of 500 kcal to BMR output regardless of formula result.
-- Show validation errors in zh-TW for out-of-range inputs, not silent wrong values.
+- After every Apps Script redeployment, test the Web App URL directly in the browser and verify it returns JSON (not an HTML redirect page).
+- Pin the deployment to "Execute as: me" + "Anyone can access" and use a stable versioned deployment URL rather than the `/dev` URL.
 
-**Phase:** BMR calculation phase.
+**Phase:** Initial GAS setup phase.
 
 ---
 
-### Pitfall 12: GAS URL Input Field Exposes Existing URL to Anyone with Device Access
+### Pitfall 14: Open Food Facts Search Returns Multiple Products for the Same Ingredient — User Must Choose
 
 **What goes wrong:**
-The settings page will display the stored GAS URL. The GAS URL is effectively a password — anyone who reads it can access all the user's health data (existing security concern in CONCERNS.md). Showing it in plain text in a form field makes it trivially readable from across the room or in a screenshot.
+A search for "豆腐 (tofu)" returns 40+ results with wildly different calorie values (30 kcal/100g to 120 kcal/100g) depending on firmness, brand, and country of origin. If the app auto-selects the first result, the nutrition data is arbitrary. If the app presents all results, the UI becomes a disambiguation exercise that slows ingredient entry.
 
 **Prevention:**
-- Mask the URL after first save (show only the domain, e.g. `script.google.com/...`).
-- Provide a "test connection" button rather than displaying the full URL.
-- Do not log it to the browser console.
+- Search returns a ranked list; the user selects the specific product.
+- Show serving size and calorie density prominently in search results to enable quick disambiguation.
+- Once a user selects a result, save the FDC/OFF product ID alongside the nutritional values so the same lookup is not repeated and the source is auditable.
 
-**Phase:** Settings UI phase.
+**Phase:** Nutrition API integration phase.
 
 ---
 
-### Pitfall 13: Preset Switch Does Not Recalculate Immediately on Guideline Change
+### Pitfall 15: Supplement Routine Determinism Breaks When System Date Changes
 
 **What goes wrong:**
-If macro targets are computed lazily (e.g., only on page load or on explicit "save"), a user who switches guideline presets does not see updated targets until they navigate away and back. This makes the preset selector feel broken.
+If the routine generator uses the current date as a seed for any pseudo-random selection (e.g., rotating which supplement to take on which day of a cycling protocol), the "deterministic" plan changes at midnight. A user who generates the routine at 11:58 PM and refers to it at 12:05 AM sees a different plan.
 
 **Prevention:**
-- Macro targets derived from BMR × guideline preset must be computed reactively — derive them in a `useMemo` or computed selector that re-runs whenever either the BMR profile or selected preset changes.
+- Persist the generated routine for the day with its generation date. Re-generate only when the user explicitly requests it or when the day advances past the stored date (not at the moment of midnight).
+- If cycling protocols are needed (take supplement A Mon/Wed/Fri, supplement B Tue/Thu/Sat), express the cycle as explicit day-of-week assignments, not date-arithmetic, so the schedule is stable.
 
-**Phase:** Settings UI phase.
+**Phase:** Routine generator phase.
 
 ---
 
@@ -317,27 +365,35 @@ If macro targets are computed lazily (e.g., only on page load or on explicit "sa
 
 | Phase Topic | Likely Pitfall | Mitigation |
 |---|---|---|
-| `sheets-api.ts` refactor | GAS URL baked at module load (Pitfall 1) | Make URL dynamic before any settings UI |
-| BMR formula implementation | Gender constant error, unit conversion (Pitfalls 2, 3) | Unit tests with reference values |
-| Activity level UI | Misleading TDEE from bucket selection (Pitfall 4) | Descriptive zh-TW labels with caveats |
-| Settings localStorage schema | Schema version migration (Pitfall 5) | Version field + migration function from day one |
-| Dietary guideline data model | Incompatible energy bases across countries (Pitfall 9) | Normalise to % of TDEE before implementation |
-| Guideline preset computation | Absolute grams vs percentage ratio (Pitfall 6) | Compute grams at display time only |
-| Settings UI input | Unvalidated GAS URL (Pitfall 7) | Allowlist `https://script.google.com/` prefix |
-| Migrating hardcoded constants | Dual sources of truth (Pitfall 8) | Grep for literal values after migration |
-| Cross-page settings access | Stale settings in non-Settings pages (Pitfall 10) | Settings context or storage event listener |
+| Nutrition API selection | API key exposure in bundle (Pitfall 1) | Use GAS proxy or Open Food Facts (no-key) |
+| Nutrition API integration | USDA FDC CORS failure in browser (Pitfall 2) | Verify with browser fetch before committing |
+| Food CRUD implementation | Apps Script cold start causes double-submit (Pitfall 3) | Optimistic localStorage write + idempotent GAS upsert |
+| Food composition model | Circular ingredient references (Pitfall 4) | Flat (atomic-only) ingredient model |
+| Supplement inventory design | Drift from estimate-based quantity (Pitfall 5) | Event-sourced deduction log, not calculated remaining |
+| Catalog data model | Sheets read bottleneck as items grow (Pitfall 6) | Add `updatedAt` + incremental sync |
+| Local ingredient coverage | Open Food Facts missing Asian foods (Pitfall 7) | Curated Taiwanese seed catalog as fallback |
+| Supplement interaction model | O(n²) flat pair list becomes unmaintainable (Pitfall 8) | Per-supplement interaction map |
+| Routine generator | Over-constrained inputs produce silent empty plan (Pitfall 9) | Explicit unscheduled-item report |
+| localStorage growth | Quota exceeded on large catalogs (Pitfall 10) | ID-reference model, size budget, visible warning |
+| ID namespace | User items collide with hardcoded IDs (Pitfall 11) | Namespaced `uf_` / `us_` prefix |
+| CRUD form UX | Unsaved form state lost on nav (Pitfall 12) | React Router v7 `useBlocker` |
+| GAS redeployment | Redirect loses CORS headers (Pitfall 13) | Test after every redeployment |
+| Routine stability | Date-boundary plan change (Pitfall 15) | Persist generated plan, re-generate on explicit request only |
 
 ---
 
 ## Sources
 
-- Mifflin-St Jeor accuracy review: [PubMed 15883556](https://pubmed.ncbi.nlm.nih.gov/15883556/) — systematic review comparing predictive equations; HIGH confidence
-- TDEE activity multiplier error analysis: [MacroFactor help](https://help.macrofactorapp.com/en/articles/126-why-is-my-expenditure-in-macrofactor-different-from-the-output-of-a-tdee-calculator) — >250 kcal/day error in 50% of cases; MEDIUM confidence
-- Mifflin-St Jeor formula constants: [Medscape reference](https://reference.medscape.com/calculator/846/mifflin-st-jeor-equation) — authoritative; HIGH confidence
-- BMR formula unit requirements (kg/cm): [The Calculator Site](https://www.thecalculatorsite.com/articles/health/bmr-formula.php) — MEDIUM confidence
-- Global dietary guideline comparison: [PMC 8471688](https://pmc.ncbi.nlm.nih.gov/articles/PMC8471688/) — food-based guidelines worldwide; MEDIUM confidence
-- Taiwan dietary pattern: [PMC 9268716](https://pmc.ncbi.nlm.nih.gov/articles/PMC9268716/) — Healthy Taiwanese Eating Approach; MEDIUM confidence
-- localStorage schema versioning: [DEV Community](https://dev.to/prakash_chokalingam/introduction-to-a-stateful-maintainable-react-local-storage-hook-31ie) — MEDIUM confidence (community article, pattern widely corroborated)
-- XSS/SPA security: [WorkOS blog](https://workos.com/blog/security-threats-in-spas-and-how-to-defend-against-them) — MEDIUM confidence
-- User-input URL validation: [OWASP SSRF Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html) — HIGH confidence
-- Existing codebase analysis: `.planning/codebase/CONCERNS.md` — HIGH confidence (direct code audit)
+- USDA FoodData Central API documentation: [https://fdc.nal.usda.gov/api-guide/](https://fdc.nal.usda.gov/api-guide/) — rate limits, key requirement; HIGH confidence
+- USDA API CORS issue: [GitHub USDA/USDA-APIs#79](https://github.com/USDA/USDA-APIs/issues/79) — malformed CORS header documented; MEDIUM confidence
+- Open Food Facts API documentation: [https://openfoodfacts.github.io/openfoodfacts-server/api/](https://openfoodfacts.github.io/openfoodfacts-server/api/) — rate limits, no-auth reads; HIGH confidence
+- Open Food Facts rate limits: [GitHub issue #8818](https://github.com/openfoodfacts/openfoodfacts-server/issues/8818) — 100/10/2 req/min limits; MEDIUM confidence
+- API key exposure in static sites: [Sourcery vulnerability database](https://www.sourcery.ai/vulnerabilities/hardcoded-api-keys-javascript); [Wiz Blog mass exposure research](https://www.wiz.io/blog/exposed-moltbook-database-reveals-millions-of-api-keys) — HIGH confidence
+- Apps Script quotas: [https://developers.google.com/apps-script/guides/services/quotas](https://developers.google.com/apps-script/guides/services/quotas) — execution time 6 min, URL fetch 20K/day; HIGH confidence
+- Apps Script performance issues: [Google Apps Script Community](https://groups.google.com/g/google-apps-script-community/c/7mBvElBwvnc) — cold start and shared infrastructure slowness; MEDIUM confidence
+- Apps Script best practices: [https://developers.google.com/apps-script/guides/support/best-practices](https://developers.google.com/apps-script/guides/support/best-practices) — batch reads/writes; HIGH confidence
+- Supplement interaction knowledge: [Supplements-AI interaction guide](https://supplements-ai.com/blog/guides/supplement-interactions) — calcium/magnesium, zinc/copper documented interactions; MEDIUM confidence
+- React Router v7 useBlocker: documentation verified against React Router DOM v7.6.0 (installed version); HIGH confidence
+- localStorage size limits and quota errors: [RxDB localStorage article](https://rxdb.info/articles/localstorage.html) — 5–10 MB quota, QuotaExceededError; MEDIUM confidence
+- Greedy scheduling limitations: [GeeksforGeeks scheduling in greedy algorithms](https://www.geeksforgeeks.org/dsa/scheduling-in-greedy-algorithms/) — sequential infeasibility at end of greedy pass; MEDIUM confidence
+- Existing codebase analysis: `src/lib/sheets-api.ts`, `src/lib/data-service.ts` — direct code audit; HIGH confidence
