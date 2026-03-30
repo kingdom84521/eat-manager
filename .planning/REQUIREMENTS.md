@@ -38,8 +38,8 @@ Requirements for this milestone. Each maps to roadmap phases.
 - [ ] **GS-01**: User can input Google Apps Script Web App URL on settings page
 - [ ] **GS-02**: User can input Google Sheet ID on settings page
 - [ ] **GS-03**: Explicit save button for Sheets connection config (not auto-save)
-- [ ] **GS-04**: SheetsAPI reads GAS URL at call time (runtime config), not module load time
-- [ ] **GS-05**: Fallback to .env VITE_GAS_URL when no runtime config is set
+- [x] **GS-04**: SheetsAPI reads GAS URL at call time (runtime config), not module load time
+- [x] **GS-05**: Fallback to .env VITE_GAS_URL when no runtime config is set
 
 ### Integration
 
@@ -106,8 +106,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | GS-01 | Phase 4 | Pending |
 | GS-02 | Phase 4 | Pending |
 | GS-03 | Phase 4 | Pending |
-| GS-04 | Phase 3 | Pending |
-| GS-05 | Phase 3 | Pending |
+| GS-04 | Phase 3 | Complete |
+| GS-05 | Phase 3 | Complete |
 | INT-01 | Phase 4 | Pending |
 | INT-02 | Phase 4 | Pending |
 

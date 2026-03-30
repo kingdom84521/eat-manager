@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [ ] **Phase 1: Static Data Foundation** - Pure BMR functions and dietary guideline catalog with no I/O or side effects
 - [ ] **Phase 2: Settings Persistence Layer** - SettingsService singleton with versioned localStorage schema
-- [ ] **Phase 3: SheetsAPI Runtime Config Patch** - Surgical fix to resolve GAS URL at call time, not module-load time
+- [x] **Phase 3: SheetsAPI Runtime Config Patch** - Surgical fix to resolve GAS URL at call time, not module-load time (completed 2026-03-30)
 - [ ] **Phase 4: Settings Page UI + Integration** - Settings page with BMR form, guideline selector, Sheets config, and hardcoded-target migration
 
 ## Phase Details
@@ -58,7 +58,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 03-01-PLAN.md — Replace module-level GAS_URL constant with per-call getGasUrl() helper (src/lib/sheets-api.ts)
+- [x] 03-01-PLAN.md — Replace module-level GAS_URL constant with per-call getGasUrl() helper (src/lib/sheets-api.ts)
 
 ### Phase 4: Settings Page UI + Integration
 **Goal**: Users can configure their BMR profile, select dietary guideline presets, and manage their Google Sheets connection from a new 5th tab — and existing pages show settings-derived targets instead of hardcoded values
@@ -82,5 +82,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 |-------|----------------|--------|-----------|
 | 1. Static Data Foundation | 2/2 | Complete |  |
 | 2. Settings Persistence Layer | 0/1 | Planned    |  |
-| 3. SheetsAPI Runtime Config Patch | 0/1 | Planned | - |
+| 3. SheetsAPI Runtime Config Patch | 1/1 | Complete   | 2026-03-30 |
 | 4. Settings Page UI + Integration | 0/? | Not started | - |
