@@ -83,6 +83,12 @@ Recent decisions affecting current work:
 
 None yet.
 
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260330-6bd | Add Google Sheets connection help dialog | 2026-03-30 | 01faebc | [260330-6bd-add-google-sheets-connection-help-dialog](./quick/260330-6bd-add-google-sheets-connection-help-dialog/) |
+
 ### Blockers/Concerns
 
 - [Phase 4]: Cross-page settings propagation strategy unresolved — window storage event vs minimal React Context. Must decide before Phase 4 implementation starts (research flags this as real stale-data risk).
@@ -91,6 +97,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-30T02:40:46.452Z
-Stopped at: Completed 04-02-PLAN.md
+Last session: 2026-03-30T04:32:50.274Z
+Stopped at: Completed quick task 260330-6bd: Add Google Sheets connection help dialog
 Resume file: None
