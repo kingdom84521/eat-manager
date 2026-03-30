@@ -43,8 +43,8 @@ Requirements for this milestone. Each maps to roadmap phases.
 
 ### Integration
 
-- [ ] **INT-01**: Existing hardcoded targets in NutritionTracker.tsx replaced with settings-derived values
-- [ ] **INT-02**: Existing hardcoded weight targets in WeightLog.tsx replaced with settings-derived values
+- [x] **INT-01**: Existing hardcoded targets in NutritionTracker.tsx replaced with settings-derived values
+- [x] **INT-02**: Existing hardcoded weight targets in WeightLog.tsx replaced with settings-derived values
 
 ## v2 Requirements
 
@@ -108,8 +108,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | GS-03 | Phase 4 | Complete |
 | GS-04 | Phase 3 | Complete |
 | GS-05 | Phase 3 | Complete |
-| INT-01 | Phase 4 | Pending |
-| INT-02 | Phase 4 | Pending |
+| INT-01 | Phase 4 | Complete |
+| INT-02 | Phase 4 | Complete |
 
 **Coverage:**
 - v1 requirements: 24 total
