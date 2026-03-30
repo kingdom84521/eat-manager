@@ -1,12 +1,24 @@
-# Eat Manager — Settings & Nutrition Configuration
+# Eat Manager — Item Management & Supplement Routines
 
 ## What This Is
 
-A health/nutrition tracking SPA (React + TypeScript + Vite) deployed to GitHub Pages. Users generate daily meal plans from a curated food/remedy catalog, track weight, log nutrition, and configure personal metabolic profiles — all synced to Google Sheets via Apps Script. The app includes BMR-based nutritional recommendations from 3 national dietary guidelines (Taiwan HPA, USDA AMDR, Japan MHLW).
+A health/nutrition tracking SPA (React + TypeScript + Vite) deployed to GitHub Pages. Users manage two types of items — foods (with nutrition labels or composed from ingredients) and supplements (with inventory tracking and routine planning) — track weight, log nutrition, and configure personal metabolic profiles. All data synced to Google Sheets via Apps Script.
 
 ## Core Value
 
-Users can configure their personal metabolic profile and see nutritional intake recommendations tailored to their BMR, based on established national dietary guidelines — all without leaving the static site.
+Users can manage their food and supplement items, track supplement inventory, and generate intelligent daily supplement routines that deterministically cover all their health goals — all from a static site synced to Google Sheets.
+
+## Current Milestone: v2.0 Item Management & Supplement Routines
+
+**Goal:** Restructure the app around two core item types (食物 & 營養品) with proper CRUD, composition-based food creation, supplement inventory tracking, and intelligent routine generation.
+
+**Target features:**
+- Two hardcoded categories: Food & Supplement (remove "behavior" type)
+- Food CRUD: add via nutrition label input or compose from ingredients with dynamic calorie recalculation
+- Public nutrition database integration for ingredient lookup
+- Supplement CRUD with rich metadata (interactions, synergies, timing, dosage)
+- Supplement inventory management (purchased quantity, remaining based on consumption)
+- Supplement routine generator: deterministic daily plan covering all user's supplementation goals
 
 ## Requirements
 
@@ -29,7 +41,13 @@ Users can configure their personal metabolic profile and see nutritional intake 
 
 ### Active
 
-(No active requirements — plan next milestone with `/gsd:new-milestone`)
+- [ ] Data model restructure: Food & Supplement types only (remove BehaviorItem, rename ScheduleSlot)
+- [ ] Food CRUD with nutrition label input
+- [ ] Food composition from ingredients with dynamic calorie recalculation
+- [ ] Public nutrition database integration
+- [ ] Supplement CRUD with rich metadata (interactions, timing, dosage)
+- [ ] Supplement inventory management (quantity tracking, remaining calculation)
+- [ ] Supplement routine generator (deterministic, covers all daily goals)
 
 ### Out of Scope
 
@@ -68,7 +86,7 @@ Users can configure their personal metabolic profile and see nutritional intake 
 | Read-on-render for cross-page state | No React Context needed; SettingsService reads localStorage synchronously | ✓ Shipped v1.0 |
 
 ---
-*Last updated: 2026-03-30 after v1.0 milestone completion*
+*Last updated: 2026-03-30 after v2.0 milestone start*
 
 ## Evolution
 

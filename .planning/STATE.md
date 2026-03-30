@@ -1,16 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: milestone
-status: verifying
-stopped_at: Completed 04-02-PLAN.md
-last_updated: "2026-03-30T02:57:10.489Z"
+milestone: v2.0
+milestone_name: Item Management & Supplement Routines
+status: defining
+stopped_at: Milestone v2.0 started
+last_updated: "2026-03-30T14:30:00.000Z"
 last_activity: 2026-03-30
 progress:
-  total_phases: 4
-  completed_phases: 4
-  total_plans: 6
-  completed_plans: 6
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
   percent: 0
 ---
 
@@ -18,17 +18,17 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-29)
+See: .planning/PROJECT.md (updated 2026-03-30)
 
-**Core value:** Users can configure their personal metabolic profile and see nutritional intake recommendations tailored to their BMR, based on established national dietary guidelines
-**Current focus:** Phase 04 — settings-page-ui-integration
+**Core value:** Users can manage their food and supplement items, track supplement inventory, and generate intelligent daily supplement routines
+**Current focus:** Defining v2.0 requirements
 
 ## Current Position
 
-Phase: 04
-Plan: Not started
-Status: Phase complete — ready for verification
-Last activity: 2026-03-30
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-30 — Milestone v2.0 started
 
 Progress: [░░░░░░░░░░] 0%
 
