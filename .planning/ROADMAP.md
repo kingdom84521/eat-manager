@@ -55,7 +55,10 @@ Plans:
   1. Writing a new GAS URL to SettingsService and then triggering any Sheets API call uses the newly written URL, not the value from the previous module import
   2. When no runtime config is stored in localStorage, all Sheets API calls use the VITE_GAS_URL environment variable as fallback, preserving existing behavior for current users
   3. The change is limited to sheets-api.ts with no behavioral change to any existing page or feature when no runtime config is present
-**Plans**: TBD
+**Plans**: 1 plan
+
+Plans:
+- [ ] 03-01-PLAN.md — Replace module-level GAS_URL constant with per-call getGasUrl() helper (src/lib/sheets-api.ts)
 
 ### Phase 4: Settings Page UI + Integration
 **Goal**: Users can configure their BMR profile, select dietary guideline presets, and manage their Google Sheets connection from a new 5th tab — and existing pages show settings-derived targets instead of hardcoded values
@@ -79,5 +82,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 |-------|----------------|--------|-----------|
 | 1. Static Data Foundation | 2/2 | Complete |  |
 | 2. Settings Persistence Layer | 0/1 | Planned    |  |
-| 3. SheetsAPI Runtime Config Patch | 0/? | Not started | - |
+| 3. SheetsAPI Runtime Config Patch | 0/1 | Planned | - |
 | 4. Settings Page UI + Integration | 0/? | Not started | - |
