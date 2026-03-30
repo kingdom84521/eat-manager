@@ -90,12 +90,42 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| (To be filled by roadmapper) | | |
+| DM-01 | Phase 5 | Pending |
+| DM-02 | Phase 5 | Pending |
+| DM-03 | Phase 5 | Pending |
+| DM-04 | Phase 5 | Pending |
+| DM-05 | Phase 5 | Pending |
+| DM-06 | Phase 5 | Pending |
+| GAS-01 | Phase 6 | Pending |
+| GAS-02 | Phase 6 | Pending |
+| FOOD-01 | Phase 7 | Pending |
+| FOOD-02 | Phase 7 | Pending |
+| FOOD-03 | Phase 7 | Pending |
+| FOOD-04 | Phase 7 | Pending |
+| FOOD-05 | Phase 7 | Pending |
+| FOOD-06 | Phase 7 | Pending |
+| FOOD-07 | Phase 7 | Pending |
+| SUPP-01 | Phase 8 | Pending |
+| SUPP-02 | Phase 8 | Pending |
+| SUPP-03 | Phase 8 | Pending |
+| SUPP-04 | Phase 8 | Pending |
+| SUPP-05 | Phase 8 | Pending |
+| SUPP-06 | Phase 8 | Pending |
+| INV-01 | Phase 8 | Pending |
+| INV-02 | Phase 8 | Pending |
+| INV-03 | Phase 8 | Pending |
+| INV-04 | Phase 8 | Pending |
+| RTN-01 | Phase 9 | Pending |
+| RTN-02 | Phase 9 | Pending |
+| RTN-03 | Phase 9 | Pending |
+| RTN-04 | Phase 9 | Pending |
+| RTN-05 | Phase 9 | Pending |
+| RTN-06 | Phase 9 | Pending |
 
 **Coverage:**
 - v2.0 requirements: 27 total
-- Mapped to phases: 0
-- Unmapped: 27
+- Mapped to phases: 27
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-30*

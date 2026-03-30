@@ -2,12 +2,12 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Item Management & Supplement Routines
-status: defining
-stopped_at: Milestone v2.0 started
-last_updated: "2026-03-30T14:30:00.000Z"
+status: ready_to_plan
+stopped_at: Roadmap created for v2.0 — Phase 5 ready to plan
+last_updated: "2026-03-30T00:00:00.000Z"
 last_activity: 2026-03-30
 progress:
-  total_phases: 0
+  total_phases: 5
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -20,15 +20,15 @@ progress:
 
 See: .planning/PROJECT.md (updated 2026-03-30)
 
-**Core value:** Users can manage their food and supplement items, track supplement inventory, and generate intelligent daily supplement routines
-**Current focus:** Defining v2.0 requirements
+**Core value:** Users can manage food and supplement items, track supplement inventory, and generate intelligent daily supplement routines
+**Current focus:** Phase 5 — Data Model Restructure
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-03-30 — Milestone v2.0 started
+Phase: 5 of 9 (Data Model Restructure)
+Plan: — (not yet planned)
+Status: Ready to plan
+Last activity: 2026-03-30 — v2.0 roadmap created, Phase 5 ready to plan
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -36,7 +36,7 @@ Progress: [░░░░░░░░░░] 0%
 
 **Velocity:**
 
-- Total plans completed: 0
+- Total plans completed: 0 (v2.0)
 - Average duration: -
 - Total execution time: 0 hours
 
@@ -52,11 +52,6 @@ Progress: [░░░░░░░░░░] 0%
 - Trend: -
 
 *Updated after each plan completion*
-| Phase 01-static-data-foundation P01 | 8 | 2 tasks | 2 files |
-| Phase 01-static-data-foundation P02 | 3 | 1 tasks | 2 files |
-| Phase 03-sheetsapi-runtime-config-patch P01 | 2 | 1 tasks | 1 files |
-| Phase 04-settings-page-ui-integration P01 | 117 | 2 tasks | 2 files |
-| Phase 04-settings-page-ui-integration P02 | 8 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -65,41 +60,24 @@ Progress: [░░░░░░░░░░] 0%
 Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
-- [Roadmap]: 4 coarse phases derived from strict dependency chain: data → persistence → SheetsAPI patch → UI
-- [Roadmap]: Phase 3 (SheetsAPI patch) must land before Phase 4 UI — a settings UI with no effect on API calls is a silent failure
-- [Roadmap]: Derived values (TDEE, macro grams) computed on demand, never stored, to avoid stale cache bugs
-- [Phase 01-static-data-foundation]: ActivityLevelId defined as explicit union in types.ts (not derived from ACTIVITY_LEVELS) to avoid circular imports
-- [Phase 01-static-data-foundation]: BMR reference value is 1648.75 using Mifflin-St Jeor formula; TDEE uses multiply-first-then-round rounding
-- [Phase 01-static-data-foundation]: Taiwan HPA DRI macro ratios sourced from secondary sources — MEDIUM confidence, flagged for v1.1 primary PDF verification
-- [Phase 01-static-data-foundation]: calculateMacroGrams uses Math.round for all gram values (protein/carb: /4 kcal/g, fat: /9 kcal/g)
-- [Phase 03-sheetsapi-runtime-config-patch]: Used || operator (not ??) in getGasUrl() so empty string from settings also falls back to VITE_GAS_URL
-- [Phase 03-sheetsapi-runtime-config-patch]: getGasUrl() is module-private — SheetsAPI public API surface unchanged
-- [Phase 04-settings-page-ui-integration]: Live TDEE computed from form state directly, not SettingsService, enabling real-time preview before save
-- [Phase 04-settings-page-ui-integration]: Profile auto-saves on valid change; Sheets config uses explicit save button with GAS URL validation
-- [Phase 04-settings-page-ui-integration]: WeightLog replaces START_KG-based progress bar with delta display (latestKg vs profile.weightKg) to avoid hardcoded reference weight
-- [Phase 04-settings-page-ui-integration]: Settings-dependent pages use synchronous SettingsService calls at render time with early-return guard — no useEffect needed since localStorage reads are synchronous
+- [v2.0 Roadmap]: 5 coarse phases (5-9) derived from strict dependency chain: types → service → food UI → supplement UI → routine
+- [v2.0 Roadmap]: Open Food Facts chosen over USDA FDC — no API key needed, CORS-enabled, safe for static SPA
+- [v2.0 Roadmap]: Event-sourced deduction log for inventory (not calculated remaining) to prevent drift when doses are skipped
+- [v2.0 Roadmap]: Atomic-only ingredient model enforced at save — composed foods cannot be used as ingredients in other composed foods
+- [v2.0 Roadmap]: GAS `upsertById` should accept configurable `keyField` parameter — finalize in Phase 6 planning to handle inventory keyed by `supplementId`
+- [v2.0 Roadmap]: Food/Supplement manager pages accessed via "管理" buttons from existing tabs, not new bottom nav tabs (preserves 5-tab mobile layout)
 
 ### Pending Todos
 
 None yet.
 
-### Quick Tasks Completed
-
-| # | Description | Date | Commit | Directory |
-|---|-------------|------|--------|-----------|
-| 260330-6bd | Add Google Sheets connection help dialog | 2026-03-30 | 01faebc | [260330-6bd-add-google-sheets-connection-help-dialog](./quick/260330-6bd-add-google-sheets-connection-help-dialog/) |
-| 260330-88s | Replace age input with birthday date picker | 2026-03-30 | e894c58 | [260330-88s-replace-age-input-with-birthday-date-pic](./quick/260330-88s-replace-age-input-with-birthday-date-pic/) |
-| 260330-jtp | Remove placeholder fake data from NutritionTracker | 2026-03-30 | 7f05abc | — |
-| 260330-k47 | Remove hardcoded data from foods/remedies/schedule | 2026-03-30 | 4e890cb | — |
-
 ### Blockers/Concerns
 
-- [Phase 4]: Cross-page settings propagation strategy unresolved — window storage event vs minimal React Context. Must decide before Phase 4 implementation starts (research flags this as real stale-data risk).
-- [Phase 1]: Taiwan HPA DRI 8th Edition macro percentages sourced from secondary sources only; verify against primary PDF before finalizing guideline preset.
-- [Phase 1]: Japan MHLW DRI year consistency — use 2025 edition if source URL is accessible; fall back to 2020 if not (macro ranges are identical).
+- [Phase 7]: Open Food Facts coverage for Taiwanese ingredients is sparse — a curated seed list of common local ingredients (燕麥, 豆腐, 山藥, etc.) with verified nutritional data should be prepared before the ingredient composition UI is built
+- [Phase 7]: Exact navigation entry point for Food Manager (DailyPlan tab vs NutritionTracker tab) should be confirmed during Phase 7 planning
 
 ## Session Continuity
 
-Last session: 2026-03-30T05:00:00.000Z
-Stopped at: Completed quick task 260330-88s: Replace age input with birthday date picker
+Last session: 2026-03-30
+Stopped at: v2.0 roadmap written — ROADMAP.md, STATE.md, REQUIREMENTS.md traceability updated
 Resume file: None
