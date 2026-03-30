@@ -23,6 +23,8 @@ Users can configure their personal metabolic profile and see nutritional intake 
 - ✓ Integration of dietary guidelines from 3 countries (Taiwan HPA, USDA AMDR, Japan MHLW) — Phase 1
 - ✓ Nutritional intake ratio presets derived from BMR x dietary guidelines — Phase 1
 - ✓ Settings persisted to localStorage with versioned schema — Phase 2
+- ✓ SheetsAPI reads GAS URL at call time (runtime config, not module-load time) — Phase 3
+- ✓ Fallback to .env VITE_GAS_URL when no runtime config is set — Phase 3
 
 ### Active
 
@@ -64,7 +66,7 @@ Users can configure their personal metabolic profile and see nutritional intake 
 | BMR as foundation for recommendations | Industry-standard approach to personalized nutrition | — Pending |
 
 ---
-*Last updated: 2026-03-29 after Phase 2 completion*
+*Last updated: 2026-03-30 after Phase 3 completion*
 
 ## Evolution
 
