@@ -26,12 +26,15 @@ Users can configure their personal metabolic profile and see nutritional intake 
 - ✓ SheetsAPI reads GAS URL at call time (runtime config, not module-load time) — Phase 3
 - ✓ Fallback to .env VITE_GAS_URL when no runtime config is set — Phase 3
 
+- ✓ Settings page accessible from app navigation (5th tab ⚙️ 設定) — Phase 4
+- ✓ Personal BMR configuration UI with live TDEE preview — Phase 4
+- ✓ User can select and switch between guideline presets — Phase 4
+- ✓ Google Sheets connection configuration UI with explicit save — Phase 4
+- ✓ NutritionTracker and WeightLog use settings-derived targets — Phase 4
+
 ### Active
 
-- [ ] Settings page accessible from app navigation
-- [ ] Personal BMR configuration UI with user inputs (age, gender, height, weight, activity level)
-- [ ] User can select and switch between guideline presets
-- [ ] Google Sheets connection configuration UI (API URL + Sheet ID input) on the settings page
+(All v1 requirements validated — milestone complete)
 
 ### Out of Scope
 
@@ -66,7 +69,7 @@ Users can configure their personal metabolic profile and see nutritional intake 
 | BMR as foundation for recommendations | Industry-standard approach to personalized nutrition | — Pending |
 
 ---
-*Last updated: 2026-03-30 after Phase 3 completion*
+*Last updated: 2026-03-30 after Phase 4 completion — all v1 requirements validated, milestone complete*
 
 ## Evolution
 
