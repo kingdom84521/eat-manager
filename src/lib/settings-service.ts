@@ -33,6 +33,23 @@ export interface AppSettings {
   sheetsConfig: SheetsConfig | null;
 }
 
+// ── Age Helper ────────────────────────────────────
+
+/**
+ * 從 ISO 生日字串計算目前年齡（整數歲）。
+ * 考慮今年生日是否已過；結果 clamp 在 10–120 之間。
+ */
+export function computeAgeFromBirthday(birthday: string): number {
+  const birth = new Date(birthday);
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const hasBirthdayOccurred =
+    today.getMonth() > birth.getMonth() ||
+    (today.getMonth() === birth.getMonth() && today.getDate() >= birth.getDate());
+  if (!hasBirthdayOccurred) age -= 1;
+  return Math.min(120, Math.max(10, age));
+}
+
 // ── Constants ─────────────────────────────────────
 
 const SETTINGS_KEY = "eat_manager_settings";
@@ -60,7 +77,7 @@ function writeRaw(data: AppSettings): void {
 
 function defaultSettings(): AppSettings {
   return {
-    settings_version: 1,
+    settings_version: 2,
     userProfile: null,
     activeGuidelineId: null,
     sheetsConfig: null,
@@ -77,15 +94,32 @@ function migrate(raw: unknown): AppSettings {
     return defaultSettings();
   }
 
-  const data = raw as AppSettings;
-  // Setters always spread { ...current, field }, so returning same reference is safe
-  switch (data.settings_version) {
-    case 1:
-      break;
-    default:
-      return defaultSettings();
+  // Cast to a mutable record for migration steps
+  const data = raw as Record<string, unknown>;
+
+  // Apply sequential migrations — each case upgrades one version step
+  let version = data.settings_version as number;
+
+  if (version === 1) {
+    // Migrate v1 -> v2: convert ageYears -> birthday (approximate Jan 1 of birth year)
+    const profile = data.userProfile as Record<string, unknown> | null;
+    if (profile && typeof profile.ageYears === "number") {
+      const birthYear = new Date().getFullYear() - (profile.ageYears as number);
+      const migrated: Record<string, unknown> = { ...profile, birthday: `${birthYear}-01-01` };
+      delete migrated["ageYears"];
+      data.userProfile = migrated;
+    }
+    data.settings_version = 2;
+    version = 2;
   }
-  return data;
+
+  if (version === 2) {
+    // Current schema version — no migration needed
+    return data as unknown as AppSettings;
+  }
+
+  // Unknown future version — reset to defaults
+  return defaultSettings();
 }
 
 function loadSettings(): AppSettings {
@@ -121,8 +155,9 @@ export const SettingsService = {
     const guideline = GUIDELINE_MAP.get(guidelineId);
     if (!guideline) return null;
 
+    const ageYears = computeAgeFromBirthday(profile.birthday);
     const { tdee } = calculateBMRResult(
-      profile.ageYears,
+      ageYears,
       profile.sex,
       profile.heightCm,
       profile.weightKg,

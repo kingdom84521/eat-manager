@@ -220,7 +220,8 @@ export type ActivityLevelId =
 
 /** 使用者基本資料，用於 BMR 計算 */
 export interface UserProfile {
-  ageYears: number;
+  /** 生日（ISO 格式 YYYY-MM-DD） */
+  birthday: string;
   sex: "male" | "female";
   /** 身高（公分） */
   heightCm: number;
