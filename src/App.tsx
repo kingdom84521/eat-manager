@@ -3,12 +3,14 @@ import DailyPlan from "./pages/DailyPlan";
 import NutritionTracker from "./pages/NutritionTracker";
 import SupplementSchedule from "./pages/SupplementSchedule";
 import WeightLog from "./pages/WeightLog";
+import Settings from "./pages/Settings";
 
 const tabs = [
   { path: "/plan", icon: "🎲", label: "方案" },
   { path: "/track", icon: "📊", label: "飲食" },
   { path: "/schedule", icon: "💊", label: "時程" },
   { path: "/weight", icon: "⚖️", label: "體重" },
+  { path: "/settings", icon: "⚙️", label: "設定" },
 ];
 
 export default function App() {
@@ -20,6 +22,7 @@ export default function App() {
         <Route path="/track" element={<NutritionTracker />} />
         <Route path="/schedule" element={<SupplementSchedule />} />
         <Route path="/weight" element={<WeightLog />} />
+        <Route path="/settings" element={<Settings />} />
         <Route path="*" element={<Navigate to="/plan" replace />} />
       </Routes>
 
