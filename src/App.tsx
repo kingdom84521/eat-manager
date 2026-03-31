@@ -1,5 +1,6 @@
 import { Routes, Route, NavLink, Navigate } from "react-router-dom";
 import DailyPlan from "./pages/DailyPlan";
+import FoodManager from "./pages/FoodManager";
 import NutritionTracker from "./pages/NutritionTracker";
 import SupplementSchedule from "./pages/SupplementSchedule";
 import WeightLog from "./pages/WeightLog";
@@ -7,6 +8,7 @@ import Settings from "./pages/Settings";
 
 const tabs = [
   { path: "/plan", icon: "🎲", label: "方案" },
+  { path: "/foods", icon: "🍽️", label: "食材" },
   { path: "/track", icon: "📊", label: "飲食" },
   { path: "/schedule", icon: "💊", label: "時程" },
   { path: "/weight", icon: "⚖️", label: "體重" },
@@ -19,6 +21,7 @@ export default function App() {
       {/* Page content */}
       <Routes>
         <Route path="/plan" element={<DailyPlan />} />
+        <Route path="/foods" element={<FoodManager />} />
         <Route path="/track" element={<NutritionTracker />} />
         <Route path="/schedule" element={<SupplementSchedule />} />
         <Route path="/weight" element={<WeightLog />} />
