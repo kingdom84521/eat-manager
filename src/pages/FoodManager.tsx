@@ -10,7 +10,8 @@
 
 import { useState, useEffect } from "react";
 import { ItemService } from "../lib/item-service";
-import type { FoodItem } from "../data/types";
+import type { FoodItem, HealthTag } from "../data/types";
+import { HEALTH_TAG_LABELS, HEALTH_TAG_COLORS } from "../data/types";
 
 // ── View State Machine ────────────────────────────
 
@@ -20,6 +21,255 @@ type ViewState = "list" | "add" | "edit" | "compose";
 
 function isIngredientInUse(foodId: string, allFoods: FoodItem[]): boolean {
   return allFoods.some((f) => f.ingredients?.some((ing) => ing.foodId === foodId) ?? false);
+}
+
+// ── Shared Input Style ────────────────────────────
+
+const INPUT_CLASS =
+  "w-full bg-slate-800 rounded-lg px-4 py-3 text-sm text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-blue-500";
+
+// ── NutritionLabelForm Sub-component ─────────────
+
+interface NutritionLabelFormProps {
+  food?: FoodItem;
+  onSave: (food: FoodItem) => void;
+  onCancel: () => void;
+}
+
+interface FoodFormDraft {
+  name: string;
+  serving: string;
+  cal: string;
+  protein: string;
+  fat: string;
+  carbs: string;
+  sugar: string;
+  sodium: string;
+  source: string;
+  tags: HealthTag[];
+}
+
+const ALL_TAGS = Object.keys(HEALTH_TAG_LABELS) as HealthTag[];
+
+function NutritionLabelForm({ food, onSave, onCancel }: NutritionLabelFormProps) {
+  const isEdit = food !== undefined;
+
+  const [draft, setDraft] = useState<FoodFormDraft>({
+    name: food?.name ?? "",
+    serving: food?.serving ?? "",
+    cal: food?.cal !== undefined ? String(food.cal) : "0",
+    protein: food?.protein !== undefined ? String(food.protein) : "0",
+    fat: food?.fat !== undefined ? String(food.fat) : "0",
+    carbs: food?.carbs !== undefined ? String(food.carbs) : "0",
+    sugar: food?.sugar !== undefined ? String(food.sugar) : "",
+    sodium: food?.sodium !== undefined ? String(food.sodium) : "0",
+    source: food?.source ?? "",
+    tags: food?.tags ?? [],
+  });
+
+  const [nameError, setNameError] = useState("");
+  const [servingError, setServingError] = useState("");
+
+  function setField<K extends keyof FoodFormDraft>(key: K, value: FoodFormDraft[K]) {
+    setDraft((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function toggleTag(tag: HealthTag) {
+    setDraft((prev) => ({
+      ...prev,
+      tags: prev.tags.includes(tag)
+        ? prev.tags.filter((t) => t !== tag)
+        : [...prev.tags, tag],
+    }));
+  }
+
+  function handleSubmit() {
+    let hasError = false;
+    if (!draft.name.trim()) {
+      setNameError("請輸入食材名稱");
+      hasError = true;
+    } else {
+      setNameError("");
+    }
+    if (!draft.serving.trim()) {
+      setServingError("請輸入份量");
+      hasError = true;
+    } else {
+      setServingError("");
+    }
+    if (hasError) return;
+
+    const foodItem: FoodItem = {
+      id: food?.id ?? `food_${Date.now()}`,
+      type: "food",
+      name: draft.name.trim(),
+      serving: draft.serving.trim(),
+      cal: parseFloat(draft.cal) || 0,
+      protein: parseFloat(draft.protein) || 0,
+      fat: parseFloat(draft.fat) || 0,
+      carbs: parseFloat(draft.carbs) || 0,
+      sugar: draft.sugar.trim() ? parseFloat(draft.sugar) : undefined,
+      sodium: parseFloat(draft.sodium) || 0,
+      source: draft.source.trim(),
+      tags: draft.tags.length > 0 ? draft.tags : undefined,
+      ingredients: food?.ingredients,
+    };
+    onSave(foodItem);
+  }
+
+  return (
+    <div className="px-4 pt-5 pb-24">
+      {/* Header */}
+      <header className="flex items-center gap-3 mb-5">
+        <button
+          onClick={onCancel}
+          className="flex items-center gap-1 text-sm text-slate-400 hover:text-slate-200 transition-colors"
+          aria-label="返回"
+        >
+          ‹
+        </button>
+        <h1 className="text-xl font-bold">{isEdit ? "編輯食材" : "新增食材"}</h1>
+      </header>
+
+      {/* Name */}
+      <div className="mb-4">
+        <label className="block text-xs text-slate-400 mb-1">食材名稱</label>
+        <input
+          type="text"
+          value={draft.name}
+          onChange={(e) => setField("name", e.target.value)}
+          placeholder="食材名稱"
+          className={INPUT_CLASS}
+        />
+        {nameError && <p className="mt-1 text-xs text-red-400">{nameError}</p>}
+      </div>
+
+      {/* Serving */}
+      <div className="mb-4">
+        <label className="block text-xs text-slate-400 mb-1">份量</label>
+        <input
+          type="text"
+          value={draft.serving}
+          onChange={(e) => setField("serving", e.target.value)}
+          placeholder="份量 (例：100g, 1片)"
+          className={INPUT_CLASS}
+        />
+        {servingError && <p className="mt-1 text-xs text-red-400">{servingError}</p>}
+      </div>
+
+      {/* Numeric fields in 2-column grid */}
+      <div className="grid grid-cols-2 gap-3 mb-4">
+        <div>
+          <label className="block text-xs text-slate-400 mb-1">熱量 (kcal)</label>
+          <input
+            type="number"
+            min="0"
+            value={draft.cal}
+            onChange={(e) => setField("cal", e.target.value)}
+            className={INPUT_CLASS}
+          />
+        </div>
+        <div>
+          <label className="block text-xs text-slate-400 mb-1">蛋白質 (g)</label>
+          <input
+            type="number"
+            min="0"
+            value={draft.protein}
+            onChange={(e) => setField("protein", e.target.value)}
+            className={INPUT_CLASS}
+          />
+        </div>
+        <div>
+          <label className="block text-xs text-slate-400 mb-1">脂肪 (g)</label>
+          <input
+            type="number"
+            min="0"
+            value={draft.fat}
+            onChange={(e) => setField("fat", e.target.value)}
+            className={INPUT_CLASS}
+          />
+        </div>
+        <div>
+          <label className="block text-xs text-slate-400 mb-1">碳水化合物 (g)</label>
+          <input
+            type="number"
+            min="0"
+            value={draft.carbs}
+            onChange={(e) => setField("carbs", e.target.value)}
+            className={INPUT_CLASS}
+          />
+        </div>
+        <div>
+          <label className="block text-xs text-slate-400 mb-1">糖 (g)</label>
+          <input
+            type="number"
+            min="0"
+            value={draft.sugar}
+            onChange={(e) => setField("sugar", e.target.value)}
+            placeholder="選填"
+            className={INPUT_CLASS}
+          />
+        </div>
+        <div>
+          <label className="block text-xs text-slate-400 mb-1">鈉 (mg)</label>
+          <input
+            type="number"
+            min="0"
+            value={draft.sodium}
+            onChange={(e) => setField("sodium", e.target.value)}
+            className={INPUT_CLASS}
+          />
+        </div>
+      </div>
+
+      {/* Source */}
+      <div className="mb-4">
+        <label className="block text-xs text-slate-400 mb-1">資料來源</label>
+        <input
+          type="text"
+          value={draft.source}
+          onChange={(e) => setField("source", e.target.value)}
+          placeholder="資料來源 (例：7-11 標示)"
+          className={INPUT_CLASS}
+        />
+      </div>
+
+      {/* Tags */}
+      <div className="mb-6">
+        <label className="block text-xs text-slate-400 mb-2">健康標籤</label>
+        <div className="flex flex-wrap gap-2">
+          {ALL_TAGS.map((tag) => {
+            const selected = draft.tags.includes(tag);
+            const color = HEALTH_TAG_COLORS[tag];
+            return (
+              <button
+                key={tag}
+                onClick={() => toggleTag(tag)}
+                className={`text-xs px-2.5 py-1 rounded-full font-medium transition-colors ${
+                  selected ? "" : "bg-slate-700/50 text-slate-300"
+                }`}
+                style={
+                  selected
+                    ? { backgroundColor: color + "30", color, borderWidth: 1, borderColor: color + "60" }
+                    : {}
+                }
+              >
+                {HEALTH_TAG_LABELS[tag]}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Save button */}
+      <button
+        onClick={handleSubmit}
+        className="w-full py-3 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium text-sm transition-colors"
+      >
+        儲存食材
+      </button>
+    </div>
+  );
 }
 
 // ── FoodCard Sub-component ────────────────────────
@@ -174,42 +424,13 @@ export default function FoodManager() {
 
   // ── Render ────────────────────────────────────────
 
-  // Non-list views render placeholder content (plans 02/03 will fill these in)
+  // Non-list views
   if (view === "add") {
-    return (
-      <div className="px-4 pt-5 pb-4">
-        <button
-          onClick={goBack}
-          className="mb-4 flex items-center gap-1 text-sm text-slate-400 hover:text-slate-200 transition-colors"
-        >
-          ‹ 返回
-        </button>
-        <div className="text-center text-slate-400 py-12">
-          {/* TODO: Plan 02 will implement NutritionForm here */}
-          <p>Add form (Plan 02)</p>
-        </div>
-        {/* Expose handleSave for plan 02 integration — suppress unused warning */}
-        <span className="hidden" data-save={String(typeof handleSave)} />
-      </div>
-    );
+    return <NutritionLabelForm onSave={handleSave} onCancel={() => setView("list")} />;
   }
 
-  if (view === "edit") {
-    return (
-      <div className="px-4 pt-5 pb-4">
-        <button
-          onClick={goBack}
-          className="mb-4 flex items-center gap-1 text-sm text-slate-400 hover:text-slate-200 transition-colors"
-        >
-          ‹ 返回
-        </button>
-        <div className="text-center text-slate-400 py-12">
-          {/* TODO: Plan 02 will implement NutritionForm here */}
-          <p>Edit form (Plan 02)</p>
-          {editTarget && <p className="text-xs mt-1">編輯：{editTarget.name}</p>}
-        </div>
-      </div>
-    );
+  if (view === "edit" && editTarget) {
+    return <NutritionLabelForm food={editTarget} onSave={handleSave} onCancel={() => setView("list")} />;
   }
 
   if (view === "compose") {
