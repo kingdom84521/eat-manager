@@ -41,14 +41,12 @@ function TagBadge({ tag }: { tag: HealthTag }) {
 
 const TYPE_STYLES: Record<string, { cls: string; label: string }> = {
   supplement: { cls: "bg-blue-900/40 text-blue-300", label: "💊 補品" },
-  remedy: { cls: "bg-emerald-900/40 text-emerald-300", label: "🌿 食療" },
   food: { cls: "bg-amber-900/40 text-amber-300", label: "🍽️ 食物" },
-  behavior: { cls: "bg-violet-900/40 text-violet-300", label: "🏃 行為" },
 };
 
 function ItemCard({ item, onSwap }: { item: ResolvedItem; onSwap?: () => void }) {
   const [open, setOpen] = useState(false);
-  const border = { supplement: "border-blue-500/40", remedy: "border-emerald-500/40", behavior: "border-violet-500/40", food: "border-amber-500/30" }[item.type] ?? "border-slate-700";
+  const border = { supplement: "border-blue-500/40", food: "border-amber-500/30" }[item.type] ?? "border-slate-700";
   const ts = TYPE_STYLES[item.type] ?? TYPE_STYLES.food;
   return (
     <div className={`rounded-lg p-3 mb-1.5 cursor-pointer border-l-3 bg-slate-800/50 ${border}`} onClick={() => setOpen(!open)}>
