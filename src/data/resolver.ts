@@ -3,13 +3,13 @@
  * Item Resolver — 統一查詢層
  * ============================================================
  *
- * 前端拿到一個 ID，不需要知道它是 food 還是 remedy
+ * 前端拿到一個 ID，不需要知道它是 food 還是 supplement
  * 丟進 resolveItem() 就能拿到完整資料+渲染需要的資訊
  */
 
-import type { FoodItem, RemedyItem, BehaviorItem, ItemType, HealthTag } from "./types";
+import type { FoodItem, SupplementItem, ItemType, HealthTag } from "./types";
 import { FOOD_MAP } from "./foods";
-import { REMEDY_MAP } from "./remedies";
+import { SUPPLEMENT_MAP } from "./supplements";
 
 // ── Resolved Item（前端渲染用） ──────────────────
 
@@ -29,43 +29,28 @@ export interface ResolvedItem {
   /** 是否為核心項目 */
   isCore: boolean;
   /** 原始資料參照 */
-  raw: FoodItem | RemedyItem | BehaviorItem;
+  raw: FoodItem | SupplementItem;
 }
 
 /**
- * 根據 ID 從 foods 或 remedies 表查詢，回傳統一格式
+ * 根據 ID 從 supplements 或 foods 表查詢，回傳統一格式
  */
 export function resolveItem(id: string): ResolvedItem | null {
-  // 先查 remedy/behavior
-  const remedy = REMEDY_MAP.get(id);
-  if (remedy) {
-    if (remedy.type === "behavior") {
-      const b = remedy as BehaviorItem;
-      return {
-        id: b.id,
-        type: "behavior",
-        name: b.name,
-        dose: b.dose,
-        cal: 0,
-        tags: b.tags,
-        description: b.mechanism,
-        isCore: true,
-        raw: b,
-      };
-    }
-    const r = remedy as RemedyItem;
+  // 先查 supplement
+  const supplement = SUPPLEMENT_MAP.get(id);
+  if (supplement) {
     return {
-      id: r.id,
-      type: r.type,
-      name: r.name,
-      dose: r.dose,
-      cal: r.cal ?? 0,
-      tags: r.tags,
-      description: r.mechanism,
-      tcm: r.tcm,
-      caution: r.caution,
-      isCore: r.isCore ?? false,
-      raw: r,
+      id: supplement.id,
+      type: "supplement",
+      name: supplement.name,
+      dose: supplement.dosagePerUnit,
+      cal: 0,
+      tags: supplement.tags,
+      description: supplement.mechanism ?? "",
+      tcm: supplement.tcm,
+      caution: supplement.caution,
+      isCore: supplement.isActive,
+      raw: supplement,
     };
   }
 
@@ -101,15 +86,11 @@ export function resolveItems(ids: string[]): ResolvedItem[] {
  */
 export function resolveAndGroup(ids: string[]): {
   supplements: ResolvedItem[];
-  remedies: ResolvedItem[];
   foods: ResolvedItem[];
-  behaviors: ResolvedItem[];
 } {
   const all = resolveItems(ids);
   return {
     supplements: all.filter((i) => i.type === "supplement"),
-    remedies: all.filter((i) => i.type === "remedy"),
     foods: all.filter((i) => i.type === "food"),
-    behaviors: all.filter((i) => i.type === "behavior"),
   };
 }

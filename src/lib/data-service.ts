@@ -9,7 +9,7 @@
  */
 
 import { SheetsAPI, type SheetRow } from "./sheets-api";
-import type { FoodItem, RemedyItem, BehaviorItem, HealthTag, TCMNature } from "../data/types";
+import type { FoodItem, HealthTag } from "../data/types";
 
 // ── Types ───────────────────────────────────────
 
@@ -49,7 +49,7 @@ const CACHE_PREFIX = "wellness_";
 const SHEETS = {
   // 參考資料表
   FOODS: "foods",
-  REMEDIES: "remedies",
+  SUPPLEMENTS_CATALOG: "supplements",
   // 記錄表
   DAILY_PLANS: "daily_plans",
   NUTRITION: "nutrition_log",
@@ -116,38 +116,6 @@ function rowToFood(row: SheetRow): FoodItem {
   };
 }
 
-function rowToRemedy(row: SheetRow): RemedyItem | BehaviorItem {
-  const type = String(row.type) as "supplement" | "remedy" | "behavior";
-  const tags = row.tags ? String(row.tags).split(",").map((t) => t.trim()).filter(Boolean) as HealthTag[] : [];
-
-  if (type === "behavior") {
-    return {
-      id: String(row.id),
-      type: "behavior",
-      name: String(row.name),
-      dose: String(row.dose ?? ""),
-      tags,
-      mechanism: String(row.mechanism ?? ""),
-    } as BehaviorItem;
-  }
-
-  return {
-    id: String(row.id),
-    type,
-    name: String(row.name),
-    dose: String(row.dose ?? ""),
-    cal: row.cal ? Number(row.cal) : undefined,
-    tags,
-    mechanism: String(row.mechanism ?? ""),
-    timing: row.timing ? String(row.timing) : undefined,
-    caution: row.caution ? String(row.caution) : undefined,
-    isCore: String(row.isCore) === "true" || String(row.isCore) === "TRUE",
-    tcm: row.tcm_effect
-      ? { effect: String(row.tcm_effect), nature: String(row.tcm_nature ?? "平") as TCMNature }
-      : undefined,
-  } as RemedyItem;
-}
-
 // ── DataService ─────────────────────────────────
 
 export const DataService = {
@@ -162,24 +130,6 @@ export const DataService = {
       .then((rows) => {
         if (rows.length > 0) {
           cacheSet(cacheKey, rows.map(rowToFood));
-        }
-      })
-      .catch(() => {});
-
-    return cached ?? fallback;
-  },
-
-  // ── Remedies (from Sheets, cached) ────────
-
-  async getRemedies(fallback: (RemedyItem | BehaviorItem)[]): Promise<(RemedyItem | BehaviorItem)[]> {
-    const cacheKey = SHEETS.REMEDIES;
-    const cached = cacheGet<(RemedyItem | BehaviorItem)[]>(cacheKey);
-
-    // Background sync from Sheets
-    SheetsAPI.readAll(SHEETS.REMEDIES)
-      .then((rows) => {
-        if (rows.length > 0) {
-          cacheSet(cacheKey, rows.map(rowToRemedy));
         }
       })
       .catch(() => {});
