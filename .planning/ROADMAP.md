@@ -68,7 +68,11 @@ Plans:
   4. User can search Open Food Facts by name and select a result to pre-fill ingredient nutrition data in the composition form
   5. User can tap an existing food to edit its fields, save changes, and see the updated values reflected immediately in the list
   6. User can delete a food item and it disappears from the list immediately
-**Plans**: TBD
+**Plans:** 3 plans
+Plans:
+- [ ] 07-01-PLAN.md — Route, nav tab, food list with search, delete with reference guard
+- [ ] 07-02-PLAN.md — Nutrition label form for add/edit food items
+- [ ] 07-03-PLAN.md — Ingredient composition form with live macro calc + Open Food Facts search
 **UI hint**: yes
 
 ### Phase 8: Supplement Manager + Inventory
@@ -109,6 +113,6 @@ Plans:
 | 4. Settings Page UI + Integration | v1.0 | 2/2 | Complete | 2026-03-30 |
 | 5. Data Model Restructure | v2.0 | 0/? | Not started | - |
 | 6. ItemService + GAS id-keyed Operations | v2.0 | 1/2 | In Progress|  |
-| 7. Food Manager | v2.0 | 0/? | Not started | - |
+| 7. Food Manager | v2.0 | 0/3 | Not started | - |
 | 8. Supplement Manager + Inventory | v2.0 | 0/? | Not started | - |
 | 9. Supplement Routine Generator | v2.0 | 0/? | Not started | - |
