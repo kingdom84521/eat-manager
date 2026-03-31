@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Item Management & Supplement Routines
 status: executing
-stopped_at: "Completed 07-02-PLAN.md"
-last_updated: "2026-03-31T11:07:00.000Z"
-last_activity: 2026-03-31 -- Phase 07 plan 02 complete
+stopped_at: Completed 07-03-PLAN.md
+last_updated: "2026-03-31T11:01:47.499Z"
+last_activity: 2026-03-31
 progress:
   total_phases: 5
   completed_phases: 2
   total_plans: 7
-  completed_plans: 5
+  completed_plans: 6
   percent: 71
 ---
 
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-03-30)
 ## Current Position
 
 Phase: 07 (food-manager) — EXECUTING
-Plan: 2 of 3
-Status: Executing Phase 07
-Last activity: 2026-03-31 -- Phase 07 plan 02 complete
+Plan: 3 of 3
+Status: Ready to execute
+Last activity: 2026-03-31
 
 Progress: [███████░░░] 71%
 
@@ -53,6 +53,7 @@ Progress: [███████░░░] 71%
 
 *Updated after each plan completion*
 | Phase 06 P02 | 5 | 1 tasks | 1 files |
+| Phase 07-food-manager P03 | 20 | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -74,6 +75,8 @@ Recent decisions affecting current work:
 - [Phase 06]: upsertInventory uses SheetsAPI.append not upsertById — InventoryEntry has no id field, purchase records are immutable events
 - [07-02]: NutritionLabelForm uses string draft state for all numeric inputs (not number type) — allows empty/partial entry during typing, parseFloat on submit
 - [07-02]: Tag chips use inline style prop for selected color (dynamic hex from HEALTH_TAG_COLORS), className for unselected — matches DailyPlan.tsx pattern
+- [Phase 07]: ComposeForm uses onAddFromOff callback to save OFF food and refresh parent list, then ComposeForm adds ingredient row using the saved food.id
+- [Phase 07]: ComposeForm totals derived on every render via calcTotals() not stored in state — guarantees correctness without sync logic
 
 ### Pending Todos
 
@@ -86,6 +89,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-31T11:07:00.000Z
-Stopped at: Completed 07-02-PLAN.md
-Resume file: .planning/phases/07-food-manager/07-02-SUMMARY.md
+Last session: 2026-03-31T11:01:47.494Z
+Stopped at: Completed 07-03-PLAN.md
+Resume file: None
