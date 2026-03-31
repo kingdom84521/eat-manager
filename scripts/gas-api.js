@@ -45,6 +45,10 @@ function doPost(e) {
         return jsonResponse(upsertByDate(sheet, data));
       case "delete":
         return jsonResponse(deleteByDate(sheet, data.date));
+      case "upsertById":
+        return jsonResponse(upsertById(sheet, data));
+      case "deleteById":
+        return jsonResponse(deleteById(sheet, data.id));
       default:
         return jsonResponse({ error: "Unknown action" }, 400);
     }
@@ -146,6 +150,58 @@ function deleteByDate(sheetName, date) {
 
   for (let i = allData.length - 1; i >= 1; i--) {
     if (allData[i][dateColIdx] === date) {
+      ws.deleteRow(i + 1);
+      return { success: true, action: "deleted" };
+    }
+  }
+  return { success: false, action: "not_found" };
+}
+
+function upsertById(sheetName, data) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ws = ss.getSheetByName(sheetName);
+  if (!ws) return { error: `Sheet "${sheetName}" not found` };
+
+  const headers = ws.getRange(1, 1, 1, ws.getLastColumn()).getValues()[0];
+  const idColIdx = headers.indexOf("id");
+  if (idColIdx === -1) return { error: "No 'id' column found" };
+
+  const allData = ws.getDataRange().getValues();
+  let rowIdx = -1;
+  for (let i = 1; i < allData.length; i++) {
+    if (String(allData[i][idColIdx]) === String(data.id)) {
+      rowIdx = i + 1;
+      break;
+    }
+  }
+
+  const rowValues = headers.map((h) => {
+    const val = data[h];
+    if (typeof val === "object" && val !== null) return JSON.stringify(val);
+    return val ?? "";
+  });
+
+  if (rowIdx > 0) {
+    ws.getRange(rowIdx, 1, 1, rowValues.length).setValues([rowValues]);
+    return { success: true, action: "updated", row: data };
+  } else {
+    ws.appendRow(rowValues);
+    return { success: true, action: "created", row: data };
+  }
+}
+
+function deleteById(sheetName, id) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ws = ss.getSheetByName(sheetName);
+  if (!ws) return { error: `Sheet "${sheetName}" not found` };
+
+  const headers = ws.getRange(1, 1, 1, ws.getLastColumn()).getValues()[0];
+  const idColIdx = headers.indexOf("id");
+  if (idColIdx === -1) return { error: "No 'id' column found" };
+  const allData = ws.getDataRange().getValues();
+
+  for (let i = allData.length - 1; i >= 1; i--) {
+    if (String(allData[i][idColIdx]) === String(id)) {
       ws.deleteRow(i + 1);
       return { success: true, action: "deleted" };
     }
