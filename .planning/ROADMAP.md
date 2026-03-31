@@ -54,7 +54,7 @@ See: `.planning/milestones/v1.0-ROADMAP.md` for full details
   4. A food item saved via `ItemService.saveFood()` is written to localStorage immediately and a background Sheets sync fires without blocking the UI
 **Plans:** 2 plans
 Plans:
-- [ ] 06-01-PLAN.md — GAS backend upsertById/deleteById + SheetsAPI client methods
+- [x] 06-01-PLAN.md — GAS backend upsertById/deleteById + SheetsAPI client methods
 - [ ] 06-02-PLAN.md — ItemService singleton with offline-first CRUD for foods, supplements, inventory
 
 ### Phase 7: Food Manager
@@ -108,7 +108,7 @@ Plans:
 | 3. SheetsAPI Runtime Config Patch | v1.0 | 1/1 | Complete | 2026-03-30 |
 | 4. Settings Page UI + Integration | v1.0 | 2/2 | Complete | 2026-03-30 |
 | 5. Data Model Restructure | v2.0 | 0/? | Not started | - |
-| 6. ItemService + GAS id-keyed Operations | v2.0 | 0/2 | Not started | - |
+| 6. ItemService + GAS id-keyed Operations | v2.0 | 1/2 | In progress | - |
 | 7. Food Manager | v2.0 | 0/? | Not started | - |
 | 8. Supplement Manager + Inventory | v2.0 | 0/? | Not started | - |
 | 9. Supplement Routine Generator | v2.0 | 0/? | Not started | - |
