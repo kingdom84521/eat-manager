@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Item Management & Supplement Routines
 status: planning
-stopped_at: Phase 5 context gathered
-last_updated: "2026-03-30T15:13:07.690Z"
+stopped_at: Completed 05-01-PLAN.md
+last_updated: "2026-03-31T03:42:35.866Z"
 last_activity: 2026-03-30 — v2.0 roadmap created, Phase 5 ready to plan
 progress:
   total_phases: 5
@@ -52,6 +52,7 @@ Progress: [░░░░░░░░░░] 0%
 - Trend: -
 
 *Updated after each plan completion*
+| Phase 05 P01 | 2 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -66,6 +67,7 @@ Recent decisions affecting current work:
 - [v2.0 Roadmap]: Atomic-only ingredient model enforced at save — composed foods cannot be used as ingredients in other composed foods
 - [v2.0 Roadmap]: GAS `upsertById` should accept configurable `keyField` parameter — finalize in Phase 6 planning to handle inventory keyed by `supplementId`
 - [v2.0 Roadmap]: Food/Supplement manager pages accessed via "管理" buttons from existing tabs, not new bottom nav tabs (preserves 5-tab mobile layout)
+- [Phase 05]: Removed all JSDoc references to RemedyItem to enforce zero-occurrence constraint in types.ts
 
 ### Pending Todos
 
@@ -78,6 +80,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-30T15:13:07.684Z
-Stopped at: Phase 5 context gathered
-Resume file: .planning/phases/05-data-model-restructure/05-CONTEXT.md
+Last session: 2026-03-31T03:42:35.861Z
+Stopped at: Completed 05-01-PLAN.md
+Resume file: None

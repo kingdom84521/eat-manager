@@ -3,38 +3,34 @@
  * 核心資料模型
  * ============================================================
  *
- * 三張表的關係：
+ * 兩張參考表：
  *
- * ┌─────────────┐     ┌──────────────┐     ┌─────────────┐
- * │  foods      │     │  remedies    │     │  schedule   │
- * │ (一般食物)   │     │ (補品+食療)   │     │ (時間排程)   │
- * │             │     │              │     │             │
- * │ 7-11雞胸肉  │     │ Berberine    │     │ 06:30 空腹  │
- * │ 茶葉蛋      │     │ 魚油         │     │ 07:00 餐前  │
- * │ 排骨飯      │     │ 綠豆薏仁湯   │     │ 07:30 早餐  │
- * │ 燕麥        │     │ 洛神花茶     │     │ ...         │
- * └─────────────┘     │ 苦瓜(藥用)   │     └──────┬──────┘
- *                     │ 黑豆水       │            │
- *                     └──────┬───────┘            │
- *                            │                    │
- *                            │ refs by id         │
- *                            ▼                    ▼
+ * ┌─────────────┐     ┌──────────────┐
+ * │  foods      │     │  supplements │
+ * │ (一般食物)   │     │ (補品/膠囊)   │
+ * │             │     │              │
+ * │ 7-11雞胸肉  │     │ Berberine    │
+ * │ 茶葉蛋      │     │ 魚油         │
+ * │ 排骨飯      │     │ NAC          │
+ * │ 燕麥        │     │ 維生素D3     │
+ * └─────────────┘     └──────┬───────┘
+ *                            │
+ *                            │ refs by id
+ *                            ▼
  *                     ┌──────────────────────────────┐
  *                     │       daily_plan             │
  *                     │  (每日方案 = schedule          │
- *                     │   + 隨機選出的 foods/remedies) │
+ *                     │   + 隨機選出的 foods/supplements) │
  *                     └──────────────────────────────┘
  */
 
 // ── Item Type ───────────────────────────────────
 
 /**
- * food     = 一般食物，吃來補充營養/熱量（雞胸肉、燕麥、蛋）
+ * food       = 一般食物，吃來補充營養/熱量（雞胸肉、燕麥、蛋）
  * supplement = 補品/膠囊/藥錠（Berberine、魚油、NAC）
- * remedy   = 自然食療，吃/喝的主要目的是治療/調理（綠豆薏仁湯、洛神花茶、苦瓜）
- * behavior = 行為/習慣（飯後散步、進食順序）
  */
-export type ItemType = "food" | "supplement" | "remedy" | "behavior";
+export type ItemType = "food" | "supplement";
 
 // ── Health Condition Tags ───────────────────────
 
@@ -93,6 +89,28 @@ export interface TCMInfo {
   nature: TCMNature;
 }
 
+// ── Supplement Timing -----------------------------------------------
+
+/**
+ * 建議服用時機
+ * 用於日常排程分組
+ */
+export type SupplementTiming =
+  | "empty_stomach"   // 空腹
+  | "before_meal"     // 餐前
+  | "with_meal"       // 餐中
+  | "after_meal"      // 餐後
+  | "bedtime";        // 睡前
+
+/** 服用時機中文對照 */
+export const SUPPLEMENT_TIMING_LABELS: Record<SupplementTiming, string> = {
+  empty_stomach: "空腹",
+  before_meal: "餐前",
+  with_meal: "餐中",
+  after_meal: "餐後",
+  bedtime: "睡前",
+};
+
 // ── Food Item (一般食物) ────────────────────────
 
 export interface FoodItem {
@@ -109,45 +127,60 @@ export interface FoodItem {
   source: string;
   /** 食物也可以有 tag，但通常是空的或很少 */
   tags?: HealthTag[];
+  /** v2.0: 組合食物的成分列表（原子食物 only）*/
+  ingredients?: FoodIngredient[];
 }
 
-// ── Remedy Item (補品 + 自然食療) ────────────────
+/**
+ * 組合食物的成分引用
+ * Atomic only — foodId must reference a non-composed FoodItem
+ */
+export interface FoodIngredient {
+  /** 引用的食物 ID（只能是非組合食物） */
+  foodId: string;
+  /** 本份使用的克數 */
+  grams: number;
+}
 
-export interface RemedyItem {
+// ── Supplement Item (補品) -----------------------------------------
+
+/**
+ * 補品項目 — 膠囊/錠劑/藥用食品
+ * v2.0: 新型補品資料模型
+ */
+export interface SupplementItem {
   id: string;
-  type: "supplement" | "remedy";
+  type: "supplement";
+  /** 顯示名稱（繁體中文） */
   name: string;
-  dose: string;
-  /** 估算熱量（食療類才有，補品通常0） */
-  cal?: number;
-  /** 針對的健康問題 — 這是 remedy 表的核心欄位 */
+  brand?: string;
+  /** 每顆/每包的含量，e.g. "500mg" */
+  dosagePerUnit: string;
+  /** 每次服用幾顆 */
+  unitsPerDose: number;
+  /** 每天服用幾次 */
+  dosesPerDay: number;
+  /** 建議服用時機（可多個） */
+  timing: SupplementTiming[];
+  /** 健康標籤 */
   tags: HealthTag[];
-  /** 為什麼有效（西醫證據） */
-  mechanism: string;
-  /** 中醫資訊（食療類才有） */
-  tcm?: TCMInfo;
-  /** 注意事項 / 禁忌 */
+  /** 與哪些補品有衝突（supplement IDs） */
+  interactions: string[];
+  /** 與哪些補品協同（supplement IDs） */
+  synergies: string[];
+  /** 作用機制（選填） */
+  mechanism?: string;
+  /** 注意事項 */
   caution?: string;
-  /** 最佳服用時機 */
-  timing?: string;
-  /** 是否為核心項目（每天必吃） */
-  isCore?: boolean;
-}
-
-// ── Behavior Item ───────────────────────────────
-
-export interface BehaviorItem {
-  id: string;
-  type: "behavior";
-  name: string;
-  dose: string;
-  tags: HealthTag[];
-  mechanism: string;
+  /** 中醫資訊（選填） */
+  tcm?: TCMInfo;
+  /** 是否納入每日排程 */
+  isActive: boolean;
 }
 
 // ── Union type ──────────────────────────────────
 
-export type AnyItem = FoodItem | RemedyItem | BehaviorItem;
+export type AnyItem = FoodItem | SupplementItem;
 
 // ── Schedule Types ──────────────────────────────
 
@@ -201,11 +234,37 @@ export interface WeightEntry {
 
 export interface SupplementLogEntry {
   date: string;
-  /** 今天實際吃了哪些 remedy IDs */
+  /** 今天實際吃了哪些 supplement IDs */
   takenIds: string[];
   /** 跳過的 */
   skippedIds?: string[];
   notes?: string;
+}
+
+// ── Inventory & Consumption -----------------------------------------
+
+/**
+ * 補品庫存補貨記錄
+ * One entry per purchase batch
+ */
+export interface InventoryEntry {
+  supplementId: string;
+  /** 本次購入顆數 */
+  purchasedUnits: number;
+  /** 購買日期 ISO YYYY-MM-DD */
+  purchaseDate: string;
+}
+
+/**
+ * 補品服用記錄（事件溯源）
+ * remaining = sum(purchasedUnits) - sum(consumedUnits)
+ */
+export interface ConsumptionEvent {
+  supplementId: string;
+  /** 服用日期 */
+  date: string;
+  /** 本次服用顆數 */
+  units: number;
 }
 
 // ── BMR / TDEE Types ────────────────────────────────
