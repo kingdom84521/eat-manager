@@ -28,8 +28,8 @@ Requirements for this milestone. Each maps to roadmap phases.
 - [ ] **FOOD-03**: Composed food displays dynamically calculated total calories and macros based on current ingredient ratios
 - [ ] **FOOD-04**: User can search Open Food Facts for ingredient data when composing a food
 - [ ] **FOOD-05**: User can edit an existing food item
-- [ ] **FOOD-06**: User can delete a food item
-- [ ] **FOOD-07**: Food list page accessible from app navigation, showing all saved foods with nutrition summary
+- [x] **FOOD-06**: User can delete a food item
+- [x] **FOOD-07**: Food list page accessible from app navigation, showing all saved foods with nutrition summary
 
 ### Supplement Management
 
@@ -103,8 +103,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | FOOD-03 | Phase 7 | Pending |
 | FOOD-04 | Phase 7 | Pending |
 | FOOD-05 | Phase 7 | Pending |
-| FOOD-06 | Phase 7 | Pending |
-| FOOD-07 | Phase 7 | Pending |
+| FOOD-06 | Phase 7 | Complete |
+| FOOD-07 | Phase 7 | Complete |
 | SUPP-01 | Phase 8 | Pending |
 | SUPP-02 | Phase 8 | Pending |
 | SUPP-03 | Phase 8 | Pending |
