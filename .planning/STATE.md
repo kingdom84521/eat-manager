@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Item Management & Supplement Routines
-status: planning
-stopped_at: Completed 05-01-PLAN.md
-last_updated: "2026-03-31T03:42:35.866Z"
-last_activity: 2026-03-30 — v2.0 roadmap created, Phase 5 ready to plan
+status: executing
+stopped_at: "Phase 05 Plan 02 complete — data-model-restructure done"
+last_updated: "2026-03-31T04:05:00Z"
+last_activity: 2026-03-31 -- Phase 05 Plan 02 complete
 progress:
   total_phases: 5
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  completed_phases: 1
+  total_plans: 2
+  completed_plans: 2
+  percent: 40
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-30)
 
 **Core value:** Users can manage food and supplement items, track supplement inventory, and generate intelligent daily supplement routines
-**Current focus:** Phase 5 — Data Model Restructure
+**Current focus:** Phase 05 — data-model-restructure (COMPLETE)
 
 ## Current Position
 
-Phase: 5 of 9 (Data Model Restructure)
-Plan: — (not yet planned)
-Status: Ready to plan
-Last activity: 2026-03-30 — v2.0 roadmap created, Phase 5 ready to plan
+Phase: 05 (data-model-restructure) — COMPLETE
+Plan: 2 of 2 (all plans done)
+Status: Phase 05 complete — ready for Phase 06 (item-service)
+Last activity: 2026-03-31 -- Phase 05 Plan 02 complete
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [██░░░░░░░░] 40%
 
 ## Performance Metrics
 
@@ -52,7 +52,6 @@ Progress: [░░░░░░░░░░] 0%
 - Trend: -
 
 *Updated after each plan completion*
-| Phase 05 P01 | 2 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -67,7 +66,9 @@ Recent decisions affecting current work:
 - [v2.0 Roadmap]: Atomic-only ingredient model enforced at save — composed foods cannot be used as ingredients in other composed foods
 - [v2.0 Roadmap]: GAS `upsertById` should accept configurable `keyField` parameter — finalize in Phase 6 planning to handle inventory keyed by `supplementId`
 - [v2.0 Roadmap]: Food/Supplement manager pages accessed via "管理" buttons from existing tabs, not new bottom nav tabs (preserves 5-tab mobile layout)
-- [Phase 05]: Removed all JSDoc references to RemedyItem to enforce zero-occurrence constraint in types.ts
+- [05-02]: SUPPLEMENTS_CATALOG key added to SHEETS constant (separate from existing SUPPLEMENTS log key) to avoid name collision
+- [05-02]: TCMNature removed from data-service.ts imports — only used by rowToRemedy (deleted)
+- [05-02]: resolveAndGroup returns { supplements, foods } only — no remedies or behaviors keys
 
 ### Pending Todos
 
@@ -80,6 +81,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-31T03:42:35.861Z
-Stopped at: Completed 05-01-PLAN.md
-Resume file: None
+Last session: 2026-03-31T04:05:00Z
+Stopped at: Phase 05 Plan 02 complete — data-model-restructure done
+Resume file: .planning/phases/05-data-model-restructure/05-02-SUMMARY.md
