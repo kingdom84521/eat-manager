@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Item Management & Supplement Routines
-status: executing
-stopped_at: "Completed 06-01-PLAN.md"
-last_updated: "2026-03-31T09:18:25Z"
-last_activity: 2026-03-31 -- Phase 06 Plan 01 completed
+status: verifying
+stopped_at: Completed 06-02-PLAN.md
+last_updated: "2026-03-31T09:24:34.735Z"
+last_activity: 2026-03-31
 progress:
   total_phases: 5
   completed_phases: 1
@@ -27,8 +27,8 @@ See: .planning/PROJECT.md (updated 2026-03-30)
 
 Phase: 06 (itemservice-gas-id-keyed-operations) — EXECUTING
 Plan: 2 of 2
-Status: Executing Phase 06
-Last activity: 2026-03-31 -- Phase 06 Plan 01 completed
+Status: Phase complete — ready for verification
+Last activity: 2026-03-31
 
 Progress: [██████░░░░] 60%
 
@@ -52,6 +52,7 @@ Progress: [██████░░░░] 60%
 - Trend: -
 
 *Updated after each plan completion*
+| Phase 06 P02 | 5 | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -69,6 +70,8 @@ Recent decisions affecting current work:
 - [05-02]: SUPPLEMENTS_CATALOG key added to SHEETS constant (separate from existing SUPPLEMENTS log key) to avoid name collision
 - [05-02]: TCMNature removed from data-service.ts imports — only used by rowToRemedy (deleted)
 - [05-02]: resolveAndGroup returns { supplements, foods } only — no remedies or behaviors keys
+- [Phase 06]: isActive row comparison drops boolean literal: SheetRow values cannot be boolean (TS2367), so check is row.isActive === 'true' || row.isActive === 1
+- [Phase 06]: upsertInventory uses SheetsAPI.append not upsertById — InventoryEntry has no id field, purchase records are immutable events
 
 ### Pending Todos
 
@@ -81,6 +84,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-31T09:18:25Z
-Stopped at: Completed 06-01-PLAN.md
-Resume file: .planning/phases/06-itemservice-gas-id-keyed-operations/06-02-PLAN.md
+Last session: 2026-03-31T09:24:34.729Z
+Stopped at: Completed 06-02-PLAN.md
+Resume file: None

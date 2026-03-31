@@ -18,8 +18,8 @@ Requirements for this milestone. Each maps to roadmap phases.
 
 ### Backend (GAS)
 
-- [ ] **GAS-01**: Google Apps Script supports id-keyed upsert (not just date-keyed) for catalog CRUD operations
-- [ ] **GAS-02**: Google Apps Script supports id-keyed delete for catalog items
+- [x] **GAS-01**: Google Apps Script supports id-keyed upsert (not just date-keyed) for catalog CRUD operations
+- [x] **GAS-02**: Google Apps Script supports id-keyed delete for catalog items
 
 ### Food Management
 
@@ -96,8 +96,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DM-04 | Phase 5 | Complete |
 | DM-05 | Phase 5 | Complete |
 | DM-06 | Phase 5 | Complete |
-| GAS-01 | Phase 6 | Pending |
-| GAS-02 | Phase 6 | Pending |
+| GAS-01 | Phase 6 | Complete |
+| GAS-02 | Phase 6 | Complete |
 | FOOD-01 | Phase 7 | Pending |
 | FOOD-02 | Phase 7 | Pending |
 | FOOD-03 | Phase 7 | Pending |
