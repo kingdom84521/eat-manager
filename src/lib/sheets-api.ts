@@ -78,4 +78,14 @@ export const SheetsAPI = {
   async deleteByDate(sheet: string, date: string): Promise<ApiResponse> {
     return gasPost({ action: "delete", sheet, data: { date } });
   },
+
+  /** 以 id 為 key 更新或新增 (per D-12) */
+  async upsertById(sheet: string, data: SheetRow): Promise<ApiResponse> {
+    return gasPost({ action: "upsertById", sheet, data });
+  },
+
+  /** 刪除指定 id 的資料 (per D-13) */
+  async deleteById(sheet: string, id: string): Promise<ApiResponse> {
+    return gasPost({ action: "deleteById", sheet, data: { id } });
+  },
 };
