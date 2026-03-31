@@ -9,12 +9,12 @@ Requirements for this milestone. Each maps to roadmap phases.
 
 ### Data Model
 
-- [ ] **DM-01**: Remove `BehaviorItem` type and all references from codebase
-- [ ] **DM-02**: Two hardcoded item categories only: Food (`food`) and Supplement (`supplement`) — no `remedy` or `behavior` subtypes
-- [ ] **DM-03**: `FoodItem` supports optional `ingredients` field for composed foods (array of ingredient references with quantities)
-- [ ] **DM-04**: `SupplementItem` type with metadata fields: interactions, synergies, recommended timing, dosage per intake, daily max dosage, health tags
-- [ ] **DM-05**: `InventoryEntry` type for tracking purchased supplement quantities with purchase date
-- [ ] **DM-06**: Composed food nutrition values are always derived (never stored), matching existing derived-values pattern
+- [x] **DM-01**: Remove `BehaviorItem` type and all references from codebase
+- [x] **DM-02**: Two hardcoded item categories only: Food (`food`) and Supplement (`supplement`) — no `remedy` or `behavior` subtypes
+- [x] **DM-03**: `FoodItem` supports optional `ingredients` field for composed foods (array of ingredient references with quantities)
+- [x] **DM-04**: `SupplementItem` type with metadata fields: interactions, synergies, recommended timing, dosage per intake, daily max dosage, health tags
+- [x] **DM-05**: `InventoryEntry` type for tracking purchased supplement quantities with purchase date
+- [x] **DM-06**: Composed food nutrition values are always derived (never stored), matching existing derived-values pattern
 
 ### Backend (GAS)
 
@@ -90,12 +90,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DM-01 | Phase 5 | Pending |
-| DM-02 | Phase 5 | Pending |
-| DM-03 | Phase 5 | Pending |
-| DM-04 | Phase 5 | Pending |
-| DM-05 | Phase 5 | Pending |
-| DM-06 | Phase 5 | Pending |
+| DM-01 | Phase 5 | Complete |
+| DM-02 | Phase 5 | Complete |
+| DM-03 | Phase 5 | Complete |
+| DM-04 | Phase 5 | Complete |
+| DM-05 | Phase 5 | Complete |
+| DM-06 | Phase 5 | Complete |
 | GAS-01 | Phase 6 | Pending |
 | GAS-02 | Phase 6 | Pending |
 | FOOD-01 | Phase 7 | Pending |
