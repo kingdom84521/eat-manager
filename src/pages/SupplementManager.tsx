@@ -64,18 +64,249 @@ const INV_COLORS = {
   gray: "bg-slate-700/50 text-slate-500",
 } as const;
 
+// ── Bidirectional Interaction Resolvers ───────────
+
+/** Resolve all supplements that have an interaction with s (direct + indirect). */
+function resolveInteractions(s: SupplementItem, allSupps: SupplementItem[]): SupplementItem[] {
+  const direct = s.interactions
+    .map((id) => allSupps.find((x) => x.id === id))
+    .filter((x): x is SupplementItem => x !== undefined);
+  const indirect = allSupps.filter(
+    (other) => other.id !== s.id && other.interactions.includes(s.id)
+  );
+  const seen = new Set(direct.map((x) => x.id));
+  return [...direct, ...indirect.filter((x) => !seen.has(x.id))];
+}
+
+/** Resolve all supplements that have a synergy with s (direct + indirect). */
+function resolveSynergies(s: SupplementItem, allSupps: SupplementItem[]): SupplementItem[] {
+  const direct = s.synergies
+    .map((id) => allSupps.find((x) => x.id === id))
+    .filter((x): x is SupplementItem => x !== undefined);
+  const indirect = allSupps.filter(
+    (other) => other.id !== s.id && other.synergies.includes(s.id)
+  );
+  const seen = new Set(direct.map((x) => x.id));
+  return [...direct, ...indirect.filter((x) => !seen.has(x.id))];
+}
+
+// ── SupplementRefSelector Sub-component ──────────
+
+interface SupplementRefSelectorProps {
+  selectedIds: string[];
+  onToggle: (id: string) => void;
+  allSupplements: SupplementItem[];
+  currentSuppId?: string;
+  chipColor: "red" | "green";
+  chipPrefix: string;
+  chipSuffix: string;
+}
+
+function SupplementRefSelector({
+  selectedIds,
+  onToggle,
+  allSupplements,
+  currentSuppId,
+  chipColor,
+  chipPrefix,
+  chipSuffix,
+}: SupplementRefSelectorProps) {
+  const [query, setQuery] = useState("");
+  const [showDropdown, setShowDropdown] = useState(false);
+
+  // Resolve selected IDs to supplement objects, filtering out deleted ones (D-22)
+  const resolvedSelected = selectedIds
+    .map((id) => allSupplements.find((s) => s.id === id))
+    .filter((s): s is SupplementItem => s !== undefined);
+
+  // Filter options: exclude self, already selected, and match query
+  const options = allSupplements
+    .filter(
+      (s) =>
+        s.id !== currentSuppId &&
+        !selectedIds.includes(s.id) &&
+        s.name.includes(query)
+    )
+    .slice(0, 8);
+
+  const chipStyle =
+    chipColor === "red"
+      ? { backgroundColor: "#ef444430", color: "#ef4444", border: "1px solid #ef444460" }
+      : { backgroundColor: "#22c55e30", color: "#22c55e", border: "1px solid #22c55e60" };
+
+  return (
+    <div>
+      {/* Selected chips */}
+      {resolvedSelected.length > 0 && (
+        <div className="flex flex-wrap gap-1 mb-2">
+          {resolvedSelected.map((s) => (
+            <span
+              key={s.id}
+              className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium"
+              style={chipStyle}
+            >
+              {chipPrefix} {s.name} {chipSuffix}
+              <button
+                onClick={() => onToggle(s.id)}
+                className="opacity-70 hover:opacity-100 ml-0.5"
+                aria-label={`移除 ${s.name}`}
+              >
+                ✕
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Search input + dropdown */}
+      <div className="relative">
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onFocus={() => setShowDropdown(true)}
+          onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
+          placeholder="搜尋補品..."
+          className="w-full bg-slate-800 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        {showDropdown && options.length > 0 && (
+          <div className="absolute z-10 mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+            {options.map((s) => (
+              <div
+                key={s.id}
+                onMouseDown={() => {
+                  onToggle(s.id);
+                  setQuery("");
+                }}
+                className="px-3 py-2 text-sm text-slate-200 hover:bg-slate-700 cursor-pointer"
+              >
+                {s.name}
+                {s.brand && <span className="text-slate-400 text-xs ml-1">{s.brand}</span>}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── InventorySection Sub-component ────────────────
+
+interface InventorySectionProps {
+  supplementId: string;
+  unitsPerDose: number;
+  dosesPerDay: number;
+  inventory: InventoryEntry[];
+  onRecordPurchase: (entry: InventoryEntry) => void;
+}
+
+function InventorySection({
+  supplementId,
+  unitsPerDose,
+  dosesPerDay,
+  inventory,
+  onRecordPurchase,
+}: InventorySectionProps) {
+  const [purchaseQty, setPurchaseQty] = useState("");
+  const [purchaseDate, setPurchaseDate] = useState(() => {
+    const d = new Date();
+    return d.toISOString().slice(0, 10);
+  });
+
+  const entries = inventory.filter((e) => e.supplementId === supplementId);
+  const remainingUnits = entries.reduce((sum, e) => sum + e.purchasedUnits, 0);
+  const dailyUsage = unitsPerDose * dosesPerDay;
+  const daysLeft = dailyUsage > 0 && entries.length > 0 ? remainingUnits / dailyUsage : null;
+  const color = inventoryColor(daysLeft);
+
+  const history = [...entries].sort((a, b) => b.purchaseDate.localeCompare(a.purchaseDate));
+
+  function handleRecordPurchase() {
+    const qty = parseInt(purchaseQty, 10);
+    if (isNaN(qty) || qty <= 0) return;
+    const entry: InventoryEntry = {
+      supplementId,
+      purchasedUnits: qty,
+      purchaseDate,
+    };
+    onRecordPurchase(entry);
+    setPurchaseQty("");
+    setPurchaseDate(new Date().toISOString().slice(0, 10));
+  }
+
+  return (
+    <div>
+      {/* Remaining summary */}
+      <div className={`rounded-lg p-3 mb-4 ${INV_COLORS[color]}`}>
+        <p className="text-sm font-bold">
+          {daysLeft !== null
+            ? `剩餘 ${remainingUnits} 顆 · 約 ${Math.round(daysLeft)} 天`
+            : "尚無庫存記錄"}
+        </p>
+      </div>
+
+      {/* Record purchase form */}
+      <label className="block text-xs text-slate-400 mb-2">記錄購入</label>
+      <div className="flex gap-2 mb-2">
+        <input
+          type="number"
+          min="1"
+          value={purchaseQty}
+          onChange={(e) => setPurchaseQty(e.target.value)}
+          placeholder="數量"
+          className="flex-1 bg-slate-800 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        <input
+          type="date"
+          value={purchaseDate}
+          onChange={(e) => setPurchaseDate(e.target.value)}
+          className="flex-1 bg-slate-800 rounded-lg px-3 py-2 text-sm text-white outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        <button
+          onClick={handleRecordPurchase}
+          className="bg-emerald-600 hover:bg-emerald-500 text-white text-sm px-4 py-2 rounded-lg transition-colors shrink-0"
+        >
+          記錄
+        </button>
+      </div>
+
+      {/* Purchase history */}
+      {history.length > 0 && (
+        <div className="mt-4">
+          <label className="block text-xs text-slate-400 mb-2">購入記錄</label>
+          {history.map((e, idx) => (
+            <div
+              key={idx}
+              className="flex items-center justify-between py-2 border-b border-slate-700/50 text-sm"
+            >
+              <span className="text-slate-300">{e.purchaseDate}</span>
+              <span className="text-slate-100 font-medium">{e.purchasedUnits} 顆</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── SupplementCard Sub-component ──────────────────
 
 interface SupplementCardProps {
   supp: SupplementItem;
   daysLeft: number | null;
   remainingUnits: number;
+  allSupplements: SupplementItem[];
   onTap: () => void;
   onDelete: () => void;
 }
 
-function SupplementCard({ supp, daysLeft, remainingUnits, onTap, onDelete }: SupplementCardProps) {
+function SupplementCard({ supp, daysLeft, remainingUnits, allSupplements, onTap, onDelete }: SupplementCardProps) {
   const color = inventoryColor(daysLeft);
+
+  // Bidirectional interaction/synergy counts for badges
+  const interactionCount = resolveInteractions(supp, allSupplements).length;
+  const synergyCount = resolveSynergies(supp, allSupplements).length;
 
   return (
     <div
@@ -112,12 +343,12 @@ function SupplementCard({ supp, daysLeft, remainingUnits, onTap, onDelete }: Sup
         {supp.tags.length > 0 && (
           <div className="flex flex-wrap gap-1 mb-1">
             {supp.tags.map((tag) => {
-              const color = HEALTH_TAG_COLORS[tag];
+              const tagColor = HEALTH_TAG_COLORS[tag];
               return (
                 <span
                   key={tag}
                   className="text-[10px] px-1.5 py-0.5 rounded-full font-medium"
-                  style={{ backgroundColor: color + "30", color, borderWidth: 1, borderColor: color + "60" }}
+                  style={{ backgroundColor: tagColor + "30", color: tagColor, borderWidth: 1, borderColor: tagColor + "60" }}
                 >
                   {HEALTH_TAG_LABELS[tag]}
                 </span>
@@ -126,7 +357,29 @@ function SupplementCard({ supp, daysLeft, remainingUnits, onTap, onDelete }: Sup
           </div>
         )}
 
-        {/* Row 4: Inventory status */}
+        {/* Row 4: Interaction/synergy badges */}
+        {(interactionCount > 0 || synergyCount > 0) && (
+          <div className="flex gap-1 mb-1">
+            {interactionCount > 0 && (
+              <span
+                className="text-[10px] px-1.5 py-0.5 rounded-full font-medium"
+                style={{ backgroundColor: "#ef444420", color: "#ef4444", border: "1px solid #ef444440" }}
+              >
+                ⚠ {interactionCount} 衝突
+              </span>
+            )}
+            {synergyCount > 0 && (
+              <span
+                className="text-[10px] px-1.5 py-0.5 rounded-full font-medium"
+                style={{ backgroundColor: "#22c55e20", color: "#22c55e", border: "1px solid #22c55e40" }}
+              >
+                ✓ {synergyCount} 協同
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Row 5: Inventory status */}
         <div className={`inline-flex items-center text-[10px] px-2 py-0.5 rounded-full ${INV_COLORS[color]}`}>
           {daysLeft === null
             ? "尚無庫存"
@@ -153,7 +406,10 @@ function SupplementCard({ supp, daysLeft, remainingUnits, onTap, onDelete }: Sup
 
 interface SupplementFormProps {
   supp?: SupplementItem;
+  allSupplements: SupplementItem[];
+  inventory: InventoryEntry[];
   onSave: (s: SupplementItem) => void;
+  onRecordPurchase: (entry: InventoryEntry) => void;
   onCancel: () => void;
 }
 
@@ -170,7 +426,7 @@ interface SupplementFormDraft {
   caution: string;
 }
 
-function SupplementForm({ supp, onSave, onCancel }: SupplementFormProps) {
+function SupplementForm({ supp, allSupplements, inventory, onSave, onRecordPurchase, onCancel }: SupplementFormProps) {
   const isEdit = supp !== undefined;
 
   const [draft, setDraft] = useState<SupplementFormDraft>({
@@ -186,8 +442,31 @@ function SupplementForm({ supp, onSave, onCancel }: SupplementFormProps) {
     caution: supp?.caution ?? "",
   });
 
+  const [interactionIds, setInteractionIds] = useState<string[]>(supp?.interactions ?? []);
+  const [synergyIds, setSynergyIds] = useState<string[]>(supp?.synergies ?? []);
+
   const [nameError, setNameError] = useState("");
   const [dosageError, setDosageError] = useState("");
+
+  // Indirect interactions — other supplements that have listed this one as a conflict
+  const indirectInteractions = supp
+    ? allSupplements.filter(
+        (other) =>
+          other.id !== supp.id &&
+          other.interactions.includes(supp.id) &&
+          !interactionIds.includes(other.id)
+      )
+    : [];
+
+  // Indirect synergies — other supplements that have listed this one as a synergy
+  const indirectSynergies = supp
+    ? allSupplements.filter(
+        (other) =>
+          other.id !== supp.id &&
+          other.synergies.includes(supp.id) &&
+          !synergyIds.includes(other.id)
+      )
+    : [];
 
   function setField<K extends keyof SupplementFormDraft>(key: K, value: SupplementFormDraft[K]) {
     setDraft((prev) => ({ ...prev, [key]: value }));
@@ -233,8 +512,8 @@ function SupplementForm({ supp, onSave, onCancel }: SupplementFormProps) {
       dosesPerDay: parseFloat(draft.dosesPerDay) || 1,
       timing: draft.timing,
       tags: draft.tags,
-      interactions: supp?.interactions ?? [],
-      synergies: supp?.synergies ?? [],
+      interactions: interactionIds,
+      synergies: synergyIds,
       mechanism: draft.mechanism.trim() || undefined,
       caution: draft.caution.trim() || undefined,
       tcm: supp?.tcm,
@@ -348,7 +627,7 @@ function SupplementForm({ supp, onSave, onCancel }: SupplementFormProps) {
         <div className="flex flex-wrap gap-2">
           {ALL_TAGS.map((tag) => {
             const selected = draft.tags.includes(tag);
-            const color = HEALTH_TAG_COLORS[tag];
+            const tagColor = HEALTH_TAG_COLORS[tag];
             return (
               <button
                 key={tag}
@@ -358,7 +637,7 @@ function SupplementForm({ supp, onSave, onCancel }: SupplementFormProps) {
                 }`}
                 style={
                   selected
-                    ? { backgroundColor: color + "30", color, borderWidth: 1, borderColor: color + "60" }
+                    ? { backgroundColor: tagColor + "30", color: tagColor, borderWidth: 1, borderColor: tagColor + "60" }
                     : {}
                 }
               >
@@ -400,7 +679,7 @@ function SupplementForm({ supp, onSave, onCancel }: SupplementFormProps) {
       </div>
 
       {/* Caution */}
-      <div className="mb-6">
+      <div className="mb-4">
         <label className="block text-xs text-slate-400 mb-1">注意事項（選填）</label>
         <textarea
           value={draft.caution}
@@ -411,6 +690,68 @@ function SupplementForm({ supp, onSave, onCancel }: SupplementFormProps) {
         />
       </div>
 
+      {/* Interactions (conflicts) — per D-12 */}
+      <div className="mb-4">
+        <label className="block text-xs text-slate-400 mb-2">交互作用（衝突）</label>
+        <SupplementRefSelector
+          selectedIds={interactionIds}
+          onToggle={(id) =>
+            setInteractionIds((prev) =>
+              prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+            )
+          }
+          allSupplements={allSupplements}
+          currentSuppId={supp?.id}
+          chipColor="red"
+          chipPrefix="⚠ 與"
+          chipSuffix="衝突"
+        />
+        {/* Indirect interactions — bidirectional display (per D-14) */}
+        {indirectInteractions.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1">
+            {indirectInteractions.map((other) => (
+              <span
+                key={other.id}
+                className="inline-block text-[10px] px-2 py-0.5 rounded-full mr-1 mb-1 bg-red-500/10 text-red-400/60"
+              >
+                ⚠ 與 {other.name} 衝突（由對方設定）
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Synergies — per D-13 */}
+      <div className="mb-6">
+        <label className="block text-xs text-slate-400 mb-2">協同作用（加乘）</label>
+        <SupplementRefSelector
+          selectedIds={synergyIds}
+          onToggle={(id) =>
+            setSynergyIds((prev) =>
+              prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+            )
+          }
+          allSupplements={allSupplements}
+          currentSuppId={supp?.id}
+          chipColor="green"
+          chipPrefix="✓ 與"
+          chipSuffix="協同"
+        />
+        {/* Indirect synergies — bidirectional display (per D-14) */}
+        {indirectSynergies.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1">
+            {indirectSynergies.map((other) => (
+              <span
+                key={other.id}
+                className="inline-block text-[10px] px-2 py-0.5 rounded-full mr-1 mb-1 bg-emerald-500/10 text-emerald-400/60"
+              >
+                ✓ 與 {other.name} 協同（由對方設定）
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* Save button */}
       <button
         onClick={handleSubmit}
@@ -418,6 +759,21 @@ function SupplementForm({ supp, onSave, onCancel }: SupplementFormProps) {
       >
         儲存補品
       </button>
+
+      {/* Inventory section — edit mode only, per D-15 */}
+      {supp && (
+        <>
+          <div className="border-t border-slate-700 my-6" />
+          <h2 className="text-lg font-bold mb-4">庫存管理</h2>
+          <InventorySection
+            supplementId={supp.id}
+            unitsPerDose={parseFloat(draft.unitsPerDose) || 1}
+            dosesPerDay={parseFloat(draft.dosesPerDay) || 1}
+            inventory={inventory}
+            onRecordPurchase={onRecordPurchase}
+          />
+        </>
+      )}
     </div>
   );
 }
@@ -444,7 +800,7 @@ export default function SupplementManager() {
   // ── O(1) supplement lookup map ──
 
   const suppMap = useMemo(() => new Map(supplements.map((s) => [s.id, s])), [supplements]);
-  void suppMap; // used in Plan 02 for bidirectional interaction resolution
+  void suppMap;
 
   // ── Filtered list ──
 
@@ -486,15 +842,40 @@ export default function SupplementManager() {
     setEditTarget(null);
   }
 
+  // ── Record purchase handler ──
+
+  async function handleRecordPurchase(entry: InventoryEntry) {
+    await ItemService.upsertInventory(entry);
+    // Optimistic update — add to local state immediately
+    setInventory((prev) => [...prev, entry]);
+  }
+
   // ── Render ─────────────────────────────────────
 
   // Non-list views
   if (view === "add") {
-    return <SupplementForm onSave={handleSave} onCancel={() => setView("list")} />;
+    return (
+      <SupplementForm
+        allSupplements={supplements}
+        inventory={inventory}
+        onSave={handleSave}
+        onRecordPurchase={handleRecordPurchase}
+        onCancel={() => setView("list")}
+      />
+    );
   }
 
   if (view === "edit" && editTarget) {
-    return <SupplementForm supp={editTarget} onSave={handleSave} onCancel={() => setView("list")} />;
+    return (
+      <SupplementForm
+        supp={editTarget}
+        allSupplements={supplements}
+        inventory={inventory}
+        onSave={handleSave}
+        onRecordPurchase={handleRecordPurchase}
+        onCancel={() => { setView("list"); setEditTarget(null); }}
+      />
+    );
   }
 
   // ── List View ──────────────────────────────────
@@ -558,6 +939,7 @@ export default function SupplementManager() {
                 supp={supp}
                 daysLeft={daysLeft}
                 remainingUnits={remainingUnits}
+                allSupplements={supplements}
                 onTap={() => handleTapSupplement(supp)}
                 onDelete={() => handleDelete(supp.id)}
               />
