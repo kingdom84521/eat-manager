@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Item Management & Supplement Routines
 status: executing
-stopped_at: Phase 8 context gathered
-last_updated: "2026-04-02T09:58:36.683Z"
-last_activity: 2026-03-31
+stopped_at: Completed 08-01-PLAN.md
+last_updated: "2026-04-02T10:16:25.177Z"
+last_activity: 2026-04-02
 progress:
   total_phases: 5
   completed_phases: 3
-  total_plans: 7
-  completed_plans: 7
+  total_plans: 9
+  completed_plans: 8
   percent: 71
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-30)
 
 **Core value:** Users can manage food and supplement items, track supplement inventory, and generate intelligent daily supplement routines
-**Current focus:** Phase 07 — food-manager
+**Current focus:** Phase 08 — supplement-manager-inventory
 
 ## Current Position
 
-Phase: 8
-Plan: Not started
+Phase: 08 (supplement-manager-inventory) — EXECUTING
+Plan: 2 of 2
 Status: Ready to execute
-Last activity: 2026-03-31
+Last activity: 2026-04-02
 
 Progress: [███████░░░] 71%
 
@@ -54,6 +54,7 @@ Progress: [███████░░░] 71%
 *Updated after each plan completion*
 | Phase 06 P02 | 5 | 1 tasks | 1 files |
 | Phase 07-food-manager P03 | 20 | 1 tasks | 1 files |
+| Phase 08 P01 | 8 | 1 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -77,6 +78,7 @@ Recent decisions affecting current work:
 - [07-02]: Tag chips use inline style prop for selected color (dynamic hex from HEALTH_TAG_COLORS), className for unselected — matches DailyPlan.tsx pattern
 - [Phase 07]: ComposeForm uses onAddFromOff callback to save OFF food and refresh parent list, then ComposeForm adds ingredient row using the saved food.id
 - [Phase 07]: ComposeForm totals derived on every render via calcTotals() not stored in state — guarantees correctness without sync logic
+- [Phase 08]: /schedule icon changed to 🗓️ to avoid duplication with new /supplements 💊 tab
 
 ### Pending Todos
 
@@ -89,6 +91,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-02T09:58:36.677Z
-Stopped at: Phase 8 context gathered
-Resume file: .planning/phases/08-supplement-manager-inventory/08-CONTEXT.md
+Last session: 2026-04-02T10:16:25.171Z
+Stopped at: Completed 08-01-PLAN.md
+Resume file: None

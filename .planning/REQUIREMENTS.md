@@ -33,12 +33,12 @@ Requirements for this milestone. Each maps to roadmap phases.
 
 ### Supplement Management
 
-- [ ] **SUPP-01**: User can add a supplement with name, brand, dosage per capsule/tablet, health tags, recommended timing
+- [x] **SUPP-01**: User can add a supplement with name, brand, dosage per capsule/tablet, health tags, recommended timing
 - [ ] **SUPP-02**: User can add interaction warnings for a supplement (conflicts with other supplements)
 - [ ] **SUPP-03**: User can add synergy notes for a supplement (pairs well with other supplements)
-- [ ] **SUPP-04**: User can edit an existing supplement
-- [ ] **SUPP-05**: User can delete a supplement
-- [ ] **SUPP-06**: Supplement list page accessible from app navigation, showing all supplements with key metadata
+- [x] **SUPP-04**: User can edit an existing supplement
+- [x] **SUPP-05**: User can delete a supplement
+- [x] **SUPP-06**: Supplement list page accessible from app navigation, showing all supplements with key metadata
 
 ### Supplement Inventory
 
@@ -105,12 +105,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 | FOOD-05 | Phase 7 | Complete |
 | FOOD-06 | Phase 7 | Complete |
 | FOOD-07 | Phase 7 | Complete |
-| SUPP-01 | Phase 8 | Pending |
+| SUPP-01 | Phase 8 | Complete |
 | SUPP-02 | Phase 8 | Pending |
 | SUPP-03 | Phase 8 | Pending |
-| SUPP-04 | Phase 8 | Pending |
-| SUPP-05 | Phase 8 | Pending |
-| SUPP-06 | Phase 8 | Pending |
+| SUPP-04 | Phase 8 | Complete |
+| SUPP-05 | Phase 8 | Complete |
+| SUPP-06 | Phase 8 | Complete |
 | INV-01 | Phase 8 | Pending |
 | INV-02 | Phase 8 | Pending |
 | INV-03 | Phase 8 | Pending |
