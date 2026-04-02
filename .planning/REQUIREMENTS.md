@@ -34,18 +34,18 @@ Requirements for this milestone. Each maps to roadmap phases.
 ### Supplement Management
 
 - [x] **SUPP-01**: User can add a supplement with name, brand, dosage per capsule/tablet, health tags, recommended timing
-- [ ] **SUPP-02**: User can add interaction warnings for a supplement (conflicts with other supplements)
-- [ ] **SUPP-03**: User can add synergy notes for a supplement (pairs well with other supplements)
+- [x] **SUPP-02**: User can add interaction warnings for a supplement (conflicts with other supplements)
+- [x] **SUPP-03**: User can add synergy notes for a supplement (pairs well with other supplements)
 - [x] **SUPP-04**: User can edit an existing supplement
 - [x] **SUPP-05**: User can delete a supplement
 - [x] **SUPP-06**: Supplement list page accessible from app navigation, showing all supplements with key metadata
 
 ### Supplement Inventory
 
-- [ ] **INV-01**: User can record a supplement purchase (quantity, purchase date)
-- [ ] **INV-02**: App tracks remaining quantity based on actual consumption events (event-sourced, not estimated)
-- [ ] **INV-03**: User can see remaining quantity and estimated days of supply for each supplement
-- [ ] **INV-04**: Low inventory warning when estimated days remaining drops below threshold
+- [x] **INV-01**: User can record a supplement purchase (quantity, purchase date)
+- [x] **INV-02**: App tracks remaining quantity based on actual consumption events (event-sourced, not estimated)
+- [x] **INV-03**: User can see remaining quantity and estimated days of supply for each supplement
+- [x] **INV-04**: Low inventory warning when estimated days remaining drops below threshold
 
 ### Supplement Routine
 
@@ -106,15 +106,15 @@ Which phases cover which requirements. Updated during roadmap creation.
 | FOOD-06 | Phase 7 | Complete |
 | FOOD-07 | Phase 7 | Complete |
 | SUPP-01 | Phase 8 | Complete |
-| SUPP-02 | Phase 8 | Pending |
-| SUPP-03 | Phase 8 | Pending |
+| SUPP-02 | Phase 8 | Complete |
+| SUPP-03 | Phase 8 | Complete |
 | SUPP-04 | Phase 8 | Complete |
 | SUPP-05 | Phase 8 | Complete |
 | SUPP-06 | Phase 8 | Complete |
-| INV-01 | Phase 8 | Pending |
-| INV-02 | Phase 8 | Pending |
-| INV-03 | Phase 8 | Pending |
-| INV-04 | Phase 8 | Pending |
+| INV-01 | Phase 8 | Complete |
+| INV-02 | Phase 8 | Complete |
+| INV-03 | Phase 8 | Complete |
+| INV-04 | Phase 8 | Complete |
 | RTN-01 | Phase 9 | Pending |
 | RTN-02 | Phase 9 | Pending |
 | RTN-03 | Phase 9 | Pending |

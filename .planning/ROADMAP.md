@@ -26,7 +26,7 @@ See: `.planning/milestones/v1.0-ROADMAP.md` for full details
 - [ ] **Phase 5: Data Model Restructure** - Clean type foundation: remove BehaviorItem, define FoodItem with ingredients, SupplementItem with rich metadata, InventoryEntry
 - [ ] **Phase 6: ItemService + GAS id-keyed Operations** - Working persistence layer for food/supplement CRUD via localStorage + Sheets
 - [ ] **Phase 7: Food Manager** - Full food CRUD page with nutrition label input, ingredient composition, and Open Food Facts lookup
-- [ ] **Phase 8: Supplement Manager + Inventory** - Full supplement CRUD page with rich metadata and inventory tracking
+- [x] **Phase 8: Supplement Manager + Inventory** - Full supplement CRUD page with rich metadata and inventory tracking (completed 2026-04-02)
 - [ ] **Phase 9: Supplement Routine Generator** - Deterministic daily routine page with taken/skipped tracking and inventory deduction
 
 ## Phase Details
@@ -86,10 +86,10 @@ Plans:
   4. User can record a supplement purchase (quantity, purchase date) and see the remaining quantity and estimated days of supply update immediately
   5. User sees an amber warning when a supplement has fewer than 14 days of supply remaining, and a red warning below 7 days
   6. User can edit or delete any supplement, with changes reflected immediately in the list
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 Plans:
 - [x] 08-01-PLAN.md — Route, nav tab, supplement list with cards, search/filter, supplement form with all metadata fields
-- [ ] 08-02-PLAN.md — Interactions/synergies multi-select, inventory section with purchase recording and history
+- [x] 08-02-PLAN.md — Interactions/synergies multi-select, inventory section with purchase recording and history
 **UI hint**: yes
 
 ### Phase 9: Supplement Routine Generator
@@ -117,5 +117,5 @@ Plans:
 | 5. Data Model Restructure | v2.0 | 2/2 | Complete | 2026-03-31 |
 | 6. ItemService + GAS id-keyed Operations | v2.0 | 2/2 | Complete | 2026-03-31 |
 | 7. Food Manager | v2.0 | 3/3 | Complete | 2026-03-31 |
-| 8. Supplement Manager + Inventory | v2.0 | 1/2 | In Progress|  |
+| 8. Supplement Manager + Inventory | v2.0 | 2/2 | Complete   | 2026-04-02 |
 | 9. Supplement Routine Generator | v2.0 | 0/? | Not started | - |
