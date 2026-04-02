@@ -3,6 +3,7 @@ import DailyPlan from "./pages/DailyPlan";
 import FoodManager from "./pages/FoodManager";
 import NutritionTracker from "./pages/NutritionTracker";
 import SupplementSchedule from "./pages/SupplementSchedule";
+import SupplementManager from "./pages/SupplementManager";
 import WeightLog from "./pages/WeightLog";
 import Settings from "./pages/Settings";
 
@@ -10,7 +11,8 @@ const tabs = [
   { path: "/plan", icon: "🎲", label: "方案" },
   { path: "/foods", icon: "🍽️", label: "食材" },
   { path: "/track", icon: "📊", label: "飲食" },
-  { path: "/schedule", icon: "💊", label: "時程" },
+  { path: "/supplements", icon: "💊", label: "補品" },
+  { path: "/schedule", icon: "🗓️", label: "時程" },
   { path: "/weight", icon: "⚖️", label: "體重" },
   { path: "/settings", icon: "⚙️", label: "設定" },
 ];
@@ -23,6 +25,7 @@ export default function App() {
         <Route path="/plan" element={<DailyPlan />} />
         <Route path="/foods" element={<FoodManager />} />
         <Route path="/track" element={<NutritionTracker />} />
+        <Route path="/supplements" element={<SupplementManager />} />
         <Route path="/schedule" element={<SupplementSchedule />} />
         <Route path="/weight" element={<WeightLog />} />
         <Route path="/settings" element={<Settings />} />
@@ -45,7 +48,7 @@ export default function App() {
               }
             >
               <span className="text-lg mb-0.5">{t.icon}</span>
-              <span>{t.label}</span>
+              <span className="text-[10px]">{t.label}</span>
             </NavLink>
           ))}
         </div>
