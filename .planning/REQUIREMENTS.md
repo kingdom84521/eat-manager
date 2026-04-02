@@ -23,11 +23,11 @@ Requirements for this milestone. Each maps to roadmap phases.
 
 ### Food Management
 
-- [ ] **FOOD-01**: User can add a food item by filling in nutrition label fields (name, calories, protein, fat, carbs, sodium, serving size)
+- [x] **FOOD-01**: User can add a food item by filling in nutrition label fields (name, calories, protein, fat, carbs, sodium, serving size)
 - [x] **FOOD-02**: User can compose a food from multiple ingredients with adjustable quantities
 - [x] **FOOD-03**: Composed food displays dynamically calculated total calories and macros based on current ingredient ratios
 - [x] **FOOD-04**: User can search Open Food Facts for ingredient data when composing a food
-- [ ] **FOOD-05**: User can edit an existing food item
+- [x] **FOOD-05**: User can edit an existing food item
 - [x] **FOOD-06**: User can delete a food item
 - [x] **FOOD-07**: Food list page accessible from app navigation, showing all saved foods with nutrition summary
 
@@ -98,11 +98,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DM-06 | Phase 5 | Complete |
 | GAS-01 | Phase 6 | Complete |
 | GAS-02 | Phase 6 | Complete |
-| FOOD-01 | Phase 7 | Pending |
+| FOOD-01 | Phase 7 | Complete |
 | FOOD-02 | Phase 7 | Complete |
 | FOOD-03 | Phase 7 | Complete |
 | FOOD-04 | Phase 7 | Complete |
-| FOOD-05 | Phase 7 | Pending |
+| FOOD-05 | Phase 7 | Complete |
 | FOOD-06 | Phase 7 | Complete |
 | FOOD-07 | Phase 7 | Complete |
 | SUPP-01 | Phase 8 | Pending |
