@@ -9,7 +9,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { ItemService } from "../lib/item-service";
-import type { SupplementItem, InventoryEntry, HealthTag, SupplementTiming } from "../data/types";
+import type { SupplementItem, InventoryEntry, ConsumptionEvent, HealthTag, SupplementTiming } from "../data/types";
 import {
   HEALTH_TAG_LABELS,
   HEALTH_TAG_COLORS,
@@ -32,22 +32,25 @@ const ALL_TAGS = Object.keys(HEALTH_TAG_LABELS) as HealthTag[];
 
 // ── Inventory Helpers ─────────────────────────────
 
+function calcRemainingUnits(suppId: string, inv: InventoryEntry[], consumption: ConsumptionEvent[]): number {
+  const purchased = inv.filter((e) => e.supplementId === suppId).reduce((sum, e) => sum + e.purchasedUnits, 0);
+  const consumed = consumption.filter((e) => e.supplementId === suppId).reduce((sum, e) => sum + e.units, 0);
+  return Math.max(0, purchased - consumed);
+}
+
 function calcDaysRemaining(
   suppId: string,
   unitsPerDose: number,
   dosesPerDay: number,
-  inv: InventoryEntry[]
+  inv: InventoryEntry[],
+  consumption: ConsumptionEvent[]
 ): number | null {
   const entries = inv.filter((e) => e.supplementId === suppId);
   if (entries.length === 0) return null;
-  const totalPurchased = entries.reduce((sum, e) => sum + e.purchasedUnits, 0);
+  const remaining = calcRemainingUnits(suppId, inv, consumption);
   const dailyUsage = unitsPerDose * dosesPerDay;
   if (dailyUsage <= 0) return null;
-  return totalPurchased / dailyUsage;
-}
-
-function calcRemainingUnits(suppId: string, inv: InventoryEntry[]): number {
-  return inv.filter((e) => e.supplementId === suppId).reduce((sum, e) => sum + e.purchasedUnits, 0);
+  return remaining / dailyUsage;
 }
 
 function inventoryColor(daysLeft: number | null): "green" | "amber" | "red" | "gray" {
@@ -787,6 +790,7 @@ export default function SupplementManager() {
   const [editTarget, setEditTarget] = useState<SupplementItem | null>(null);
   const [supplements, setSupplements] = useState<SupplementItem[]>([]);
   const [inventory, setInventory] = useState<InventoryEntry[]>([]);
+  const [consumption, setConsumption] = useState<ConsumptionEvent[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [timingFilter, setTimingFilter] = useState<SupplementTiming | "">("");
 
@@ -795,6 +799,7 @@ export default function SupplementManager() {
   useEffect(() => {
     ItemService.getSupplements().then(setSupplements).catch(() => {});
     ItemService.getInventory().then(setInventory).catch(() => {});
+    ItemService.getConsumption().then(setConsumption).catch(() => {});
   }, []);
 
   // ── O(1) supplement lookup map ──
@@ -813,7 +818,7 @@ export default function SupplementManager() {
   // ── Low inventory banner ──
 
   const lowInventoryCount = supplements.filter((s) => {
-    const days = calcDaysRemaining(s.id, s.unitsPerDose, s.dosesPerDay, inventory);
+    const days = calcDaysRemaining(s.id, s.unitsPerDose, s.dosesPerDay, inventory, consumption);
     return days !== null && days < 14;
   }).length;
 
@@ -931,8 +936,8 @@ export default function SupplementManager() {
       {filteredSupplements.length > 0 ? (
         <div>
           {filteredSupplements.map((supp) => {
-            const daysLeft = calcDaysRemaining(supp.id, supp.unitsPerDose, supp.dosesPerDay, inventory);
-            const remainingUnits = calcRemainingUnits(supp.id, inventory);
+            const daysLeft = calcDaysRemaining(supp.id, supp.unitsPerDose, supp.dosesPerDay, inventory, consumption);
+            const remainingUnits = calcRemainingUnits(supp.id, inventory, consumption);
             return (
               <SupplementCard
                 key={supp.id}
