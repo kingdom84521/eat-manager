@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-03-30)
 Phase: 09
 Plan: Not started
 Status: Phase complete — ready for verification
-Last activity: 2026-04-05
+Last activity: 2026-04-05 - Completed quick task 260405-gx7: rename schedule tab and derive tag filters
 
 Progress: [███████░░░] 71%
 
@@ -92,6 +92,12 @@ Recent decisions affecting current work:
 ### Pending Todos
 
 None yet.
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260405-gx7 | Rename schedule tab to 例行, add data-derived tag filter chips | 2026-04-05 | 939842f | [260405-gx7-rename-schedule-tab-and-derive-tag-filte](./quick/260405-gx7-rename-schedule-tab-and-derive-tag-filte/) |
 
 ### Blockers/Concerns
 
