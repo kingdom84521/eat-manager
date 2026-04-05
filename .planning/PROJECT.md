@@ -41,13 +41,17 @@ Users can manage their food and supplement items, track supplement inventory, an
 
 ### Active
 
-- [ ] Data model restructure: Food & Supplement types only (remove BehaviorItem, rename ScheduleSlot)
-- [ ] Food CRUD with nutrition label input
-- [ ] Food composition from ingredients with dynamic calorie recalculation
-- [ ] Public nutrition database integration
-- [ ] Supplement CRUD with rich metadata (interactions, timing, dosage)
-- [ ] Supplement inventory management (quantity tracking, remaining calculation)
-- [ ] Supplement routine generator (deterministic, covers all daily goals)
+None — v2.0 milestone complete.
+
+### Recently Validated (v2.0)
+
+- ✓ Data model restructure: Food & Supplement types only — Phase 5
+- ✓ Food CRUD with nutrition label input — Phase 7
+- ✓ Food composition from ingredients with dynamic calorie recalculation — Phase 7
+- ✓ Public nutrition database integration (Open Food Facts) — Phase 7
+- ✓ Supplement CRUD with rich metadata (interactions, timing, dosage) — Phase 8
+- ✓ Supplement inventory management (quantity tracking, remaining calculation) — Phase 8
+- ✓ Supplement routine generator (deterministic, covers all daily goals) — Phase 9
 
 ### Out of Scope
 
@@ -86,7 +90,7 @@ Users can manage their food and supplement items, track supplement inventory, an
 | Read-on-render for cross-page state | No React Context needed; SettingsService reads localStorage synchronously | ✓ Shipped v1.0 |
 
 ---
-*Last updated: 2026-03-30 after v2.0 milestone start*
+*Last updated: 2026-04-05 after v2.0 milestone complete (all phases shipped)*
 
 ## Evolution
 
