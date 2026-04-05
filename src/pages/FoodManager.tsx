@@ -47,6 +47,7 @@ const INPUT_CLASS =
 
 interface NutritionLabelFormProps {
   food?: FoodItem;
+  allFoods: FoodItem[];
   onSave: (food: FoodItem) => void;
   onCancel: () => void;
 }
@@ -64,9 +65,7 @@ interface FoodFormDraft {
   tags: HealthTag[];
 }
 
-const ALL_TAGS = Object.keys(HEALTH_TAG_LABELS) as HealthTag[];
-
-function NutritionLabelForm({ food, onSave, onCancel }: NutritionLabelFormProps) {
+function NutritionLabelForm({ food, allFoods, onSave, onCancel }: NutritionLabelFormProps) {
   const isEdit = food !== undefined;
 
   const [draft, setDraft] = useState<FoodFormDraft>({
@@ -84,6 +83,13 @@ function NutritionLabelForm({ food, onSave, onCancel }: NutritionLabelFormProps)
 
   const [nameError, setNameError] = useState("");
   const [servingError, setServingError] = useState("");
+
+  // Derive available tags from all existing foods + current draft tags
+  const availableTags = useMemo(() => {
+    const tagSet = new Set<HealthTag>(draft.tags);
+    allFoods.forEach((f) => (f.tags ?? []).forEach((t) => tagSet.add(t)));
+    return [...tagSet].sort();
+  }, [allFoods, draft.tags]);
 
   function setField<K extends keyof FoodFormDraft>(key: K, value: FoodFormDraft[K]) {
     setDraft((prev) => ({ ...prev, [key]: value }));
@@ -253,7 +259,7 @@ function NutritionLabelForm({ food, onSave, onCancel }: NutritionLabelFormProps)
       <div className="mb-6">
         <label className="block text-xs text-slate-400 mb-2">健康標籤</label>
         <div className="flex flex-wrap gap-2">
-          {ALL_TAGS.map((tag) => {
+          {availableTags.map((tag) => {
             const selected = draft.tags.includes(tag);
             const color = HEALTH_TAG_COLORS[tag];
             return (
@@ -841,11 +847,11 @@ export default function FoodManager() {
 
   // Non-list views
   if (view === "add") {
-    return <NutritionLabelForm onSave={handleSave} onCancel={() => setView("list")} />;
+    return <NutritionLabelForm allFoods={foods} onSave={handleSave} onCancel={() => setView("list")} />;
   }
 
   if (view === "edit" && editTarget) {
-    return <NutritionLabelForm food={editTarget} onSave={handleSave} onCancel={() => setView("list")} />;
+    return <NutritionLabelForm food={editTarget} allFoods={foods} onSave={handleSave} onCancel={() => setView("list")} />;
   }
 
   if (view === "compose") {

@@ -28,7 +28,6 @@ const INPUT_CLASS =
 // ── Constants ─────────────────────────────────────
 
 const ALL_TIMING_VALUES = Object.keys(SUPPLEMENT_TIMING_LABELS) as SupplementTiming[];
-const ALL_TAGS = Object.keys(HEALTH_TAG_LABELS) as HealthTag[];
 
 // ── Inventory Helpers ─────────────────────────────
 
@@ -451,6 +450,13 @@ function SupplementForm({ supp, allSupplements, inventory, onSave, onRecordPurch
   const [nameError, setNameError] = useState("");
   const [dosageError, setDosageError] = useState("");
 
+  // Derive available tags from all existing supplements + current draft tags
+  const availableTags = useMemo(() => {
+    const tagSet = new Set<HealthTag>(draft.tags);
+    allSupplements.forEach((s) => s.tags.forEach((t) => tagSet.add(t)));
+    return [...tagSet].sort();
+  }, [allSupplements, draft.tags]);
+
   // Indirect interactions — other supplements that have listed this one as a conflict
   const indirectInteractions = supp
     ? allSupplements.filter(
@@ -628,7 +634,7 @@ function SupplementForm({ supp, allSupplements, inventory, onSave, onRecordPurch
       <div className="mb-4">
         <label className="block text-xs text-slate-400 mb-2">健康標籤</label>
         <div className="flex flex-wrap gap-2">
-          {ALL_TAGS.map((tag) => {
+          {availableTags.map((tag) => {
             const selected = draft.tags.includes(tag);
             const tagColor = HEALTH_TAG_COLORS[tag];
             return (

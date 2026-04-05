@@ -12,7 +12,7 @@ const tabs = [
   { path: "/foods", icon: "🍽️", label: "食材" },
   { path: "/track", icon: "📊", label: "飲食" },
   { path: "/supplements", icon: "💊", label: "補品" },
-  { path: "/schedule", icon: "💊", label: "例行" },
+  { path: "/items", icon: "📋", label: "品項" },
   { path: "/weight", icon: "⚖️", label: "體重" },
   { path: "/settings", icon: "⚙️", label: "設定" },
 ];
@@ -26,7 +26,7 @@ export default function App() {
         <Route path="/foods" element={<FoodManager />} />
         <Route path="/track" element={<NutritionTracker />} />
         <Route path="/supplements" element={<SupplementManager />} />
-        <Route path="/schedule" element={<SupplementSchedule />} />
+        <Route path="/items" element={<SupplementSchedule />} />
         <Route path="/weight" element={<WeightLog />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="*" element={<Navigate to="/plan" replace />} />
