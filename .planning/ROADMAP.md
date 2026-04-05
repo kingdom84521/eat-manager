@@ -26,7 +26,7 @@ See: `.planning/milestones/v1.0-ROADMAP.md` for full details
 - [ ] **Phase 5: Data Model Restructure** - Clean type foundation: remove BehaviorItem, define FoodItem with ingredients, SupplementItem with rich metadata, InventoryEntry
 - [ ] **Phase 6: ItemService + GAS id-keyed Operations** - Working persistence layer for food/supplement CRUD via localStorage + Sheets
 - [ ] **Phase 7: Food Manager** - Full food CRUD page with nutrition label input, ingredient composition, and Open Food Facts lookup
-- [x] **Phase 8: Supplement Manager + Inventory** - Full supplement CRUD page with rich metadata and inventory tracking (completed 2026-04-02)
+- [x] **Phase 8: Supplement Manager + Inventory** - Full supplement CRUD page with rich metadata and inventory tracking (completed 2026-04-02)
 - [ ] **Phase 9: Supplement Routine Generator** - Deterministic daily routine page with taken/skipped tracking and inventory deduction
 
 ## Phase Details
@@ -103,7 +103,10 @@ Plans:
   4. User can mark a supplement as taken or skipped and the state persists when the page is refreshed
   5. Marking a supplement as taken deducts one dose from its inventory, and the remaining count on the Supplement Manager page reflects the deduction
   6. When interaction conflicts prevent scheduling all supplements, the unscheduled items are listed explicitly with an explanation — the routine does not silently drop them
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 09-01-PLAN.md — ItemService consumption/log methods + SupplementManager inventory calculation update
+- [ ] 09-02-PLAN.md — SupplementSchedule page rewrite with routine generation, conflict resolution, checklist UI
 **UI hint**: yes
 
 ## Progress
@@ -118,4 +121,4 @@ Plans:
 | 6. ItemService + GAS id-keyed Operations | v2.0 | 2/2 | Complete | 2026-03-31 |
 | 7. Food Manager | v2.0 | 3/3 | Complete | 2026-03-31 |
 | 8. Supplement Manager + Inventory | v2.0 | 2/2 | Complete   | 2026-04-02 |
-| 9. Supplement Routine Generator | v2.0 | 0/? | Not started | - |
+| 9. Supplement Routine Generator | v2.0 | 0/2 | Not started | - |
