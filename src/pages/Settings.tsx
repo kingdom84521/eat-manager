@@ -410,6 +410,16 @@ export default function Settings() {
   const [sheetsSaved, setSheetsSaved] = useState(false);
   const [sheetsTesting, setSheetsTesting] = useState(false);
   const [showSheetsHelp, setShowSheetsHelp] = useState(false);
+  const sheetsRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to Sheets section if redirected here due to broken GAS
+  useEffect(() => {
+    const cfg = SettingsService.getSheetsConfig();
+    if (!cfg?.gasUrl && sheetsRef.current) {
+      // If GAS URL is empty (cleared by App.tsx health check), scroll to section
+      setTimeout(() => sheetsRef.current?.scrollIntoView({ behavior: "smooth" }), 300);
+    }
+  }, []);
 
   // ── Profile Handlers ──
 
@@ -738,7 +748,7 @@ export default function Settings() {
       )}
 
       {/* Section 3: Google Sheets Connection */}
-      <div className="bg-slate-800/50 rounded-xl p-4 mb-5">
+      <div ref={sheetsRef} className="bg-slate-800/50 rounded-xl p-4 mb-5">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-sm font-bold text-slate-300">Google Sheets 連接</h2>
           <button

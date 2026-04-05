@@ -1,4 +1,5 @@
-import { Routes, Route, NavLink, Navigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Routes, Route, NavLink, Navigate, useNavigate } from "react-router-dom";
 import DailyPlan from "./pages/DailyPlan";
 import FoodManager from "./pages/FoodManager";
 import NutritionTracker from "./pages/NutritionTracker";
@@ -6,6 +7,7 @@ import SupplementSchedule from "./pages/SupplementSchedule";
 import SupplementManager from "./pages/SupplementManager";
 import WeightLog from "./pages/WeightLog";
 import Settings from "./pages/Settings";
+import { SettingsService } from "./lib/settings-service";
 
 const tabs = [
   { path: "/plan", icon: "🎲", label: "方案" },
@@ -18,8 +20,39 @@ const tabs = [
 ];
 
 export default function App() {
+  const navigate = useNavigate();
+  const [gasBroken, setGasBroken] = useState(false);
+
+  // Auto-check GAS connection on app load
+  useEffect(() => {
+    const cfg = SettingsService.getSheetsConfig();
+    if (!cfg?.gasUrl) return;
+
+    const testUrl = new URL(cfg.gasUrl);
+    testUrl.searchParams.set("action", "read");
+    testUrl.searchParams.set("sheet", "supplements");
+
+    fetch(testUrl.toString())
+      .then((res) => {
+        if (!res.ok) throw new Error();
+        return res.json();
+      })
+      .catch(() => {
+        SettingsService.saveSheetsConfig({ gasUrl: "", sheetId: "" });
+        setGasBroken(true);
+        navigate("/settings");
+      });
+  }, [navigate]);
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 pb-20 max-w-xl mx-auto">
+      {/* GAS connection broken banner */}
+      {gasBroken && (
+        <div className="bg-red-500/20 border border-red-500/40 text-red-400 text-sm px-4 py-3 text-center">
+          ⚠ Google Sheets 連線失敗，設定已清空。請重新部署 Apps Script 並貼上新的網址。
+        </div>
+      )}
+
       {/* Page content */}
       <Routes>
         <Route path="/plan" element={<DailyPlan />} />
