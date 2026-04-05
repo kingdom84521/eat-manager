@@ -321,6 +321,18 @@ function BirthdayPicker({ value, onChange }: BirthdayPickerProps) {
   );
 }
 
+// ── Sheet ID Extraction ──────────────────────────
+
+/** Extract Sheet ID from a Google Sheets URL, or return the input as-is if it looks like a raw ID */
+function extractSheetId(input: string): string {
+  const trimmed = input.trim();
+  // Match: https://docs.google.com/spreadsheets/d/{ID}/...
+  const match = trimmed.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+  if (match) return match[1];
+  // If no URL pattern, return as-is (might be a raw ID)
+  return trimmed;
+}
+
 // ── Copy Code Button ─────────────────────────────
 
 const GAS_API_GITHUB_URL = "https://github.com/kingdom84521/eat-manager/blob/master/scripts/gas-api.js";
@@ -392,7 +404,8 @@ export default function Settings() {
 
   const savedSheets = SettingsService.getSheetsConfig();
   const [gasUrl, setGasUrl] = useState(savedSheets?.gasUrl ?? "");
-  const [sheetId, setSheetId] = useState(savedSheets?.sheetId ?? "");
+  const [sheetInput, setSheetInput] = useState(savedSheets?.sheetId ?? "");
+  const [rawIdMode, setRawIdMode] = useState(false);
   const [sheetsError, setSheetsError] = useState<string | null>(null);
   const [sheetsSaved, setSheetsSaved] = useState(false);
   const [showSheetsHelp, setShowSheetsHelp] = useState(false);
@@ -446,7 +459,12 @@ export default function Settings() {
       setSheetsError("GAS 網址必須以 https://script.google.com/ 開頭");
       return;
     }
-    SettingsService.saveSheetsConfig({ gasUrl, sheetId });
+    const finalSheetId = rawIdMode ? sheetInput.trim() : extractSheetId(sheetInput);
+    if (sheetInput.trim() && !finalSheetId) {
+      setSheetsError("無法從網址中解析 Sheet ID，請確認格式");
+      return;
+    }
+    SettingsService.saveSheetsConfig({ gasUrl, sheetId: finalSheetId });
     setSheetsError(null);
     setSheetsSaved(true);
     setTimeout(() => setSheetsSaved(false), 2000);
@@ -672,17 +690,20 @@ export default function Settings() {
               <p className="text-slate-300 text-sm mb-2 leading-relaxed">
                 點選「部署」&gt;「新增部署」&gt;「網頁應用程式」。設定：
               </p>
-              <div className="bg-slate-700/50 rounded-lg px-3 py-2 mb-4">
+              <div className="bg-slate-700/50 rounded-lg px-3 py-2 mb-2">
                 <p className="text-slate-300 text-sm leading-relaxed">・「執行身分」→ 我</p>
                 <p className="text-slate-300 text-sm leading-relaxed">・「誰可以存取」→ 任何人</p>
               </div>
+              <p className="text-amber-400/80 text-xs mb-4 leading-relaxed">
+                ⚠ 必須設為「任何人」，因為本網頁從瀏覽器直接呼叫 API，無法通過 Google 登入驗證。你的資料安全由 Web App 網址保護 — 僅你知道此網址。
+              </p>
             </div>
 
             {/* Step 5 */}
             <div>
               <p className="text-blue-400 font-bold text-sm mb-1">步驟 5：複製網址</p>
               <p className="text-slate-300 text-sm mb-4 leading-relaxed">
-                部署完成後，複製產生的 Web App 網址，貼到下方「GAS 網址」欄位。將 Sheet ID 貼到「Sheet ID」欄位。
+                部署完成後，複製產生的 Web App 網址，貼到下方「GAS 網址」欄位。試算表網址直接貼入即可，系統會自動擷取 Sheet ID。
               </p>
             </div>
 
@@ -721,14 +742,30 @@ export default function Settings() {
 
         {/* Sheet ID */}
         <div className="mb-4">
-          <label className="block text-xs text-slate-400 mb-1">Sheet ID</label>
+          <label className="block text-xs text-slate-400 mb-1">
+            {rawIdMode ? "Sheet ID" : "Google 試算表網址"}
+          </label>
           <input
             type="text"
-            placeholder="Sheet ID"
-            value={sheetId}
-            onChange={(e) => setSheetId(e.target.value)}
+            placeholder={rawIdMode ? "直接輸入 Sheet ID" : "貼上試算表網址，自動擷取 ID"}
+            value={sheetInput}
+            onChange={(e) => setSheetInput(e.target.value)}
             className={INPUT_CLASS}
           />
+          {!rawIdMode && sheetInput.trim() && (
+            <p className="text-xs text-slate-500 mt-1">
+              擷取到的 ID：<span className="text-slate-300 font-mono">{extractSheetId(sheetInput) || "—"}</span>
+            </p>
+          )}
+          <label className="flex items-center gap-2 mt-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={rawIdMode}
+              onChange={(e) => setRawIdMode(e.target.checked)}
+              className="accent-blue-500"
+            />
+            <span className="text-xs text-slate-500">直接輸入 Sheet ID</span>
+          </label>
         </div>
 
         {/* Save Button */}
