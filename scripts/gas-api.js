@@ -57,12 +57,42 @@ function doPost(e) {
   }
 }
 
+// ── Auto-create sheets ──────────────────────────
+
+const SHEET_HEADERS = {
+  supplements: ["id", "type", "name", "brand", "dosagePerUnit", "unitsPerDose", "dosesPerDay", "timing", "tags", "interactions", "synergies", "mechanism", "caution", "tcm", "isActive"],
+  foods: ["id", "type", "name", "serving", "cal", "protein", "fat", "carbs", "sugar", "sodium", "source", "tags", "ingredients"],
+  inventory: ["supplementId", "purchasedUnits", "purchaseDate"],
+  consumption: ["supplementId", "date", "units"],
+  daily_plans: ["date", "selectedIds", "totalCal", "notes"],
+  nutrition_log: ["date", "meal", "items"],
+  weight_log: ["date", "weightKg", "notes"],
+};
+
+/**
+ * 取得頁籤，若不存在則自動建立並寫入標題列
+ */
+function getOrCreateSheet(sheetName) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let ws = ss.getSheetByName(sheetName);
+  if (ws) return ws;
+
+  // Auto-create with headers
+  ws = ss.insertSheet(sheetName);
+  const headers = SHEET_HEADERS[sheetName];
+  if (headers) {
+    ws.getRange(1, 1, 1, headers.length).setValues([headers]);
+    ws.getRange(1, 1, 1, headers.length).setFontWeight("bold");
+  }
+  return ws;
+}
+
 // ── Helpers ──────────────────────────────────────
 
 function readSheet(sheetName) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const ws = ss.getSheetByName(sheetName);
-  if (!ws) return { error: `Sheet "${sheetName}" not found` };
+  if (!ws) return []; // Sheet doesn't exist yet — return empty (will be created on first write)
 
   const data = ws.getDataRange().getValues();
   if (data.length < 2) return [];
@@ -87,9 +117,7 @@ function readRange(sheetName, startDate, endDate) {
 }
 
 function appendRow(sheetName, data) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const ws = ss.getSheetByName(sheetName);
-  if (!ws) return { error: `Sheet "${sheetName}" not found` };
+  const ws = getOrCreateSheet(sheetName);
 
   const headers = ws.getRange(1, 1, 1, ws.getLastColumn()).getValues()[0];
   const row = headers.map((h) => {
@@ -104,9 +132,7 @@ function appendRow(sheetName, data) {
 }
 
 function upsertByDate(sheetName, data) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const ws = ss.getSheetByName(sheetName);
-  if (!ws) return { error: `Sheet "${sheetName}" not found` };
+  const ws = getOrCreateSheet(sheetName);
 
   const headers = ws.getRange(1, 1, 1, ws.getLastColumn()).getValues()[0];
   const dateColIdx = headers.indexOf("date");
@@ -140,9 +166,7 @@ function upsertByDate(sheetName, data) {
 }
 
 function deleteByDate(sheetName, date) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const ws = ss.getSheetByName(sheetName);
-  if (!ws) return { error: `Sheet "${sheetName}" not found` };
+  const ws = getOrCreateSheet(sheetName);
 
   const headers = ws.getRange(1, 1, 1, ws.getLastColumn()).getValues()[0];
   const dateColIdx = headers.indexOf("date");
@@ -158,9 +182,7 @@ function deleteByDate(sheetName, date) {
 }
 
 function upsertById(sheetName, data) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const ws = ss.getSheetByName(sheetName);
-  if (!ws) return { error: `Sheet "${sheetName}" not found` };
+  const ws = getOrCreateSheet(sheetName);
 
   const headers = ws.getRange(1, 1, 1, ws.getLastColumn()).getValues()[0];
   const idColIdx = headers.indexOf("id");
@@ -191,9 +213,7 @@ function upsertById(sheetName, data) {
 }
 
 function deleteById(sheetName, id) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const ws = ss.getSheetByName(sheetName);
-  if (!ws) return { error: `Sheet "${sheetName}" not found` };
+  const ws = getOrCreateSheet(sheetName);
 
   const headers = ws.getRange(1, 1, 1, ws.getLastColumn()).getValues()[0];
   const idColIdx = headers.indexOf("id");
