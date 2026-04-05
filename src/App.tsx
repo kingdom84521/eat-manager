@@ -8,6 +8,13 @@ import SupplementManager from "./pages/SupplementManager";
 import WeightLog from "./pages/WeightLog";
 import Settings from "./pages/Settings";
 import { SettingsService } from "./lib/settings-service";
+import gasApiCode from "../scripts/gas-api.js?raw";
+
+// Extract API_VERSION from gas-api.js at build time — single source of truth
+const EXPECTED_API_VERSION = (() => {
+  const match = gasApiCode.match(/API_VERSION\s*=\s*(\d+)/);
+  return match ? Number(match[1]) : 0;
+})();
 
 const tabs = [
   { path: "/plan", icon: "🎲", label: "方案" },
@@ -22,8 +29,6 @@ const tabs = [
 export default function App() {
   const navigate = useNavigate();
   const [gasBroken, setGasBroken] = useState<string | false>(false);
-
-  const EXPECTED_API_VERSION = 2;
 
   // Auto-check GAS connection + version on app load
   useEffect(() => {
