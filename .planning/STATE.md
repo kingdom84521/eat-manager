@@ -99,6 +99,7 @@ None yet.
 |---|-------------|------|--------|-----------|
 | 260405-gx7 | Rename schedule tab to 例行, add data-derived tag filter chips | 2026-04-05 | 939842f | [260405-gx7-rename-schedule-tab-and-derive-tag-filte](./quick/260405-gx7-rename-schedule-tab-and-derive-tag-filte/) |
 | 260405-nox | Fix: route /schedule→/items, tab 品項, form tags from data only | 2026-04-05 | 097f0b4 | [260405-nox-fix-hardcoded-tags-and-rename-schedule-t](./quick/260405-nox-fix-hardcoded-tags-and-rename-schedule-t/) |
+| 260405-o1t | Add copy-to-clipboard button for gas-api.js in Settings step 3 | 2026-04-05 | 11eb028 | - |
 
 ### Blockers/Concerns
 
