@@ -12,6 +12,7 @@
  */
 
 const SHEET_ID = SpreadsheetApp.getActiveSpreadsheet().getId();
+const API_VERSION = 2;
 
 function doGet(e) {
   const action = e.parameter.action;
@@ -19,6 +20,8 @@ function doGet(e) {
 
   try {
     switch (action) {
+      case "version":
+        return jsonResponse({ version: API_VERSION });
       case "read":
         return jsonResponse(readSheet(sheet));
       case "readRange":

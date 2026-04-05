@@ -21,25 +21,34 @@ const tabs = [
 
 export default function App() {
   const navigate = useNavigate();
-  const [gasBroken, setGasBroken] = useState(false);
+  const [gasBroken, setGasBroken] = useState<string | false>(false);
 
-  // Auto-check GAS connection on app load
+  const EXPECTED_API_VERSION = 2;
+
+  // Auto-check GAS connection + version on app load
   useEffect(() => {
     const cfg = SettingsService.getSheetsConfig();
     if (!cfg?.gasUrl) return;
 
     const testUrl = new URL(cfg.gasUrl);
-    testUrl.searchParams.set("action", "read");
-    testUrl.searchParams.set("sheet", "supplements");
+    testUrl.searchParams.set("action", "version");
 
     fetch(testUrl.toString())
       .then((res) => {
-        if (!res.ok) throw new Error();
+        if (!res.ok) throw new Error("連線失敗");
         return res.json();
       })
-      .catch(() => {
+      .then((data) => {
+        if (!data.version) {
+          throw new Error("GAS 版本過舊，請重新複製程式碼並部署");
+        }
+        if (data.version < EXPECTED_API_VERSION) {
+          throw new Error(`GAS 版本 ${data.version}，需要 ${EXPECTED_API_VERSION}。請重新複製程式碼並部署`);
+        }
+      })
+      .catch((err) => {
         SettingsService.saveSheetsConfig({ gasUrl: "", sheetId: "" });
-        setGasBroken(true);
+        setGasBroken(err instanceof Error ? err.message : "GAS 連線失敗");
         navigate("/settings");
       });
   }, [navigate]);
@@ -49,7 +58,7 @@ export default function App() {
       {/* GAS connection broken banner */}
       {gasBroken && (
         <div className="bg-red-500/20 border border-red-500/40 text-red-400 text-sm px-4 py-3 text-center">
-          ⚠ Google Sheets 連線失敗，設定已清空。請重新部署 Apps Script 並貼上新的網址。
+          ⚠ {gasBroken}。設定已清空��請重新設定。
         </div>
       )}
 
