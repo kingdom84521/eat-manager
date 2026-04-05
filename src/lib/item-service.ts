@@ -9,7 +9,7 @@
  */
 
 import { SheetsAPI, type SheetRow } from "./sheets-api";
-import type { FoodItem, HealthTag, SupplementItem, SupplementTiming, InventoryEntry, TCMInfo } from "../data/types";
+import type { FoodItem, HealthTag, SupplementItem, SupplementTiming, InventoryEntry, TCMInfo, ConsumptionEvent, SupplementLogEntry } from "../data/types";
 import { FOODS } from "../data/foods";
 import { SUPPLEMENTS } from "../data/supplements";
 
@@ -40,6 +40,7 @@ const SHEETS = {
   FOODS: "foods",
   SUPPLEMENTS_CATALOG: "supplements",
   INVENTORY: "inventory",
+  CONSUMPTION: "consumption",
 } as const;
 
 // ── Cache key constants ─────────────────────────
@@ -48,6 +49,8 @@ const CACHE_KEYS = {
   FOODS: "foods_catalog",
   SUPPLEMENTS: "supplements_catalog",
   INVENTORY: "inventory",
+  CONSUMPTION: "consumption_events",
+  SUPPLEMENT_LOG: "supplement_log",
 } as const;
 
 // ── Row → Type converters ───────────────────────
@@ -95,6 +98,14 @@ function rowToInventory(row: SheetRow): InventoryEntry {
     supplementId: String(row.supplementId),
     purchasedUnits: Number(row.purchasedUnits) || 0,
     purchaseDate: String(row.purchaseDate ?? ""),
+  };
+}
+
+function rowToConsumption(row: SheetRow): ConsumptionEvent {
+  return {
+    supplementId: String(row.supplementId),
+    date: String(row.date),
+    units: Number(row.units) || 0,
   };
 }
 
@@ -196,5 +207,37 @@ export const ItemService = {
 
     // Use append (not upsertById) — InventoryEntry has no `id` field
     SheetsAPI.append(SHEETS.INVENTORY, entry as unknown as SheetRow).catch(() => {});
+  },
+
+  // ── Consumption ──────────────────────────────────
+
+  async logConsumption(event: ConsumptionEvent): Promise<void> {
+    const existing = cacheGet<ConsumptionEvent[]>(CACHE_KEYS.CONSUMPTION) ?? [];
+    existing.push(event);
+    cacheSet(CACHE_KEYS.CONSUMPTION, existing);
+    SheetsAPI.append(SHEETS.CONSUMPTION, event as unknown as SheetRow).catch(() => {});
+  },
+
+  async getConsumption(supplementId?: string): Promise<ConsumptionEvent[]> {
+    const cached = cacheGet<ConsumptionEvent[]>(CACHE_KEYS.CONSUMPTION) ?? [];
+    SheetsAPI.readAll(SHEETS.CONSUMPTION)
+      .then((rows) => {
+        if (rows.length > 0) {
+          cacheSet(CACHE_KEYS.CONSUMPTION, rows.map(rowToConsumption));
+        }
+      })
+      .catch(() => {});
+    if (supplementId) return cached.filter((e) => e.supplementId === supplementId);
+    return cached;
+  },
+
+  // ── Daily Log (localStorage only) ───────────────
+
+  getDailyLog(date: string): SupplementLogEntry | null {
+    return cacheGet<SupplementLogEntry>(CACHE_KEYS.SUPPLEMENT_LOG + "_" + date);
+  },
+
+  saveDailyLog(entry: SupplementLogEntry): void {
+    cacheSet(CACHE_KEYS.SUPPLEMENT_LOG + "_" + entry.date, entry);
   },
 };
