@@ -1,8 +1,9 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { SettingsService, computeAgeFromBirthday } from "../lib/settings-service";
 import { ACTIVITY_LEVELS, calculateBMRResult } from "../data/bmr";
 import { GUIDELINES, calculateMacroGrams, GUIDELINE_MAP } from "../data/dietary-guidelines";
 import type { ActivityLevelId } from "../data/types";
+import gasApiCode from "../../scripts/gas-api.js?raw";
 
 // ── Form State Types ──────────────────────────────
 
@@ -320,6 +321,52 @@ function BirthdayPicker({ value, onChange }: BirthdayPickerProps) {
   );
 }
 
+// ── Copy Code Button ─────────────────────────────
+
+const GAS_API_GITHUB_URL = "https://github.com/kingdom84521/eat-manager/blob/master/scripts/gas-api.js";
+
+function CopyCodeButton({ code }: { code: string }) {
+  const [status, setStatus] = useState<"idle" | "copied" | "failed">("idle");
+
+  const handleCopy = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(code);
+      setStatus("copied");
+      setTimeout(() => setStatus("idle"), 2000);
+    } catch {
+      setStatus("failed");
+    }
+  }, [code]);
+
+  return (
+    <div className="mb-4">
+      <button
+        onClick={handleCopy}
+        className={`w-full py-2.5 rounded-lg text-sm font-semibold transition-colors ${
+          status === "copied"
+            ? "bg-emerald-600/30 text-emerald-400"
+            : "bg-blue-600/20 text-blue-400 hover:bg-blue-600/30"
+        }`}
+      >
+        {status === "copied" ? "✓ 已複製" : "📋 複製 API 程式碼"}
+      </button>
+      {status === "failed" && (
+        <p className="text-amber-400 text-xs mt-2">
+          複製失敗，請直接前往{" "}
+          <a
+            href={GAS_API_GITHUB_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline"
+          >
+            GitHub 手動複製
+          </a>
+        </p>
+      )}
+    </div>
+  );
+}
+
 // ── Main Component ────────────────────────────────
 
 export default function Settings() {
@@ -613,10 +660,10 @@ export default function Settings() {
             {/* Step 3 */}
             <div>
               <p className="text-blue-400 font-bold text-sm mb-1">步驟 3：貼上 API 程式碼</p>
-              <p className="text-slate-300 text-sm mb-4 leading-relaxed">
-                將本專案提供的 <span className="text-slate-400 font-mono text-xs">gas-api.js</span>{" "}
-                程式碼完整貼入編輯器中，取代預設內容，然後儲存。
+              <p className="text-slate-300 text-sm mb-2 leading-relaxed">
+                複製下方程式碼，貼入編輯器中取代預設內容，然後儲存。
               </p>
+              <CopyCodeButton code={gasApiCode} />
             </div>
 
             {/* Step 4 */}
