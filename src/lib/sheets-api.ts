@@ -38,9 +38,11 @@ async function gasGet(
 }
 
 async function gasPost(body: Record<string, unknown>): Promise<ApiResponse> {
+  // Use text/plain to avoid CORS preflight — GAS doesn't handle OPTIONS requests.
+  // GAS e.postData.contents still receives the JSON string correctly.
   const res = await fetch(getGasUrl(), {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
     body: JSON.stringify(body),
   });
   if (!res.ok) throw new Error(`API error: ${res.status}`);
