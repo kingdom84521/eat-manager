@@ -103,9 +103,9 @@ Plans:
   4. User can mark a supplement as taken or skipped and the state persists when the page is refreshed
   5. Marking a supplement as taken deducts one dose from its inventory, and the remaining count on the Supplement Manager page reflects the deduction
   6. When interaction conflicts prevent scheduling all supplements, the unscheduled items are listed explicitly with an explanation — the routine does not silently drop them
-**Plans:** 2 plans
+**Plans:** 1/2 plans executed
 Plans:
-- [ ] 09-01-PLAN.md — ItemService consumption/log methods + SupplementManager inventory calculation update
+- [x] 09-01-PLAN.md — ItemService consumption/log methods + SupplementManager inventory calculation update
 - [ ] 09-02-PLAN.md — SupplementSchedule page rewrite with routine generation, conflict resolution, checklist UI
 **UI hint**: yes
 
@@ -121,4 +121,4 @@ Plans:
 | 6. ItemService + GAS id-keyed Operations | v2.0 | 2/2 | Complete | 2026-03-31 |
 | 7. Food Manager | v2.0 | 3/3 | Complete | 2026-03-31 |
 | 8. Supplement Manager + Inventory | v2.0 | 2/2 | Complete   | 2026-04-02 |
-| 9. Supplement Routine Generator | v2.0 | 0/2 | Not started | - |
+| 9. Supplement Routine Generator | v2.0 | 1/2 | In Progress|  |
