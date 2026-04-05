@@ -408,6 +408,7 @@ export default function Settings() {
   const [rawIdMode, setRawIdMode] = useState(false);
   const [sheetsError, setSheetsError] = useState<string | null>(null);
   const [sheetsSaved, setSheetsSaved] = useState(false);
+  const [sheetsTesting, setSheetsTesting] = useState(false);
   const [showSheetsHelp, setShowSheetsHelp] = useState(false);
 
   // ── Profile Handlers ──
@@ -454,7 +455,7 @@ export default function Settings() {
 
   // ── Sheets Config Handler ──
 
-  function handleSheetsSave() {
+  async function handleSheetsSave() {
     if (gasUrl !== "" && !gasUrl.startsWith("https://script.google.com/")) {
       setSheetsError("GAS 網址必須以 https://script.google.com/ 開頭");
       return;
@@ -464,6 +465,27 @@ export default function Settings() {
       setSheetsError("無法從網址中解析 Sheet ID，請確認格式");
       return;
     }
+
+    // Test GAS connection before saving
+    if (gasUrl) {
+      setSheetsTesting(true);
+      setSheetsError(null);
+      try {
+        const testUrl = new URL(gasUrl);
+        testUrl.searchParams.set("action", "read");
+        testUrl.searchParams.set("sheet", "supplements");
+        const res = await fetch(testUrl.toString());
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        await res.json(); // Ensure valid JSON response
+      } catch (err) {
+        setSheetsTesting(false);
+        const msg = err instanceof Error ? err.message : String(err);
+        setSheetsError(`GAS 連線失敗：${msg}。請確認網址正確且已部署。`);
+        return;
+      }
+      setSheetsTesting(false);
+    }
+
     SettingsService.saveSheetsConfig({ gasUrl, sheetId: finalSheetId });
     setSheetsError(null);
     setSheetsSaved(true);
@@ -771,10 +793,15 @@ export default function Settings() {
         {/* Save Button */}
         <button
           onClick={handleSheetsSave}
-          className="w-full py-3 rounded-lg bg-blue-600 font-bold text-sm active:scale-95 transition"
+          disabled={sheetsTesting}
+          className={`w-full py-3 rounded-lg font-bold text-sm transition ${
+            sheetsTesting ? "bg-slate-700 text-slate-400" : "bg-blue-600 active:scale-95"
+          }`}
         >
-          {sheetsSaved ? (
-            <span className="text-emerald-400">已儲存</span>
+          {sheetsTesting ? (
+            "測試連線中..."
+          ) : sheetsSaved ? (
+            <span className="text-emerald-400">✓ 連線成功，已儲存</span>
           ) : (
             "儲存連接設定"
           )}
