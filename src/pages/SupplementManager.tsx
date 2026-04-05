@@ -793,6 +793,7 @@ export default function SupplementManager() {
   const [consumption, setConsumption] = useState<ConsumptionEvent[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [timingFilter, setTimingFilter] = useState<SupplementTiming | "">("");
+  const [tagFilter, setTagFilter] = useState<HealthTag | "">("");
 
   // ── Load data on mount ──
 
@@ -807,11 +808,22 @@ export default function SupplementManager() {
   const suppMap = useMemo(() => new Map(supplements.map((s) => [s.id, s])), [supplements]);
   void suppMap;
 
+  // ── Unique tags derived from loaded supplements ──
+
+  const usedTags = useMemo(() => {
+    const tagSet = new Set<HealthTag>();
+    for (const s of supplements) {
+      for (const t of s.tags) tagSet.add(t);
+    }
+    return Array.from(tagSet);
+  }, [supplements]);
+
   // ── Filtered list ──
 
   const filteredSupplements = supplements.filter((s) => {
     if (searchTerm && !s.name.includes(searchTerm)) return false;
     if (timingFilter && !s.timing.includes(timingFilter)) return false;
+    if (tagFilter && !s.tags.includes(tagFilter)) return false;
     return true;
   });
 
@@ -927,6 +939,29 @@ export default function SupplementManager() {
         </select>
       </div>
 
+      {/* Tag filter chips (data-derived from saved supplements) */}
+      {usedTags.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-3">
+          {usedTags.map((tag) => {
+            const active = tagFilter === tag;
+            const tagColor = HEALTH_TAG_COLORS[tag];
+            return (
+              <button
+                key={tag}
+                type="button"
+                onClick={() => setTagFilter(active ? "" : tag)}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                  active ? "text-white" : "bg-slate-700 text-slate-300 hover:bg-slate-600"
+                }`}
+                style={active ? { backgroundColor: tagColor } : undefined}
+              >
+                {HEALTH_TAG_LABELS[tag]}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* Low inventory banner */}
       {lowInventoryCount > 0 && (
         <p className="text-xs text-amber-400 mb-3">⚠ {lowInventoryCount} 項補品即將耗盡</p>
@@ -954,7 +989,7 @@ export default function SupplementManager() {
       ) : (
         <div className="text-center py-16 text-slate-500">
           <p className="text-sm">
-            {searchTerm || timingFilter ? "找不到符合的補品" : "尚無補品，點擊下方按鈕新增"}
+            {searchTerm || timingFilter || tagFilter ? "找不到符合的補品" : "尚無補品，點擊下方按鈕新增"}
           </p>
         </div>
       )}

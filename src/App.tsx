@@ -12,7 +12,7 @@ const tabs = [
   { path: "/foods", icon: "🍽️", label: "食材" },
   { path: "/track", icon: "📊", label: "飲食" },
   { path: "/supplements", icon: "💊", label: "補品" },
-  { path: "/schedule", icon: "🗓️", label: "時程" },
+  { path: "/schedule", icon: "💊", label: "例行" },
   { path: "/weight", icon: "⚖️", label: "體重" },
   { path: "/settings", icon: "⚙️", label: "設定" },
 ];
