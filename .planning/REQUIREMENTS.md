@@ -49,12 +49,12 @@ Requirements for this milestone. Each maps to roadmap phases.
 
 ### Supplement Routine
 
-- [ ] **RTN-01**: App generates a deterministic daily supplement routine grouped by timing slots (not random)
-- [ ] **RTN-02**: Routine ensures all active, in-stock supplements appear in the daily plan
-- [ ] **RTN-03**: Routine respects supplement interaction warnings (conflicting supplements separated by timing)
-- [ ] **RTN-04**: User can mark supplements as taken or skipped in the daily routine
+- [x] **RTN-01**: App generates a deterministic daily supplement routine grouped by timing slots (not random)
+- [x] **RTN-02**: Routine ensures all active, in-stock supplements appear in the daily plan
+- [x] **RTN-03**: Routine respects supplement interaction warnings (conflicting supplements separated by timing)
+- [x] **RTN-04**: User can mark supplements as taken or skipped in the daily routine
 - [x] **RTN-05**: Marking a supplement as taken deducts from inventory
-- [ ] **RTN-06**: Routine displays unsatisfied supplements explicitly when timing conflicts prevent scheduling all items
+- [x] **RTN-06**: Routine displays unsatisfied supplements explicitly when timing conflicts prevent scheduling all items
 
 ## v3.0 Requirements
 
@@ -115,12 +115,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 | INV-02 | Phase 8 | Complete |
 | INV-03 | Phase 8 | Complete |
 | INV-04 | Phase 8 | Complete |
-| RTN-01 | Phase 9 | Pending |
-| RTN-02 | Phase 9 | Pending |
-| RTN-03 | Phase 9 | Pending |
-| RTN-04 | Phase 9 | Pending |
+| RTN-01 | Phase 9 | Complete |
+| RTN-02 | Phase 9 | Complete |
+| RTN-03 | Phase 9 | Complete |
+| RTN-04 | Phase 9 | Complete |
 | RTN-05 | Phase 9 | Complete |
-| RTN-06 | Phase 9 | Pending |
+| RTN-06 | Phase 9 | Complete |
 
 **Coverage:**
 - v2.0 requirements: 27 total

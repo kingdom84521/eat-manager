@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Item Management & Supplement Routines
-status: executing
-stopped_at: Completed 09-01-PLAN.md
-last_updated: "2026-04-05T11:05:17.029Z"
+status: verifying
+stopped_at: Completed 09-02-PLAN.md
+last_updated: "2026-04-05T11:11:43.252Z"
 last_activity: 2026-04-05
 progress:
   total_phases: 5
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 11
-  completed_plans: 10
+  completed_plans: 11
   percent: 71
 ---
 
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-03-30)
 
 Phase: 09 (supplement-routine-generator) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-04-05
 
 Progress: [███████░░░] 71%
@@ -57,6 +57,7 @@ Progress: [███████░░░] 71%
 | Phase 08 P01 | 8 | 1 tasks | 2 files |
 | Phase 08 P02 | 15 | 3 tasks | 1 files |
 | Phase 09 P01 | 4 | 2 tasks | 2 files |
+| Phase 09 P02 | 8 | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -85,6 +86,8 @@ Recent decisions affecting current work:
 - [Phase 08]: InventorySection appears in edit view only — inventory tracking not applicable to unsaved supplements
 - [Phase 09]: getDailyLog/saveDailyLog are synchronous localStorage-only — daily routine state is transient and local, no Sheets sync needed
 - [Phase 09]: calcRemainingUnits uses Math.max(0, purchased - consumed) to prevent negative inventory from over-logging
+- [Phase 09]: Three-state cycle (untouched→taken→skipped) via simple tap, not long-press — simpler and more reliable on mobile
+- [Phase 09]: generateRoutine() computed on each render (not stored in state) — guarantees correctness without stale state issues
 
 ### Pending Todos
 
@@ -97,6 +100,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-05T11:05:17.023Z
-Stopped at: Completed 09-01-PLAN.md
+Last session: 2026-04-05T11:11:43.246Z
+Stopped at: Completed 09-02-PLAN.md
 Resume file: None
