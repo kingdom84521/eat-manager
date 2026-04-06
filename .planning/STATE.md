@@ -2,12 +2,12 @@
 gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: Sidebar Navigation & Page Consolidation
-status: defining-requirements
+status: roadmap-ready
 stopped_at: null
-last_updated: "2026-04-06T13:10:00.000Z"
+last_updated: "2026-04-06T00:00:00.000Z"
 last_activity: 2026-04-06
 progress:
-  total_phases: 0
+  total_phases: 4
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -18,17 +18,17 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-30)
+See: .planning/PROJECT.md (updated 2026-04-06)
 
 **Core value:** Users can manage food and supplement items, track supplement inventory, and generate intelligent daily supplement routines
 **Current focus:** Milestone v3.0 — Sidebar Navigation & Page Consolidation
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: Not started (roadmap approved, ready for Phase 10 planning)
 Plan: —
-Status: Defining requirements
-Last activity: 2026-04-06 — Milestone v3.0 started
+Status: Roadmap ready — awaiting `/gsd:plan-phase 10`
+Last activity: 2026-04-06 — Milestone v3.0 roadmap created (4 phases, 15 requirements)
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -36,28 +36,28 @@ Progress: [░░░░░░░░░░] 0%
 
 **Velocity:**
 
-- Total plans completed: 0 (v2.0)
-- Average duration: -
-- Total execution time: 0 hours
+- Total plans completed: 12 (v2.0)
+- Average duration: ~8 min/plan (estimated)
+- Total execution time: ~2 hours (v2.0)
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| - | - | - | - |
-
-**Recent Trend:**
-
-- Last 5 plans: -
-- Trend: -
-
-*Updated after each plan completion*
+| Phase 06 P01 | 1 | - | - |
 | Phase 06 P02 | 5 | 1 tasks | 1 files |
 | Phase 07-food-manager P03 | 20 | 1 tasks | 1 files |
 | Phase 08 P01 | 8 | 1 tasks | 2 files |
 | Phase 08 P02 | 15 | 3 tasks | 1 files |
 | Phase 09 P01 | 4 | 2 tasks | 2 files |
 | Phase 09 P02 | 8 | 2 tasks | 1 files |
+
+**Recent Trend:**
+
+- Last 5 plans: Phase 07 P03, Phase 08 P01, Phase 08 P02, Phase 09 P01, Phase 09 P02
+- Trend: Stable
+
+*Updated after each plan completion*
 
 ## Accumulated Context
 
@@ -88,10 +88,22 @@ Recent decisions affecting current work:
 - [Phase 09]: calcRemainingUnits uses Math.max(0, purchased - consumed) to prevent negative inventory from over-logging
 - [Phase 09]: Three-state cycle (untouched→taken→skipped) via simple tap, not long-press — simpler and more reliable on mobile
 - [Phase 09]: generateRoutine() computed on each render (not stored in state) — guarantees correctness without stale state issues
+- [v3.0 Roadmap]: @headlessui/react@^2.2.9 is the only new dependency — provides focus trap, Escape-to-close, ARIA dialog, data-[closed] for Tailwind transitions
+- [v3.0 Roadmap]: iOS Safari body scroll lock requires position:fixed technique (not overflow:hidden) — verify on real device before Phase 10 complete
+- [v3.0 Roadmap]: TodayPlanRecord stores checkedIds + plan atomically in one localStorage key — prevents stale checked IDs after plan regeneration
+- [v3.0 Roadmap]: locked is derived from checkedIds.length > 0 at render time — not a separate stored flag, prevents lock reset on reload
+- [v3.0 Roadmap]: SidebarDrawer state (open/closed) lives in App.tsx — pages never manage drawer state, eliminates prop threading
+- [v3.0 Roadmap]: Sub-components (FoodPlanSection, NutritionBudgetBar, SupplementRoutineSection) must be defined before writing any merge code — prevents monolithic UnifiedPlan
+- [v3.0 Roadmap]: UnifiedPlan split into two phases (Phase 12 supplement merge + checkbox logging combined) based on research suggesting sub-component decomposition first
+- [v3.0 Roadmap]: My Menu is localStorage-only for v3.0 — no Sheets sync; MENU-04 deferred to future milestone
+- [v3.0 Roadmap]: MenuService follows existing ItemService/DataService singleton pattern; uses crypto.randomUUID() for IDs (no uuid package)
+- [v3.0 Roadmap]: Debounce on check/uncheck to prevent accidental data writes/deletes on rapid taps
 
 ### Pending Todos
 
-None yet.
+- Confirm hamburger button placement (top-left fixed bar vs bottom FAB) before Phase 10 coding begins
+- Confirm iOS scroll lock approach (position:fixed vs overscroll-behavior:contain) before Phase 10 coding begins — position:fixed works back to iOS 15
+- Verify NutritionTracker /track redirect timing during Phase 12 planning (redirect /track → /plan once unified plan ships)
 
 ### Quick Tasks Completed
 
@@ -107,10 +119,10 @@ None yet.
 ### Blockers/Concerns
 
 - [Phase 7]: Open Food Facts coverage for Taiwanese ingredients is sparse — a curated seed list of common local ingredients (燕麥, 豆腐, 山藥, etc.) with verified nutritional data should be prepared before the ingredient composition UI is built
-- [Phase 7]: Exact navigation entry point for Food Manager (DailyPlan tab vs NutritionTracker tab) should be confirmed during Phase 7 planning
+- [Phase 12]: TodayPlanRecord schema and DataService.removeMealEntry() method signature need explicit design sign-off before any code is written — load-bearing data model decisions
 
 ## Session Continuity
 
-Last session: 2026-04-06T10:54:04Z
-Stopped at: Completed quick task 260406-f2f: nested unit system for supplement tracking
-Resume file: None
+Last session: 2026-04-06
+Stopped at: Milestone v3.0 roadmap created — 4 phases (10-13), 15 requirements mapped
+Resume file: None — start with `/gsd:plan-phase 10`

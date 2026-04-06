@@ -3,7 +3,8 @@
 ## Milestones
 
 - ✅ **v1.0 Settings & Nutrition Configuration** — Phases 1-4 (shipped 2026-03-30)
-- 🚧 **v2.0 Item Management & Supplement Routines** — Phases 5-9 (in progress)
+- ✅ **v2.0 Item Management & Supplement Routines** — Phases 5-9 (shipped 2026-04-05)
+- 🚧 **v3.0 Sidebar Navigation & Page Consolidation** — Phases 10-13 (in progress)
 
 ## Phases
 
@@ -19,94 +20,75 @@ See: `.planning/milestones/v1.0-ROADMAP.md` for full details
 
 </details>
 
-### 🚧 v2.0 Item Management & Supplement Routines (In Progress)
+<details>
+<summary>✅ v2.0 Item Management & Supplement Routines (Phases 5-9) — SHIPPED 2026-04-05</summary>
 
-**Milestone Goal:** Users can manage food and supplement catalogs, track supplement inventory, and generate deterministic daily supplement routines — all from a static site synced to Google Sheets.
+- [x] Phase 5: Data Model Restructure (2/2 plans) — Clean type foundation
+- [x] Phase 6: ItemService + GAS id-keyed Operations (2/2 plans) — Persistence layer
+- [x] Phase 7: Food Manager (3/3 plans) — Food CRUD + composition + Open Food Facts
+- [x] Phase 8: Supplement Manager + Inventory (2/2 plans) — Supplement CRUD + inventory
+- [x] Phase 9: Supplement Routine Generator (2/2 plans) — Deterministic daily routine
 
-- [ ] **Phase 5: Data Model Restructure** - Clean type foundation: remove BehaviorItem, define FoodItem with ingredients, SupplementItem with rich metadata, InventoryEntry
-- [ ] **Phase 6: ItemService + GAS id-keyed Operations** - Working persistence layer for food/supplement CRUD via localStorage + Sheets
-- [ ] **Phase 7: Food Manager** - Full food CRUD page with nutrition label input, ingredient composition, and Open Food Facts lookup
-- [x] **Phase 8: Supplement Manager + Inventory** - Full supplement CRUD page with rich metadata and inventory tracking (completed 2026-04-02)
-- [x] **Phase 9: Supplement Routine Generator** - Deterministic daily routine page with taken/skipped tracking and inventory deduction (completed 2026-04-05)
+</details>
+
+### 🚧 v3.0 Sidebar Navigation & Page Consolidation (In Progress)
+
+**Milestone Goal:** Replace bottom tab navigation with a sidebar drawer, merge food plan + nutrition log + supplement routine into a unified checkbox-driven daily plan, add My Menu saved presets, and introduce a Profile page.
+
+- [ ] **Phase 10: Sidebar Drawer Shell** - Sidebar drawer replacing bottom tab nav; hamburger in fixed top bar; all routes accessible; body scroll lock
+- [ ] **Phase 11: Profile Page** - Profile page with display name, avatar initials, weight log embedded; drawer footer functional
+- [ ] **Phase 12: Unified Daily Plan** - Merged food + supplement view with checkbox logging, nutrition bar, lock mechanic, and single-item swap
+- [ ] **Phase 13: My Menu** - Named meal preset CRUD; save current plan, browse and load saved menus
 
 ## Phase Details
 
-### Phase 5: Data Model Restructure
-**Goal**: All type definitions are clean, consistent, and ready for CRUD — BehaviorItem removed, FoodItem supports ingredient composition, SupplementItem and InventoryEntry formalized
-**Depends on**: Phase 4
-**Requirements**: DM-01, DM-02, DM-03, DM-04, DM-05, DM-06
+### Phase 10: Sidebar Drawer Shell
+**Goal**: Users navigate the entire app through a sidebar drawer — bottom tab bar is gone, all destinations are reachable, and the drawer behaves correctly on iOS Safari
+**Depends on**: Phase 9
+**Requirements**: NAV-01, NAV-02, NAV-03, NAV-04
 **Success Criteria** (what must be TRUE):
-  1. `BehaviorItem` type and all references are gone — the TypeScript compiler reports zero errors after removal
-  2. Only two item categories exist in the codebase: `food` and `supplement` — no `remedy` or `behavior` subtypes
-  3. A `FoodItem` can optionally contain an `ingredients` array referencing other food IDs with quantities
-  4. `SupplementItem` type exists with timing, dosage, interactions, synergies, and health tag fields
-  5. `InventoryEntry` type exists with supplement ID, purchased quantity, and purchase date
+  1. User can open the sidebar by tapping a hamburger icon in the fixed top bar, and close it by tapping the X, tapping the backdrop, or pressing Escape
+  2. The drawer lists all four main navigation items (今日方案, 我的食材, 我的菜單, 營養補充) and tapping any item navigates to that route
+  3. Tapping a navigation item auto-closes the drawer and highlights the active route
+  4. The drawer footer shows an avatar+name area (stub) linking to `/profile` and a settings icon linking to `/settings`
+  5. The page behind the drawer does not scroll while the drawer is open on an iOS Safari device
 **Plans**: TBD
-
-### Phase 6: ItemService + GAS id-keyed Operations
-**Goal**: Food and supplement items can be saved, retrieved, and deleted — persisted to localStorage immediately and synced to Google Sheets in the background
-**Depends on**: Phase 5
-**Requirements**: GAS-01, GAS-02
-**Success Criteria** (what must be TRUE):
-  1. `ItemService` singleton provides `getFoods`, `saveFood`, `deleteFood`, `getSupplements`, `saveSupplement`, `deleteSupplement`, `getInventory`, `upsertInventory` — all working against localStorage
-  2. Google Apps Script supports id-keyed upsert: posting a food or supplement with an existing ID overwrites it rather than appending
-  3. Google Apps Script supports id-keyed delete: posting a delete request by item ID removes the matching row from the sheet
-  4. A food item saved via `ItemService.saveFood()` is written to localStorage immediately and a background Sheets sync fires without blocking the UI
-**Plans:** 2/2 plans executed
-Plans:
-- [x] 06-01-PLAN.md — GAS backend upsertById/deleteById + SheetsAPI client methods
-- [x] 06-02-PLAN.md — ItemService singleton with offline-first CRUD for foods, supplements, inventory
-
-### Phase 7: Food Manager
-**Goal**: Users can manage their personal food catalog — adding foods via nutrition label, composing foods from ingredients with live macro recalculation, searching Open Food Facts, and editing or deleting any saved food
-**Depends on**: Phase 6
-**Requirements**: FOOD-01, FOOD-02, FOOD-03, FOOD-04, FOOD-05, FOOD-06, FOOD-07
-**Success Criteria** (what must be TRUE):
-  1. User can open a Food Manager page from app navigation and see all saved foods with name and calorie summary
-  2. User can add a food by filling in a nutrition label form (name, serving size, calories, protein, fat, carbs, sodium) and the food appears in the list immediately after saving
-  3. User can compose a food from multiple ingredients with adjustable quantities and see the total calories and macros update in real time as quantities change
-  4. User can search Open Food Facts by name and select a result to pre-fill ingredient nutrition data in the composition form
-  5. User can tap an existing food to edit its fields, save changes, and see the updated values reflected immediately in the list
-  6. User can delete a food item and it disappears from the list immediately
-**Plans:** 3/3 plans executed
-Plans:
-- [x] 07-01-PLAN.md — Route, nav tab, food list with search, delete with reference guard
-- [x] 07-02-PLAN.md — Nutrition label form for add/edit food items
-- [x] 07-03-PLAN.md — Ingredient composition form with live macro calc + Open Food Facts search
 **UI hint**: yes
 
-### Phase 8: Supplement Manager + Inventory
-**Goal**: Users can manage their supplement catalog with full metadata — interactions, synergies, timing, dosage — and track inventory per supplement so remaining supply and days until empty are always visible
-**Depends on**: Phase 6
-**Requirements**: SUPP-01, SUPP-02, SUPP-03, SUPP-04, SUPP-05, SUPP-06, INV-01, INV-02, INV-03, INV-04
+### Phase 11: Profile Page
+**Goal**: Users can view and edit their display name and avatar initials on a dedicated Profile page, and access their weight log there — the `/weight` standalone route is retired
+**Depends on**: Phase 10
+**Requirements**: PROF-01, PROF-02, PROF-03
 **Success Criteria** (what must be TRUE):
-  1. User can open a Supplement Manager page from app navigation and see all saved supplements with name, timing, and inventory status
-  2. User can add a supplement with name, brand, dosage per tablet/capsule, health tags, and recommended timing — it appears in the list immediately
-  3. User can add interaction warnings and synergy notes to a supplement and they are saved alongside other metadata
-  4. User can record a supplement purchase (quantity, purchase date) and see the remaining quantity and estimated days of supply update immediately
-  5. User sees an amber warning when a supplement has fewer than 14 days of supply remaining, and a red warning below 7 days
-  6. User can edit or delete any supplement, with changes reflected immediately in the list
-**Plans:** 2/2 plans complete
-Plans:
-- [x] 08-01-PLAN.md — Route, nav tab, supplement list with cards, search/filter, supplement form with all metadata fields
-- [x] 08-02-PLAN.md — Interactions/synergies multi-select, inventory section with purchase recording and history
+  1. User can tap the avatar+name area in the drawer footer and land on the `/profile` page
+  2. User can enter a display name and avatar initials; they persist after a page reload and appear in the drawer footer
+  3. A placeholder avatar using the user's initials (or a default icon) is visible on the Profile page and in the drawer footer
+  4. User can log weight entries and view their weight history from the Profile page (WeightLog content absorbed)
+**Plans**: TBD
 **UI hint**: yes
 
-### Phase 9: Supplement Routine Generator
-**Goal**: The SupplementSchedule page shows a live, deterministic daily routine grouping all in-stock supplements by timing, respects interaction conflicts, lets users mark items taken or skipped, and deducts from inventory on each taken event
-**Depends on**: Phase 8
-**Requirements**: RTN-01, RTN-02, RTN-03, RTN-04, RTN-05, RTN-06
+### Phase 12: Unified Daily Plan
+**Goal**: Today's Plan shows food items and supplement routine in one view where users check off consumed items — checking logs the entry, unchecking removes it, full re-random is locked while any item is checked, and single-item swap is available on unchecked items
+**Depends on**: Phase 11
+**Requirements**: PLAN-01, PLAN-02, PLAN-03, PLAN-04, PLAN-05
 **Success Criteria** (what must be TRUE):
-  1. The supplement schedule page generates the same routine for the same date every time it is opened — not random
-  2. Every active, in-stock supplement appears in the daily routine grouped under its recommended timing slot (空腹/餐前/餐中/餐後/睡前)
-  3. Supplements with known conflicts are placed in different timing slots — they never appear in the same slot on the same day
-  4. User can mark a supplement as taken or skipped and the state persists when the page is refreshed
-  5. Marking a supplement as taken deducts one dose from its inventory, and the remaining count on the Supplement Manager page reflects the deduction
-  6. When interaction conflicts prevent scheduling all supplements, the unscheduled items are listed explicitly with an explanation — the routine does not silently drop them
-**Plans:** 2/2 plans complete
-Plans:
-- [x] 09-01-PLAN.md — ItemService consumption/log methods + SupplementManager inventory calculation update
-- [x] 09-02-PLAN.md — SupplementSchedule page rewrite with routine generation, conflict resolution, checklist UI
+  1. The `/plan` page shows food plan slots and supplement routine sections together without requiring separate page visits
+  2. User can check an item to log it as consumed; the nutrition macro bar updates immediately to reflect checked-item totals; unchecking removes the log entry from localStorage and Sheets
+  3. Once any item is checked, the full re-random button is disabled (locked); the lock clears automatically when all items are unchecked
+  4. User can tap a re-random icon on any single unchecked item to swap only that item; the icon is absent (or disabled) on checked items
+  5. Checked state and the generated plan survive navigation away and back, and survive a page reload
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 13: My Menu
+**Goal**: Users can save the current meal plan as a named preset, browse saved presets, and load one to replace today's plan — with full edit and delete capability
+**Depends on**: Phase 12
+**Requirements**: MENU-01, MENU-02, MENU-03
+**Success Criteria** (what must be TRUE):
+  1. User can tap a "儲存為菜單" button on the plan page, enter a name, and the menu appears in the My Menu list immediately
+  2. User can open the `/menu` page, see all saved menu presets with their names and item summaries, and tap one to load it as today's plan
+  3. User can rename or delete a saved menu preset and the change is reflected immediately in the list
+**Plans**: TBD
 **UI hint**: yes
 
 ## Progress
@@ -120,5 +102,9 @@ Plans:
 | 5. Data Model Restructure | v2.0 | 2/2 | Complete | 2026-03-31 |
 | 6. ItemService + GAS id-keyed Operations | v2.0 | 2/2 | Complete | 2026-03-31 |
 | 7. Food Manager | v2.0 | 3/3 | Complete | 2026-03-31 |
-| 8. Supplement Manager + Inventory | v2.0 | 2/2 | Complete   | 2026-04-02 |
-| 9. Supplement Routine Generator | v2.0 | 2/2 | Complete   | 2026-04-05 |
+| 8. Supplement Manager + Inventory | v2.0 | 2/2 | Complete | 2026-04-02 |
+| 9. Supplement Routine Generator | v2.0 | 2/2 | Complete | 2026-04-05 |
+| 10. Sidebar Drawer Shell | v3.0 | 0/? | Not started | - |
+| 11. Profile Page | v3.0 | 0/? | Not started | - |
+| 12. Unified Daily Plan | v3.0 | 0/? | Not started | - |
+| 13. My Menu | v3.0 | 0/? | Not started | - |

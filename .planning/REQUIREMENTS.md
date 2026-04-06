@@ -159,26 +159,26 @@ Deferred to future release.
 | RTN-04 | Phase 9 | Complete |
 | RTN-05 | Phase 9 | Complete |
 | RTN-06 | Phase 9 | Complete |
-| NAV-01 | — | Pending |
-| NAV-02 | — | Pending |
-| NAV-03 | — | Pending |
-| NAV-04 | — | Pending |
-| PLAN-01 | — | Pending |
-| PLAN-02 | — | Pending |
-| PLAN-03 | — | Pending |
-| PLAN-04 | — | Pending |
-| PLAN-05 | — | Pending |
-| MENU-01 | — | Pending |
-| MENU-02 | — | Pending |
-| MENU-03 | — | Pending |
-| PROF-01 | — | Pending |
-| PROF-02 | — | Pending |
-| PROF-03 | — | Pending |
+| NAV-01 | Phase 10 | Pending |
+| NAV-02 | Phase 10 | Pending |
+| NAV-03 | Phase 10 | Pending |
+| NAV-04 | Phase 10 | Pending |
+| PLAN-01 | Phase 12 | Pending |
+| PLAN-02 | Phase 12 | Pending |
+| PLAN-03 | Phase 12 | Pending |
+| PLAN-04 | Phase 12 | Pending |
+| PLAN-05 | Phase 12 | Pending |
+| MENU-01 | Phase 13 | Pending |
+| MENU-02 | Phase 13 | Pending |
+| MENU-03 | Phase 13 | Pending |
+| PROF-01 | Phase 11 | Pending |
+| PROF-02 | Phase 11 | Pending |
+| PROF-03 | Phase 11 | Pending |
 
 **Coverage:**
 - v2.0 requirements: 27 total, 27 complete
-- v3.0 requirements: 15 total, 0 complete
-- Unmapped: 15
+- v3.0 requirements: 15 total, 0 complete (15 mapped to phases 10-13)
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-30 | Updated: 2026-04-06*
