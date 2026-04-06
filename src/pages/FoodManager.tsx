@@ -140,7 +140,7 @@ function NutritionLabelForm({ food, allFoods, onSave, onCancel }: NutritionLabel
   }
 
   return (
-    <div className="px-4 pt-5 pb-24">
+    <div className="px-4 pt-5 pb-6">
       {/* Header */}
       <header className="flex items-center gap-3 mb-5">
         <button
@@ -595,7 +595,7 @@ function ComposeForm({ foods, onSave, onCancel, onAddFromOff }: ComposeFormProps
   }
 
   return (
-    <div className="px-4 pt-5 pb-24">
+    <div className="px-4 pt-5 pb-6">
       {/* Header */}
       <header className="flex items-center gap-3 mb-5">
         <button
