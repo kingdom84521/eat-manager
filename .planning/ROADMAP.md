@@ -52,7 +52,10 @@ See: `.planning/milestones/v1.0-ROADMAP.md` for full details
   3. Tapping a navigation item auto-closes the drawer and highlights the active route
   4. The drawer footer shows an avatar+name area (stub) linking to `/profile` and a settings icon linking to `/settings`
   5. The page behind the drawer does not scroll while the drawer is open on an iOS Safari device
-**Plans**: TBD
+**Plans**: 1 plan
+
+Plans:
+- [ ] 10-01-PLAN.md — Sidebar drawer shell: install headlessui, create SidebarDrawer component, wire into App.tsx, remove bottom nav
 **UI hint**: yes
 
 ### Phase 11: Profile Page
@@ -104,7 +107,7 @@ See: `.planning/milestones/v1.0-ROADMAP.md` for full details
 | 7. Food Manager | v2.0 | 3/3 | Complete | 2026-03-31 |
 | 8. Supplement Manager + Inventory | v2.0 | 2/2 | Complete | 2026-04-02 |
 | 9. Supplement Routine Generator | v2.0 | 2/2 | Complete | 2026-04-05 |
-| 10. Sidebar Drawer Shell | v3.0 | 0/? | Not started | - |
+| 10. Sidebar Drawer Shell | v3.0 | 0/1 | Planning | - |
 | 11. Profile Page | v3.0 | 0/? | Not started | - |
 | 12. Unified Daily Plan | v3.0 | 0/? | Not started | - |
 | 13. My Menu | v3.0 | 0/? | Not started | - |
