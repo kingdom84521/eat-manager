@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { DataService, todayStr, type WeightEntry } from "../lib/data-service";
 import { SettingsService } from "../lib/settings-service";
 
-export default function WeightLog() {
+export function WeightSection() {
   const navigate = useNavigate();
   const [entries, setEntries] = useState<WeightEntry[]>([]);
   const [inputKg, setInputKg] = useState("");
@@ -16,19 +16,14 @@ export default function WeightLog() {
 
   if (!profile) {
     return (
-      <div className="px-4 pt-5">
-        <header className="text-center mb-5">
-          <h1 className="text-xl font-extrabold">⚖️ 體重紀錄</h1>
-        </header>
-        <div className="text-center py-12">
-          <p className="text-slate-400 mb-4">請先完成個人設定</p>
-          <button
-            onClick={() => navigate("/settings")}
-            className="px-4 py-2 rounded-lg bg-blue-600 text-sm font-bold"
-          >
-            前往設定
-          </button>
-        </div>
+      <div className="text-center py-12">
+        <p className="text-slate-400 mb-4">請先完成個人設定</p>
+        <button
+          onClick={() => navigate("/settings")}
+          className="px-4 py-2 rounded-lg bg-blue-600 text-sm font-bold"
+        >
+          前往設定
+        </button>
       </div>
     );
   }
@@ -46,12 +41,7 @@ export default function WeightLog() {
   };
 
   return (
-    <div className="px-4 pt-5">
-      <header className="text-center mb-5">
-        <h1 className="text-xl font-extrabold">⚖️ 體重紀錄</h1>
-        <p className="text-xs text-slate-500 mt-1">設定體重 {profile.weightKg}kg</p>
-      </header>
-
+    <div>
       {/* Progress */}
       <div className="bg-slate-800/50 rounded-xl p-5 mb-5 text-center">
         <div className="text-4xl font-black text-white mb-1">{latestKg} kg</div>
