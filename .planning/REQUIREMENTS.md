@@ -62,10 +62,10 @@ Requirements for Sidebar Navigation & Page Consolidation milestone.
 
 ### Navigation
 
-- [ ] **NAV-01**: User can open/close a sidebar drawer via hamburger icon
-- [ ] **NAV-02**: Drawer shows 4 main items: 今日方案, 我的食材, 我的菜單, 營養補充
-- [ ] **NAV-03**: Drawer bottom shows avatar+name (→ profile) and settings icon (→ settings)
-- [ ] **NAV-04**: Drawer auto-closes on route navigation
+- [x] **NAV-01**: User can open/close a sidebar drawer via hamburger icon
+- [x] **NAV-02**: Drawer shows 4 main items: 今日方案, 我的食材, 我的菜單, 營養補充
+- [x] **NAV-03**: Drawer bottom shows avatar+name (→ profile) and settings icon (→ settings)
+- [x] **NAV-04**: Drawer auto-closes on route navigation
 
 ### Unified Daily Plan
 
@@ -159,10 +159,10 @@ Deferred to future release.
 | RTN-04 | Phase 9 | Complete |
 | RTN-05 | Phase 9 | Complete |
 | RTN-06 | Phase 9 | Complete |
-| NAV-01 | Phase 10 | Pending |
-| NAV-02 | Phase 10 | Pending |
-| NAV-03 | Phase 10 | Pending |
-| NAV-04 | Phase 10 | Pending |
+| NAV-01 | Phase 10 | Complete |
+| NAV-02 | Phase 10 | Complete |
+| NAV-03 | Phase 10 | Complete |
+| NAV-04 | Phase 10 | Complete |
 | PLAN-01 | Phase 12 | Pending |
 | PLAN-02 | Phase 12 | Pending |
 | PLAN-03 | Phase 12 | Pending |

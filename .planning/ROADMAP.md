@@ -35,7 +35,7 @@ See: `.planning/milestones/v1.0-ROADMAP.md` for full details
 
 **Milestone Goal:** Replace bottom tab navigation with a sidebar drawer, merge food plan + nutrition log + supplement routine into a unified checkbox-driven daily plan, add My Menu saved presets, and introduce a Profile page.
 
-- [ ] **Phase 10: Sidebar Drawer Shell** - Sidebar drawer replacing bottom tab nav; hamburger in fixed top bar; all routes accessible; body scroll lock
+- [x] **Phase 10: Sidebar Drawer Shell** - Sidebar drawer replacing bottom tab nav; hamburger in fixed top bar; all routes accessible; body scroll lock (completed 2026-04-06)
 - [ ] **Phase 11: Profile Page** - Profile page with display name, avatar initials, weight log embedded; drawer footer functional
 - [ ] **Phase 12: Unified Daily Plan** - Merged food + supplement view with checkbox logging, nutrition bar, lock mechanic, and single-item swap
 - [ ] **Phase 13: My Menu** - Named meal preset CRUD; save current plan, browse and load saved menus
@@ -55,7 +55,7 @@ See: `.planning/milestones/v1.0-ROADMAP.md` for full details
 **Plans**: 1 plan
 
 Plans:
-- [ ] 10-01-PLAN.md — Sidebar drawer shell: install headlessui, create SidebarDrawer component, wire into App.tsx, remove bottom nav
+- [x] 10-01-PLAN.md — Sidebar drawer shell: install headlessui, create SidebarDrawer component, wire into App.tsx, remove bottom nav
 **UI hint**: yes
 
 ### Phase 11: Profile Page
@@ -107,7 +107,7 @@ Plans:
 | 7. Food Manager | v2.0 | 3/3 | Complete | 2026-03-31 |
 | 8. Supplement Manager + Inventory | v2.0 | 2/2 | Complete | 2026-04-02 |
 | 9. Supplement Routine Generator | v2.0 | 2/2 | Complete | 2026-04-05 |
-| 10. Sidebar Drawer Shell | v3.0 | 0/1 | Planning | - |
+| 10. Sidebar Drawer Shell | v3.0 | 1/1 | Complete   | 2026-04-06 |
 | 11. Profile Page | v3.0 | 0/? | Not started | - |
 | 12. Unified Daily Plan | v3.0 | 0/? | Not started | - |
 | 13. My Menu | v3.0 | 0/? | Not started | - |
