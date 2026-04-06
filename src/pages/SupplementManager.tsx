@@ -9,7 +9,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { ItemService } from "../lib/item-service";
-import type { SupplementItem, InventoryEntry, ConsumptionEvent, HealthTag, SupplementTiming } from "../data/types";
+import type { SupplementItem, InventoryEntry, ConsumptionEvent, HealthTag, SupplementTiming, UnitConversion } from "../data/types";
 import {
   HEALTH_TAG_LABELS,
   HEALTH_TAG_COLORS,
@@ -28,6 +28,51 @@ const INPUT_CLASS =
 // ── Constants ─────────────────────────────────────
 
 const ALL_TIMING_VALUES = Object.keys(SUPPLEMENT_TIMING_LABELS) as SupplementTiming[];
+
+// ── Unit Conversion Helper ────────────────────────
+
+/**
+ * Walk a conversion chain from fromUnit to toUnit.
+ * Handles both directions: multiply going baseUnit→targetUnit, divide going targetUnit→baseUnit.
+ * Returns null if no path found.
+ */
+function convertUnits(qty: number, fromUnit: string, toUnit: string, conversions: UnitConversion[]): number | null {
+  if (fromUnit === toUnit) return qty;
+
+  // BFS over conversion graph (supports multi-hop chains)
+  type State = { unit: string; qty: number };
+  const queue: State[] = [{ unit: fromUnit, qty }];
+  const visited = new Set<string>([fromUnit]);
+
+  while (queue.length > 0) {
+    const { unit, qty: currentQty } = queue.shift()!;
+    for (const conv of conversions) {
+      if (conv.baseUnit === unit && !visited.has(conv.targetUnit)) {
+        const nextQty = currentQty * conv.factor;
+        if (conv.targetUnit === toUnit) return nextQty;
+        visited.add(conv.targetUnit);
+        queue.push({ unit: conv.targetUnit, qty: nextQty });
+      }
+      if (conv.targetUnit === unit && !visited.has(conv.baseUnit)) {
+        const nextQty = currentQty / conv.factor;
+        if (conv.baseUnit === toUnit) return nextQty;
+        visited.add(conv.baseUnit);
+        queue.push({ unit: conv.baseUnit, qty: nextQty });
+      }
+    }
+  }
+  return null;
+}
+
+/** Extract all unique unit names from a conversion chain. */
+function getAllUnits(conversions: UnitConversion[], consumptionUnit: string): string[] {
+  const units = new Set<string>([consumptionUnit]);
+  for (const conv of conversions) {
+    units.add(conv.baseUnit);
+    units.add(conv.targetUnit);
+  }
+  return Array.from(units);
+}
 
 // ── Inventory Helpers ─────────────────────────────
 
@@ -199,6 +244,8 @@ interface InventorySectionProps {
   supplementId: string;
   unitsPerDose: number;
   dosesPerDay: number;
+  consumptionUnit: string;
+  unitConversions: UnitConversion[];
   inventory: InventoryEntry[];
   onRecordPurchase: (entry: InventoryEntry) => void;
 }
@@ -207,10 +254,14 @@ function InventorySection({
   supplementId,
   unitsPerDose,
   dosesPerDay,
+  consumptionUnit,
+  unitConversions,
   inventory,
   onRecordPurchase,
 }: InventorySectionProps) {
+  const allUnits = getAllUnits(unitConversions, consumptionUnit);
   const [purchaseQty, setPurchaseQty] = useState("");
+  const [purchaseUnit, setPurchaseUnit] = useState(allUnits[0] ?? consumptionUnit);
   const [purchaseDate, setPurchaseDate] = useState(() => {
     const d = new Date();
     return d.toISOString().slice(0, 10);
@@ -224,13 +275,45 @@ function InventorySection({
 
   const history = [...entries].sort((a, b) => b.purchaseDate.localeCompare(a.purchaseDate));
 
+  // Build multi-unit remaining display (largest unit that fits)
+  function buildRemainingDisplay(): string {
+    if (daysLeft === null) return "尚無庫存記錄";
+    const base = `剩餘 ${remainingUnits} ${consumptionUnit}`;
+    const daysStr = `約 ${Math.round(daysLeft)} 天`;
+    // Show largest-unit breakdown if conversions exist and purchaseUnit differs from consumptionUnit
+    if (unitConversions.length > 0) {
+      // Find the largest unit that has a defined path from consumptionUnit
+      const nonConsumptionUnits = allUnits.filter((u) => u !== consumptionUnit);
+      for (const bigUnit of nonConsumptionUnits) {
+        const converted = convertUnits(remainingUnits, consumptionUnit, bigUnit, unitConversions);
+        if (converted !== null && converted >= 1) {
+          const rounded = Math.round(converted * 10) / 10;
+          return `${base} (${rounded} ${bigUnit}) · ${daysStr}`;
+        }
+      }
+    }
+    return `${base} · ${daysStr}`;
+  }
+
   function handleRecordPurchase() {
-    const qty = parseInt(purchaseQty, 10);
+    const qty = parseFloat(purchaseQty);
     if (isNaN(qty) || qty <= 0) return;
+
+    // Convert to consumption units
+    let purchasedUnitsConverted = qty;
+    if (purchaseUnit !== consumptionUnit && unitConversions.length > 0) {
+      const converted = convertUnits(qty, purchaseUnit, consumptionUnit, unitConversions);
+      if (converted !== null) {
+        purchasedUnitsConverted = converted;
+      }
+    }
+
     const entry: InventoryEntry = {
       supplementId,
-      purchasedUnits: qty,
+      purchasedUnits: Math.round(purchasedUnitsConverted),
       purchaseDate,
+      unit: purchaseUnit !== consumptionUnit ? purchaseUnit : undefined,
+      originalQty: purchaseUnit !== consumptionUnit ? qty : undefined,
     };
     onRecordPurchase(entry);
     setPurchaseQty("");
@@ -241,11 +324,7 @@ function InventorySection({
     <div>
       {/* Remaining summary */}
       <div className={`rounded-lg p-3 mb-4 ${INV_COLORS[color]}`}>
-        <p className="text-sm font-bold">
-          {daysLeft !== null
-            ? `剩餘 ${remainingUnits} 顆 · 約 ${Math.round(daysLeft)} 天`
-            : "尚無庫存記錄"}
-        </p>
+        <p className="text-sm font-bold">{buildRemainingDisplay()}</p>
       </div>
 
       {/* Record purchase form */}
@@ -259,6 +338,18 @@ function InventorySection({
           placeholder="數量"
           className="flex-1 bg-slate-800 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-blue-500"
         />
+        {/* Unit selector — shown only when conversions exist */}
+        {allUnits.length > 1 && (
+          <select
+            value={purchaseUnit}
+            onChange={(e) => setPurchaseUnit(e.target.value)}
+            className="bg-slate-800 rounded-lg px-3 py-2 text-sm text-white outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            {allUnits.map((u) => (
+              <option key={u} value={u}>{u}</option>
+            ))}
+          </select>
+        )}
         <input
           type="date"
           value={purchaseDate}
@@ -283,7 +374,11 @@ function InventorySection({
               className="flex items-center justify-between py-2 border-b border-slate-700/50 text-sm"
             >
               <span className="text-slate-300">{e.purchaseDate}</span>
-              <span className="text-slate-100 font-medium">{e.purchasedUnits} 顆</span>
+              <span className="text-slate-100 font-medium">
+                {e.unit && e.originalQty
+                  ? `${e.purchasedUnits} ${consumptionUnit}（${e.originalQty} ${e.unit}）`
+                  : `${e.purchasedUnits} ${consumptionUnit}`}
+              </span>
             </div>
           ))}
         </div>
@@ -330,7 +425,9 @@ function SupplementCard({ supp, daysLeft, remainingUnits, allSupplements, onTap,
 
         {/* Row 2: Dosage + timing badges */}
         <div className="flex items-center flex-wrap gap-1 mb-1">
-          <span className="text-xs text-slate-400">{supp.dosagePerUnit}</span>
+          <span className="text-xs text-slate-400">
+            {supp.doseUnit ? `${supp.dosagePerUnit}${supp.doseUnit}` : supp.dosagePerUnit}
+          </span>
           {supp.timing.map((t) => (
             <span
               key={t}
@@ -385,7 +482,7 @@ function SupplementCard({ supp, daysLeft, remainingUnits, allSupplements, onTap,
         <div className={`inline-flex items-center text-[10px] px-2 py-0.5 rounded-full ${INV_COLORS[color]}`}>
           {daysLeft === null
             ? "尚無庫存"
-            : `剩餘 ${remainingUnits} 顆 · 約 ${Math.round(daysLeft)} 天`}
+            : `剩餘 ${remainingUnits} ${supp.consumptionUnit ?? "顆"} · 約 ${Math.round(daysLeft)} 天`}
         </div>
       </div>
 
@@ -419,6 +516,10 @@ interface SupplementFormDraft {
   name: string;
   brand: string;
   dosagePerUnit: string;
+  /** Separate unit for dosagePerUnit, e.g. "mg" */
+  doseUnit: string;
+  /** Consumption unit, e.g. "顆", "粒", "包" */
+  consumptionUnit: string;
   unitsPerDose: string;
   dosesPerDay: string;
   timing: SupplementTiming[];
@@ -428,6 +529,13 @@ interface SupplementFormDraft {
   caution: string;
 }
 
+/** Draft row for unit conversion chain editor */
+interface UnitConversionDraft {
+  baseUnit: string;
+  factor: string;
+  targetUnit: string;
+}
+
 function SupplementForm({ supp, allSupplements, inventory, onSave, onRecordPurchase, onCancel }: SupplementFormProps) {
   const isEdit = supp !== undefined;
 
@@ -435,6 +543,8 @@ function SupplementForm({ supp, allSupplements, inventory, onSave, onRecordPurch
     name: supp?.name ?? "",
     brand: supp?.brand ?? "",
     dosagePerUnit: supp?.dosagePerUnit ?? "",
+    doseUnit: supp?.doseUnit ?? "",
+    consumptionUnit: supp?.consumptionUnit ?? "",
     unitsPerDose: supp?.unitsPerDose !== undefined ? String(supp.unitsPerDose) : "1",
     dosesPerDay: supp?.dosesPerDay !== undefined ? String(supp.dosesPerDay) : "1",
     timing: supp?.timing ?? [],
@@ -443,6 +553,14 @@ function SupplementForm({ supp, allSupplements, inventory, onSave, onRecordPurch
     mechanism: supp?.mechanism ?? "",
     caution: supp?.caution ?? "",
   });
+
+  const [unitConversionDrafts, setUnitConversionDrafts] = useState<UnitConversionDraft[]>(
+    supp?.unitConversions?.map((c) => ({
+      baseUnit: c.baseUnit,
+      factor: String(c.factor),
+      targetUnit: c.targetUnit,
+    })) ?? []
+  );
 
   const [interactionIds, setInteractionIds] = useState<string[]>(supp?.interactions ?? []);
   const [synergyIds, setSynergyIds] = useState<string[]>(supp?.synergies ?? []);
@@ -511,12 +629,24 @@ function SupplementForm({ supp, allSupplements, inventory, onSave, onRecordPurch
     setNameError("");
     setDosageError("");
 
+    // Parse unit conversion chain — filter out rows with empty fields
+    const unitConversions: UnitConversion[] = unitConversionDrafts
+      .filter((d) => d.baseUnit.trim() && d.factor.trim() && d.targetUnit.trim())
+      .map((d) => ({
+        baseUnit: d.baseUnit.trim(),
+        factor: parseFloat(d.factor) || 1,
+        targetUnit: d.targetUnit.trim(),
+      }));
+
     const item: SupplementItem = {
       id: supp?.id ?? `supp_${Date.now()}`,
       type: "supplement",
       name: draft.name.trim(),
       brand: draft.brand.trim() || undefined,
       dosagePerUnit: draft.dosagePerUnit.trim(),
+      doseUnit: draft.doseUnit.trim() || undefined,
+      consumptionUnit: draft.consumptionUnit.trim() || undefined,
+      unitConversions: unitConversions.length > 0 ? unitConversions : undefined,
       unitsPerDose: parseFloat(draft.unitsPerDose) || 1,
       dosesPerDay: parseFloat(draft.dosesPerDay) || 1,
       timing: draft.timing,
@@ -570,17 +700,98 @@ function SupplementForm({ supp, allSupplements, inventory, onSave, onRecordPurch
         />
       </div>
 
-      {/* Dosage per unit */}
+      {/* Dosage per unit — split into numeric value + unit */}
       <div className="mb-4">
         <label className="block text-xs text-slate-400 mb-1">每顆劑量</label>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={draft.dosagePerUnit}
+            onChange={(e) => setField("dosagePerUnit", e.target.value)}
+            placeholder="500"
+            className="flex-1 bg-slate-800 rounded-lg px-4 py-3 text-sm text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <input
+            type="text"
+            value={draft.doseUnit}
+            onChange={(e) => setField("doseUnit", e.target.value)}
+            placeholder="mg"
+            className="w-24 bg-slate-800 rounded-lg px-4 py-3 text-sm text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+        {dosageError && <p className="mt-1 text-xs text-red-400">{dosageError}</p>}
+      </div>
+
+      {/* Consumption unit */}
+      <div className="mb-4">
+        <label className="block text-xs text-slate-400 mb-1">服用單位</label>
         <input
           type="text"
-          value={draft.dosagePerUnit}
-          onChange={(e) => setField("dosagePerUnit", e.target.value)}
-          placeholder="例：500mg"
+          value={draft.consumptionUnit}
+          onChange={(e) => setField("consumptionUnit", e.target.value)}
+          placeholder="顆"
           className={INPUT_CLASS}
         />
-        {dosageError && <p className="mt-1 text-xs text-red-400">{dosageError}</p>}
+      </div>
+
+      {/* Unit conversion chain editor */}
+      <div className="mb-4">
+        <label className="block text-xs text-slate-400 mb-2">單位轉換</label>
+        {unitConversionDrafts.length === 0 && (
+          <p className="text-xs text-slate-500 mb-2">尚無轉換定義。例：1 罐 = 100 顆</p>
+        )}
+        {unitConversionDrafts.map((row, idx) => (
+          <div key={idx} className="flex items-center gap-2 mb-2">
+            <span className="text-xs text-slate-400 shrink-0">1</span>
+            <input
+              type="text"
+              value={row.baseUnit}
+              onChange={(e) => {
+                const next = [...unitConversionDrafts];
+                next[idx] = { ...next[idx], baseUnit: e.target.value };
+                setUnitConversionDrafts(next);
+              }}
+              placeholder="罐"
+              className="flex-1 bg-slate-800 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <span className="text-xs text-slate-400 shrink-0">=</span>
+            <input
+              type="number"
+              value={row.factor}
+              onChange={(e) => {
+                const next = [...unitConversionDrafts];
+                next[idx] = { ...next[idx], factor: e.target.value };
+                setUnitConversionDrafts(next);
+              }}
+              placeholder="100"
+              className="w-20 bg-slate-800 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <input
+              type="text"
+              value={row.targetUnit}
+              onChange={(e) => {
+                const next = [...unitConversionDrafts];
+                next[idx] = { ...next[idx], targetUnit: e.target.value };
+                setUnitConversionDrafts(next);
+              }}
+              placeholder="顆"
+              className="flex-1 bg-slate-800 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <button
+              onClick={() => setUnitConversionDrafts((prev) => prev.filter((_, i) => i !== idx))}
+              className="shrink-0 w-7 h-7 flex items-center justify-center rounded-full bg-slate-700 hover:bg-red-900/60 text-slate-400 hover:text-red-400 text-sm transition-colors"
+              aria-label="刪除此轉換"
+            >
+              ✕
+            </button>
+          </div>
+        ))}
+        <button
+          onClick={() => setUnitConversionDrafts((prev) => [...prev, { baseUnit: "", factor: "", targetUnit: "" }])}
+          className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+        >
+          + 新增轉換
+        </button>
       </div>
 
       {/* Units per dose + doses per day */}
@@ -778,6 +989,16 @@ function SupplementForm({ supp, allSupplements, inventory, onSave, onRecordPurch
             supplementId={supp.id}
             unitsPerDose={parseFloat(draft.unitsPerDose) || 1}
             dosesPerDay={parseFloat(draft.dosesPerDay) || 1}
+            consumptionUnit={draft.consumptionUnit.trim() || "顆"}
+            unitConversions={
+              unitConversionDrafts
+                .filter((d) => d.baseUnit.trim() && d.factor.trim() && d.targetUnit.trim())
+                .map((d) => ({
+                  baseUnit: d.baseUnit.trim(),
+                  factor: parseFloat(d.factor) || 1,
+                  targetUnit: d.targetUnit.trim(),
+                }))
+            }
             inventory={inventory}
             onRecordPurchase={onRecordPurchase}
           />
