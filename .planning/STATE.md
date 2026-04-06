@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-03-30)
 Phase: 09
 Plan: Not started
 Status: Phase complete — ready for verification
-Last activity: 2026-04-06 - Completed quick task 260406-h36: fix OFF CORS via GAS proxy
+Last activity: 2026-04-06 - Completed quick task 260406-h7u: fix GAS version banner not clearing
 
 Progress: [███████░░░] 71%
 
@@ -97,6 +97,7 @@ None yet.
 
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
+| 260406-h7u | Fix GAS version banner not clearing after reconnect | 2026-04-06 | 88e637a | [260406-h7u-gas](./quick/260406-h7u-gas/) |
 | 260406-h36 | Fix OFF CORS: proxy OFF search through GAS | 2026-04-06 | 40a2364 | [260406-h36-fix-off-cors](./quick/260406-h36-fix-off-cors-switch-cgi-search-pl-to-api/) |
 | 260406-f2f | Add nested unit system: UnitConversion type, split dosage fields, conversion chain editor, multi-unit inventory | 2026-04-06 | 4bbec72 | [260406-f2f-nested-unit-system](./quick/260406-f2f-nested-unit-system/) |
 | 260405-gx7 | Rename schedule tab to 例行, add data-derived tag filter chips | 2026-04-05 | 939842f | [260405-gx7-rename-schedule-tab-and-derive-tag-filte](./quick/260405-gx7-rename-schedule-tab-and-derive-tag-filte/) |
