@@ -390,7 +390,7 @@ export default function SupplementSchedule() {
   const isEmpty = totalCount === 0 && routine.unscheduled.length === 0;
 
   return (
-    <div className="px-4 pt-5 pb-24">
+    <div className="px-4 pt-5 pb-6">
       {/* Header */}
       <header className="text-center mb-4">
         <h1 className="text-xl font-extrabold">💊 今日補品時程</h1>
