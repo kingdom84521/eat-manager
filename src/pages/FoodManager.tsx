@@ -10,6 +10,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { ItemService } from "../lib/item-service";
+import { SettingsService } from "../lib/settings-service";
 import type { FoodItem, HealthTag } from "../data/types";
 import { HEALTH_TAG_LABELS, HEALTH_TAG_COLORS } from "../data/types";
 
@@ -440,7 +441,8 @@ function OffSearchPanel({ onAddFood, onClose }: OffSearchPanelProps) {
     const timer = setTimeout(async () => {
       setOffLoading(true);
       try {
-        const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(offQuery)}&json=true&page_size=10&fields=product_name,nutriments,serving_size,image_front_small_url`;
+        const gasUrl = SettingsService.getSheetsConfig()?.gasUrl || import.meta.env.VITE_GAS_URL;
+        const url = `${gasUrl}?action=proxyOff&query=${encodeURIComponent(offQuery)}&pageSize=10`;
         const res = await fetch(url);
         const data = await res.json() as { products?: OffProduct[] };
         setOffResults(data.products ?? []);

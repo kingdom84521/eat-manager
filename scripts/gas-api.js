@@ -12,7 +12,7 @@
  */
 
 const SHEET_ID = SpreadsheetApp.getActiveSpreadsheet().getId();
-const API_VERSION = 2;
+const API_VERSION = 3;
 
 function doGet(e) {
   const action = e.parameter.action;
@@ -28,6 +28,18 @@ function doGet(e) {
         return jsonResponse(
           readRange(sheet, e.parameter.startDate, e.parameter.endDate)
         );
+      case "proxyOff": {
+        const query = e.parameter.query || "";
+        const pageSize = e.parameter.pageSize || "10";
+        const fields = e.parameter.fields || "product_name,nutriments,serving_size,image_front_small_url";
+        const offUrl = "https://world.openfoodfacts.org/cgi/search.pl?search_terms="
+          + encodeURIComponent(query)
+          + "&json=true&page_size=" + pageSize
+          + "&fields=" + fields;
+        const offRes = UrlFetchApp.fetch(offUrl, { muteHttpExceptions: true });
+        return ContentService.createTextOutput(offRes.getContentText())
+          .setMimeType(ContentService.MimeType.JSON);
+      }
       default:
         return jsonResponse({ error: "Unknown action" }, 400);
     }
