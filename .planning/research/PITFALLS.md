@@ -1,399 +1,277 @@
-# Domain Pitfalls
+# Pitfalls Research
 
-**Domain:** Food/supplement CRUD, ingredient composition, supplement inventory tracking, and routine generation — React SPA backed by Google Sheets via Apps Script
-**Researched:** 2026-03-30
-**Scope:** Adding item management features to an existing offline-first static SPA. Focused on integration pitfalls specific to the Google Sheets backend, public nutrition APIs called from a browser, supplement interaction modelling, and deterministic routine generation.
+**Domain:** Sidebar drawer navigation + multi-page consolidation + checkbox-based logging — React mobile-first SPA (React 19, Tailwind v4, HashRouter, localStorage-first)
+**Researched:** 2026-04-06
+**Confidence:** HIGH (based on direct codebase audit + verified community patterns)
+**Scope:** Adding sidebar drawer to replace bottom tab nav, merging DailyPlan + NutritionTracker + SupplementSchedule into a unified view, adding checkbox-based logging with lock/re-random mechanics, and introducing My Menu as a new data type. Previous milestone pitfalls (CRUD, API, inventory) remain valid and are not repeated here.
 
 ---
 
 ## Critical Pitfalls
 
-Mistakes that cause rewrites, silent data corruption, or security holes that must be addressed before they are designed around.
+Mistakes that force rewrites, create silent data corruption, or permanently break mobile UX.
 
 ---
 
-### Pitfall 1: Nutrition API Key Embedded in Client-Side Bundle Is Publicly Accessible
+### Pitfall 1: Drawer Overlay Does Not Lock Body Scroll on iOS Safari
 
 **What goes wrong:**
-USDA FoodData Central requires an API key with every request and explicitly states the key holder is responsible for preventing public exposure. If the key is placed in a Vite `.env` file as `VITE_FDC_API_KEY`, Vite's build pipeline inlines it into the JavaScript bundle — which is served statically from GitHub Pages and is trivially extractable from any browser DevTools or by crawling the source. The FoodData Central API enforces a **1,000 requests/hour per IP** rate limit; a leaked key redirects that quota to arbitrary users.
+When the sidebar drawer opens, the body behind the overlay continues to scroll on iOS Safari. The user intends to scroll the drawer's nav links but instead scrolls the page content behind it. This is a decade-old iOS Safari behaviour: `overflow: hidden` on `<body>` does not prevent scroll on iOS when touch events are active.
 
 **Why it happens:**
-Vite's `VITE_` prefix is a convenience for making env vars available in the browser, but that convenience is indistinguishable from publication. There is no server-side proxy in this architecture to shield the key.
+iOS Safari applies a "rubber-band" overscroll to the document scroll container independently of `overflow` CSS. The standard desktop fix (`document.body.style.overflow = 'hidden'`) has no effect on iOS. This is intentional Apple behaviour, not a bug, so it will not be fixed by the browser vendor.
 
-**Consequences:**
-- Leaked key exhausts your hourly quota, breaking ingredient lookup for the actual user
-- USDA can revoke the key if misuse is detected, requiring a new key and a rebuild
-- API key exposure at scale has been documented in 3,000+ production GitHub Pages sites
-
-**Prevention:**
-Two viable approaches for a static SPA:
-1. **Route through the existing GAS proxy** — add a `nutrition_lookup` action to `gas-api.js` that holds the FDC API key server-side in Apps Script's `PropertiesService`. The browser calls the GAS endpoint with a food name; GAS calls FDC with the key. The GAS URL is already a user-configured secret, so this adds no new exposure surface.
-2. **Use Open Food Facts instead of USDA FDC** — Open Food Facts is a read-only, no-key-required API. Product lookups (`https://world.openfoodfacts.org/api/v2/product/{barcode}`) and search endpoints work without authentication and support CORS for browser requests. Rate limit is 100 req/min for product GETs, 10 req/min for search — well within normal usage.
+**How to avoid:**
+When the drawer opens, add `position: fixed; width: 100%; top: -${scrollY}px` to the body (capture `window.scrollY` before applying). When the drawer closes, remove `position: fixed`, restore `top: 0`, and manually set `window.scrollTo(0, savedScrollY)`. This is the only reliable pure-CSS/JS solution confirmed across iOS 15–17. Alternatively, use the `overscroll-behavior: contain` CSS property on the drawer's scroll container — this is now supported in Safari 16+ and prevents scroll chaining from the drawer to the body.
 
 **Warning signs:**
-- `VITE_FDC_API_KEY` appears in `src/` files — it will be in the built bundle
-- `/dist/assets/*.js` is grep-searchable for the key after `npm run build`
+- Page content scrolls while the drawer is open on a real iPhone
+- `document.body.style.overflow = 'hidden'` is the only scroll lock applied
+- No `savedScrollY` variable before applying body `position: fixed`
 
-**Phase:** Must be decided before any nutrition API code is written. Architecture decision shapes the integration phase.
+**Phase to address:** Sidebar drawer implementation phase (first phase of this milestone). Verify on real device or BrowserStack iOS before marking done.
 
 ---
 
-### Pitfall 2: USDA FoodData Central Does Not Reliably Support CORS from Browser Fetch
+### Pitfall 2: Drawer State Is Local to App.tsx — Navigation Collapses Between Page Transitions
 
 **What goes wrong:**
-USDA's official API guide does not document CORS headers for browser-based requests. A documented GitHub issue (`USDA/USDA-APIs#79`) shows the API has at times returned `Access-Control-Allow-Origin: http://localhost:3000, *` — a malformed header with two values that browsers reject as a CORS violation. From a GitHub Pages origin (`https://your-name.github.io`), this fails silently in fetch with a generic CORS error and no useful diagnostic.
+If the drawer `isOpen` state is kept in a component that unmounts during navigation (e.g., inside a page component rather than `App.tsx`), the drawer closes on every route change. Alternatively, if the drawer is in `App.tsx` but its open/close state is passed as props through the router tree, every route change triggers a re-render of every page due to changed props, causing visible flicker.
+
+More subtly: with HashRouter, navigating from `/plan` to `/menu` is a full route replacement. If the unified "today" page mounts fresh on each visit, all generated plan state (the randomised food slots, checked items) is lost. The user opens the drawer, navigates to settings, returns to `/plan`, and finds an empty unchecked plan.
 
 **Why it happens:**
-USDA FDC is designed for server-to-server use. Browser direct-call is an afterthought. CORS configuration bugs in federal APIs are rarely prioritised.
+React Router's `<Routes>` unmounts the exiting route component and mounts the new one. Any `useState` inside that component resets to initial state. The app currently uses no global state, relying on localStorage reads on each mount — which works for persistent data but loses ephemeral in-session state (which items are checked, the generated plan for today).
 
-**Consequences:**
-An integration that works in server-side Node.js tests (no CORS enforcement) fails entirely in the browser. If this is discovered late, the entire ingredient lookup feature must be re-architected.
-
-**Prevention:**
-- Do not rely on USDA FDC for browser-direct calls. Use the GAS proxy approach (see Pitfall 1) or substitute Open Food Facts, which explicitly supports browser access.
-- If FDC must be used directly, verify CORS headers with `curl -I 'https://api.nal.usda.gov/fdc/v1/foods/search?query=apple&api_key=...'` and inspect for a clean `Access-Control-Allow-Origin: *` before committing to the integration.
+**How to avoid:**
+- Keep drawer `isOpen` state in `App.tsx` (the persistent shell), not in any page component.
+- For the unified today page: on mount, read today's plan from localStorage (previously generated plan persisted by date key). If no plan for today exists, generate one. This way navigation away and back restores the plan and checked state — provided checked state is also persisted. Checked items must be written to localStorage on every toggle, not held only in component state.
+- Do not pass drawer-open state as props into routed page components. Use a `DrawerContext` or a top-level state in `App.tsx` that page components can access via a shared hook if needed.
 
 **Warning signs:**
-- `fetch()` call to `api.nal.usda.gov` throws `TypeError: Failed to fetch` in the browser even though the same URL works via curl
-- DevTools console shows a CORS preflight failure (OPTIONS request blocked)
+- `isOpen` state lives inside a page component file
+- Navigating away from `/plan` and returning shows an empty plan
+- Checked checkboxes reset after drawer navigation
 
-**Phase:** Feasibility must be verified in the first integration spike. Build a single working `fetch()` call in the browser before writing any ingredient lookup UI.
+**Phase to address:** Sidebar drawer implementation phase. Establish drawer state placement before any page work begins.
 
 ---
 
-### Pitfall 3: Apps Script Cold Starts Cause 3–10 Second Response Latency on First Call
+### Pitfall 3: Merging Three Pages Causes a Single Monolithic Component That Is Unmaintainable
 
 **What goes wrong:**
-Apps Script Web Apps have a cold start penalty of several seconds when the script instance has been idle. For CRUD operations on food and supplement items, this means the first operation in a session — save new food item, fetch item list — appears to hang. The existing codebase swallows all Sheets errors with `.catch(() => {})`, so there is no user feedback during the wait.
+DailyPlan (~160 LOC), NutritionTracker (~120 LOC), and SupplementSchedule (~200 LOC) are each substantial components. Naively merging them into a single `TodayPage` component produces a 500+ LOC file with interleaved concerns: plan generation state, nutrition budget state, supplement timing state, checkbox log state, and lock/re-random mechanics. This becomes unmaintainable within the first phase and forces a refactor before the second.
 
 **Why it happens:**
-Apps Script runs on shared Google infrastructure. Instances are not kept warm between requests. The effect is consistently observed in community reports and Google's own issue tracker.
+"Merge the three pages" sounds like a single task. The path of least resistance is to copy all three components' JSX and state into one file. The complexity of the interactions between the three subsystems (checking a food item updates the nutrition budget; checking a supplement updates inventory) is only visible after the merge is complete.
 
-**Consequences:**
-- Users believe the save action failed and submit the form twice, creating duplicate records in the Sheet
-- The first `readAll()` for the item catalog appears to return nothing (cache is stale), then updates silently in the background — the user sees a blank list, then a populated one 5+ seconds later
-- Form double-submission is especially dangerous for inventory tracking where quantity changes must be idempotent
+**How to avoid:**
+Decompose the unified page into sub-components with well-defined interfaces before writing any merging code:
+- `<FoodPlanSection>` — generates and displays food slots, emits check/uncheck events
+- `<NutritionBudgetBar>` — receives `checkedItems[]` as props, computes and displays budget
+- `<SupplementRoutineSection>` — displays supplement timing groups, emits check/skip events
+- `<TodayPage>` — orchestrates shared state (checked item IDs, lock flag), delegates rendering
 
-**Prevention:**
-- For all write operations (create/update/delete), optimistically update localStorage first and show a success state immediately. The Sheets sync is background-only. This is the existing pattern for weight and nutrition logging and must be extended to item CRUD.
-- Add a visible loading indicator for the initial data fetch — do not show an empty list as if there are no items.
-- Make GAS write handlers idempotent: supplement and food upsert must key on a stable ID, not append blindly. The existing `upsert` action in `gas-api.js` already uses date as the key — replace with the item ID for catalog data.
+State that crosses sub-components (which items are checked) lives in `TodayPage`; UI state that does not cross boundaries (which accordion is expanded) lives in the sub-component. This decomposition must be designed before writing code, not extracted after.
 
 **Warning signs:**
-- POST to GAS takes 5+ seconds in DevTools Network tab on first call after page load
-- Network tab shows two identical POST requests within seconds of each other (user double-submit)
+- A single file exceeds 350 LOC during the merge phase
+- `useState` calls for food plan, nutrition, and supplement state all appear at the top of the same component function
+- Sub-component boundaries are not defined in the design doc before coding begins
 
-**Phase:** Phase covering food CRUD. Update `gas-api.js` to support ID-keyed upsert for catalog items.
+**Phase to address:** Design sub-component boundaries as an explicit deliverable at the start of the page consolidation phase, before any code is written.
 
 ---
 
-### Pitfall 4: Ingredient Composition Allows Circular References — Infinite Recalculation Loop
+### Pitfall 4: Checkbox State and Generated Plan Stored Separately — Stale Combination Bug
 
 **What goes wrong:**
-If "food composed from ingredients" allows any food to be used as an ingredient in another food, it is possible to create a cycle: FoodA contains FoodB, FoodB contains FoodA. Any recursive calorie recalculation will loop infinitely, eventually crashing the browser tab.
+The plan is generated (random item selection) and the checked state (which items were consumed) are stored as two separate localStorage entries. If the plan is regenerated (user taps "全部重新隨機") after items have been checked, the stale checked IDs no longer correspond to the new plan's item IDs. The next load reads the old check IDs against the new plan items — some items appear pre-checked that were never consumed, while newly generated items appear unchecked even if they match previously consumed items from earlier in the day.
 
 **Why it happens:**
-Ingredient composition is naturally modelled as a directed graph. Developers implement the graph traversal without adding cycle detection because cycles "seem impossible in practice". One user interaction later, they are not.
+Developers store generated plan and checked state independently because they seem like separate concerns. The dependency — checks only make sense relative to a specific plan generation — is invisible until a re-random event happens.
 
-**Consequences:**
-Browser tab hangs or crashes. If the cyclic data is persisted to localStorage and the recalculation runs on page load, the app becomes permanently unresponsive for that user.
-
-**Prevention:**
-- Enforce a shallow composition model: ingredients must be **atomic** items (nutrition-label foods with no sub-ingredients). Composed foods cannot be used as ingredients in other composed foods.
-- Implement this constraint at the data layer: when selecting ingredients, filter out any food whose `source` is `"composed"`.
-- If deep nesting is ever required, add a depth limit (max 2 levels) and a visited-set cycle check before persisting.
+**How to avoid:**
+Store the checked state as part of the same persisted plan record:
+```ts
+interface TodayPlanRecord {
+  date: string;
+  generatedAt: number;    // unix timestamp of generation
+  slots: GeneratedSlot[]; // the plan output, serialised
+  checkedIds: string[];   // IDs confirmed consumed in this plan instance
+}
+```
+When the plan is regenerated, a new `TodayPlanRecord` is written with an empty `checkedIds`. The previous record is overwritten. There is no possibility of stale checked IDs crossing plan generations because they share a single atomic record.
 
 **Warning signs:**
-- Ingredient selection UI does not filter out composed foods
-- Calorie recalculation function is recursive without a visited-set parameter
+- `daily_plan` and `checked_items` are stored under two separate localStorage keys for the same date
+- Re-randomising the plan does not clear the checked state
 
-**Phase:** Food composition implementation phase, before the ingredient selector UI is built.
+**Phase to address:** Data model design for the unified today page — before any checkbox or re-random logic is implemented.
 
 ---
 
-### Pitfall 5: Supplement Inventory Quantity Drifts from Actual Consumption — No Deduction Event Log
+### Pitfall 5: Full Re-Random Lock Uses Boolean Flag That Resets on Refresh
 
 **What goes wrong:**
-The naive inventory model is: `remaining = purchased - (dailyDose * daysSincePurchase)`. This drifts immediately when the user skips doses, changes doses, or purchases additional stock mid-cycle. After a few weeks the displayed "14 days remaining" is meaningless.
+The lock mechanic ("cannot do full re-random when any item is checked") is gated on whether `checkedIds.length > 0`. If `checkedIds` is stored only in `useState` and not persisted, the lock state disappears on page refresh. The user checks an item, refreshes (or navigates away and back), then is able to re-random the full plan — even though they have already consumed items from it.
 
 **Why it happens:**
-Event-sourced inventory (deduct on each actual consumption log) is the correct model but requires more data structure. The estimate-based model is simpler and appears correct on day one.
+The lock logic is implemented as a derived boolean from component state. It works in-session but has no persistence, so it does not survive navigation.
 
-**Consequences:**
-Users run out of supplements unexpectedly or over-purchase. The inventory feature loses trust and is ignored.
-
-**Prevention:**
-- Model inventory as two components: `purchasedUnits` (manually entered on purchase) and a deduction log (one entry per day the routine is completed).
-- `remaining = purchasedUnits - sum(deduction_log.units)` — derived, never stored directly.
-- The routine completion action (user marks "took today's supplements") writes a deduction event. Never mutate `purchasedUnits` on routine completion.
-- This means supplement logs (the existing `supplement_log` sheet) must record consumed units per item per day, not just a free-text notes field.
+**How to avoid:**
+The lock is not a separate flag — it is derived at render time from the persisted `checkedIds` field in the `TodayPlanRecord`. If `checkedIds.length > 0` after reading from localStorage on mount, the full re-random button is disabled. No additional state is needed; persistence of `checkedIds` (addressed in Pitfall 4) automatically provides persistence of the lock.
 
 **Warning signs:**
-- `remaining` is stored as a field on the supplement record (it will silently become stale)
-- Inventory calculation uses `daysSincePurchase` arithmetic rather than an actual consumption log
+- A `isLocked` boolean state exists independently of `checkedIds`
+- Refreshing the page re-enables the full re-random button even when items were checked
 
-**Phase:** Supplement inventory design phase. Data model must be correct before any UI is built.
+**Phase to address:** Same phase as Pitfall 4 — lock is a UI property of the persistent record, not a separate feature.
 
 ---
 
-### Pitfall 6: Google Sheets Row-per-Item Catalog Becomes Read-Bottleneck as Items Grow
+### Pitfall 6: Single-Item Re-Random Swaps the Item Out of the Slot But Does Not Update Nutrition Budget
 
 **What goes wrong:**
-The existing `SheetsAPI.readAll(sheet)` pattern returns every row in a sheet on every call. For the foods catalog, this is currently bounded by the hardcoded dataset size. Once users can add their own foods and supplements, the sheets grow without bound. Apps Script reads the entire sheet into memory (1 `getValues()` call), serialises it to JSON, and returns it in a single HTTP response. At ~500 rows per sheet, this begins to cause noticeable latency; at ~2,000 rows the 6-minute execution limit becomes a risk under load.
+Each food item in the plan carries calorie and macro data. The nutrition budget bar (remaining calories, protein, etc.) is derived from checked items. When a single item is re-randomised and swapped for a different item, the new item has different calorie/macro values. If the slot was already checked (consumed), the budget display still reflects the old item's values because the checked record stores the old item ID — the ID that was swapped out.
 
 **Why it happens:**
-`getDataRange().getValues()` is the standard Apps Script pattern. It is fast for small sheets. There is no pagination mechanism in the existing GAS API.
+Single-item re-random is implemented as a visual swap (update the displayed item) without considering whether the old item was already checked. The checked ID becomes orphaned: it points to an item no longer in the plan.
 
-**Consequences:**
-- Initial load time grows proportionally with catalog size
-- Users with large supplement collections (50+ items) see slow initial renders
-- Background sync fires on every page load — multiplied across tabs, this generates redundant GAS executions
-
-**Prevention:**
-- Add a `updatedAfter` filter parameter to the GAS `read` action so the client can fetch only items modified since its last sync timestamp. Store a `last_synced_at` value in localStorage and include it in catalog fetch requests.
-- Cache catalog data aggressively: only invalidate on explicit user CRUD, not on every page load. The current pattern fires `SheetsAPI.readAll()` in the background on every `getFoods()` and `getRemedies()` call — acceptable for read-only logs, wasteful for a catalog that changes rarely.
-- Set a soft limit of 500 items per catalog sheet with a UI warning, not a silent failure.
+**How to avoid:**
+Define the invariant: a single-item re-random is only allowed on unchecked items. Disable the swap button on items that are checked. If this restriction is not acceptable (the user wants to swap a checked item), uncheck the item automatically on swap, remove its contribution from the nutrition budget, and require the user to re-check the new item. Document this behaviour explicitly in the design.
 
 **Warning signs:**
-- `SheetsAPI.readAll()` is called on every page mount without a staleness check
-- No `updatedAt` field on food/supplement records
+- The swap button is visible and active on checked items
+- `checkedIds` can contain IDs that no longer exist in the current plan's slot list
+- The nutrition budget is not recalculated after a single-item swap
 
-**Phase:** Data model phase. Add `updatedAt` and `last_synced_at` before building CRUD UI.
-
----
-
-## Moderate Pitfalls
+**Phase to address:** Single-item re-random implementation. Enforce the unchecked-only swap invariant before building the swap UI.
 
 ---
 
-### Pitfall 7: Open Food Facts Search Returns Asian Food Data as Sparse or Missing
+### Pitfall 7: Bottom Nav `pb-20` Padding Remains After Removing the Bottom Nav
 
 **What goes wrong:**
-Open Food Facts is crowd-sourced. Coverage for Western packaged foods is excellent. Coverage for Taiwanese and East Asian foods — particularly traditional ingredients like 燕麥 (oats), 豆腐 (tofu), 山藥 (yam), and 小米 (millet) — is sparse and often missing calorie data. Returning an empty result or a result with `null` nutrients silently produces 0-calorie foods.
+The current `App.tsx` wraps all content in `<div className="... pb-20 ...">` to prevent the bottom nav from overlapping content. When the bottom nav is removed and replaced with a sidebar drawer, this padding remains. The result is 80px of empty space at the bottom of every page, which is especially noticeable on the unified today page (long scroll list). The fix seems trivial but requires auditing every page for hardcoded bottom padding.
 
 **Why it happens:**
-Open Food Facts relies on contributor uploads. Taiwan's food market has fewer contributors than the US/EU.
+Bottom nav padding is applied at the shell level (`App.tsx`) and in some page components as additional `pb-*` classes. It becomes invisible once the nav is gone — the space is just empty rather than causing a visible bug — so it is easy to miss in a review.
 
-**Consequences:**
-Users search for common local ingredients and find nothing, or find records with incomplete nutritional data. The ingredient lookup feature feels broken for the target audience.
-
-**Prevention:**
-- Treat the public API as a **supplement** to a curated local fallback, not as the primary source. Maintain a hardcoded seed list of common Taiwanese ingredients with verified nutrition data.
-- When an API result has `null` for energy/calories, surface this clearly: "營養資料不完整，請手動輸入熱量" rather than defaulting to 0.
-- Allow manual calorie entry as a fallback path — the API lookup path should never be the only way to add a food.
+**How to avoid:**
+- Remove `pb-20` from `App.tsx`'s outer div at the same time the bottom nav markup is removed — same commit, not later.
+- Search for `pb-16`, `pb-20`, `pb-24` across all page components and remove or convert them to a standard bottom safe-area inset (`pb-safe` or `env(safe-area-inset-bottom)`).
+- The new sidebar layout likely needs a header bar for the hamburger icon — add `pt-14` or equivalent to account for the fixed header, not `pb-` anything.
 
 **Warning signs:**
-- No fallback UI for `cal: null` from API results
-- Taiwanese staples (米飯, 地瓜, 豆類) are not in the seed catalog
+- `pb-20` present in `App.tsx` after bottom nav markup is removed
+- Empty whitespace at the bottom of every page visible in DevTools box model
 
-**Phase:** Nutrition API integration phase.
-
----
-
-### Pitfall 8: Supplement Interaction Data Encoded as Pairwise Flat List Becomes Unmanageable
-
-**What goes wrong:**
-Supplement interactions are naturally modelled as a graph (node = supplement, edge = interaction). A flat list of pairs (`{ a: "magnesium", b: "calcium", type: "reduces_absorption" }`) seems simple for 5 supplements. At 20 supplements there are up to 190 unique pairs. Querying "what does zinc interact with?" requires scanning every pair. Adding a new supplement requires manually defining pairs with every existing supplement.
-
-**Why it happens:**
-Pairwise flat lists are the first instinct for interaction data. The complexity growth (O(n²)) is not felt during initial implementation.
-
-**Consequences:**
-- The interaction lookup function runs through hundreds of entries for each routine generation call
-- Maintaining the interaction list becomes a data entry burden that is silently abandoned, leaving the feature presenting incomplete data
-- Conflicting guidance: calcium reduces magnesium absorption, but the interaction direction matters (take separately vs. avoid entirely)
-
-**Prevention:**
-- Model interactions as a map keyed by supplement ID: `{ [supId]: { conflicts: string[], synergies: string[], separateBy: number } }`. Each supplement stores its own interaction profile.
-- Enforce unidirectional consistency: if supplement A conflicts with B, both A's and B's records must list the conflict. Write a validation function that checks bidirectional consistency on save.
-- Keep the interaction data small and explicit: do not attempt to model every known supplement interaction. Cover only the interactions relevant to the user's actual supplement list.
-- Source: real interactions documented at medical grade include calcium/magnesium (absorption competition), zinc/copper (depletes copper), fat-soluble vitamins requiring dietary fat (A, D, E, K), and iron/vitamin C (enhancer, not conflict).
-
-**Warning signs:**
-- Interaction data stored as a flat array of `{ a, b, type }` objects
-- No validation that A→B and B→A relationships are consistent
-- Interaction lookup requires `Array.find()` scanning all pairs rather than `O(1)` map lookup
-
-**Phase:** Supplement data model phase.
+**Phase to address:** Sidebar drawer implementation phase. Handle nav removal and padding cleanup atomically.
 
 ---
 
-### Pitfall 9: Routine Generator Produces No-Schedule Result When Interactions Are Over-Constrained
+## Technical Debt Patterns
 
-**What goes wrong:**
-A greedy constraint-satisfaction routine generator schedules supplements into time slots (morning/midday/evening/night) while satisfying timing rules (with food, on empty stomach) and avoiding co-administration of conflicting supplements. If the user's supplement list has enough conflicts and timing constraints, the scheduler exhausts all valid slot assignments and returns an empty or partial plan — with no explanation.
-
-**Why it happens:**
-Greedy algorithms work from the most-constrained item first. If two highly-constrained supplements both require morning/empty-stomach, the second one cannot be placed and the scheduler silently skips it or returns null.
-
-**Consequences:**
-User's supplement routine silently omits items. User believes they are taking all their supplements but is not. This is a health-critical silent failure.
-
-**Prevention:**
-- The routine generator must never silently omit supplements. If a supplement cannot be scheduled within the constraints, report it explicitly: "無法排入今日計劃，時間衝突: [名稱]".
-- Relax constraints in order of priority: timing preference (prefer morning) is soft; absorption conflict (take separately) is hard. Implement two passes — first with all constraints, then with soft constraints removed — and surface what was relaxed.
-- At reasonable supplement counts (5–15 items), a greedy approach is fast enough. Only switch to backtracking search if the greedy pass fails.
-
-**Warning signs:**
-- Routine generator function returns a schedule object without a list of unscheduled items
-- No UI element shows "items not scheduled today" when conflicts prevent full coverage
-
-**Phase:** Routine generator implementation phase.
+| Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
+|----------|-------------------|----------------|-----------------|
+| Inline all three pages' state into TodayPage | Faster initial merge | 500+ LOC file, impossible to test sub-features independently | Never — decompose first |
+| Store checked IDs in separate localStorage key from plan | Simpler per-concern code | Stale checked IDs after re-random (Pitfall 4) | Never |
+| Implement drawer as a position:fixed div with no scroll lock | Works on desktop/Android | Body scrolls under drawer on iOS Safari (Pitfall 1) | Never for production |
+| Hardcode bottom padding everywhere instead of using CSS variable | No abstraction needed yet | Must manually hunt 5+ files when nav layout changes | MVP only — add TODO comment |
+| Implement "My Menu" as a flat array in localStorage without a schema version | Fast to ship | Impossible to migrate when fields change (existing lesson from SettingsService) | Never — use schema version from day one |
+| Use a single `useEffect` for plan generation, check-restore, and budget calculation | Fewer hooks | Infinite re-render loops from interdependent deps arrays | Never — separate concerns into separate effects |
 
 ---
 
-### Pitfall 10: localStorage Size Limit Exceeded When Storing Full Food Composition Data
+## Integration Gotchas
 
-**What goes wrong:**
-The existing codebase stores JSON-stringified arrays in localStorage. A composed food record includes an array of ingredients, each with full nutritional data. A supplement record includes interaction maps, timing metadata, dosage history, and purchase logs. At 100+ food items and 30+ supplements, the total localStorage footprint exceeds the browser's typical 5–10 MB quota. Writes silently fail (the existing `cacheSet` already catches this with `console.warn`), and the stale version of the data is served forever.
-
-**Why it happens:**
-localStorage is designed for small user preferences, not catalog data. The current app's data volume is low because data is hardcoded. User-added CRUD removes that ceiling.
-
-**Consequences:**
-- A user who adds many items reaches the storage limit silently
-- Subsequent writes fail without user notification (current code logs `console.warn` only)
-- The catalog shown in the UI is frozen at the last successfully cached state
-
-**Prevention:**
-- Store the item catalog in localStorage with a size budget: cap food catalog at 200 items and supplement catalog at 50 items with a visible count in the management UI.
-- Do not embed full nutritional data inline in the composition record. Store ingredient references by ID and look up nutrition from the catalog at computation time.
-- For inventory logs (deduction events), store only the last 365 entries per supplement; older entries can be in Sheets only.
-- Surface the storage warning when the write fails — replace the silent `console.warn` with an in-app notification in the item management context.
-
-**Warning signs:**
-- `cacheSet` silently catches `QuotaExceededError` in the existing code — this error path will be hit under real data loads
-- Full nutritional data objects embedded inside composition records rather than referenced by ID
-
-**Phase:** Data model phase. Establish storage budget and ID-reference pattern before building CRUD.
+| Integration | Common Mistake | Correct Approach |
+|-------------|----------------|------------------|
+| SettingsService in merged TodayPage | Call `SettingsService.getComputedTargets()` in every sub-component separately | Call once in TodayPage, pass `targets` as a prop — avoids repeated localStorage reads |
+| Supplement routine + checkbox log | Run routine generator and checkbox restore as separate effects that both write state, causing render-loop | Generate plan once on mount, restore checked state from same persisted record atomically |
+| My Menu data type + existing DataService | Add menu CRUD directly to `data-service.ts` alongside weight/nutrition | Create `menu-service.ts` following the singleton object pattern — keeps data-service.ts focused |
+| Drawer + React Router NavLink | NavLink `isActive` class applies correctly, but drawer does not close after tap | Add `onClick={() => setDrawerOpen(false)}` on each NavLink, or listen to `location` changes in a `useEffect` to close drawer |
+| GAS version check in App.tsx + drawer shell | GAS check triggers `navigate('/settings')` which fires even on first render before drawer is set up | Keep existing GAS check; it navigates to `/settings`, which is already a valid route — no change needed |
+| WeightLog (now in Profile page) | WeightLog reads `DataService` directly; moving it inside a Profile page component means its `useEffect` data fetch fires only when Profile is visited | This is correct behaviour — no action needed, but verify Profile route exists before removing `/weight` route |
 
 ---
 
-### Pitfall 11: Item ID Namespace Collision Between Hardcoded Catalog and User-Created Items
+## Performance Traps
 
-**What goes wrong:**
-The existing hardcoded data uses manually assigned string IDs like `"chicken_breast_711"`, `"mung_barley_soup"`, `"acv_water"`. User-created items need unique IDs. If user-created item IDs can collide with hardcoded IDs (e.g., a user creates a food and the system assigns an ID that matches a hardcoded item), the resolver returns the wrong item for plans that reference the old ID.
-
-**Why it happens:**
-ID generation for user data is an afterthought when the system starts with hardcoded data. Sequential integers (`food_001`) can collide with domain-name IDs.
-
-**Consequences:**
-A user's custom food silently shadows a hardcoded food with the same ID. Daily plans referencing the old ID now display the wrong item.
-
-**Prevention:**
-- Use a namespaced ID scheme for user-created items: `"user_food_<timestamp>"` or `"uf_<uuid>"`. Never use the same namespace as hardcoded items.
-- The resolver lookup order must be explicit: check user catalog first, then hardcoded catalog, and log a warning on ID collision rather than silently preferring one.
-- Before shipping CRUD, audit all existing hardcoded IDs for the pattern they use and ensure the user ID generator cannot produce the same pattern.
-
-**Warning signs:**
-- User-created item IDs are numeric integers or short strings that could match hardcoded patterns
-- `resolveItem()` does not distinguish between hardcoded and user-created sources
-
-**Phase:** Data model restructure phase.
+| Trap | Symptoms | Prevention | When It Breaks |
+|------|----------|------------|----------------|
+| Re-rendering all three merged sections on every checkbox toggle | Perceptible lag on checkbox tap on mid-range Android devices | `React.memo` on `NutritionBudgetBar`; pass stable callbacks via `useCallback` for check handlers | At ~20+ items in the list with frequent toggles |
+| Generating the full plan on every render of TodayPage | Plan re-randomises unexpectedly on state updates | Generate plan once in a `useState` initializer (`useState(() => generatePlan(…))`) or in a single mount-only `useEffect` — never in render body | Immediately — any state change triggers visible re-random |
+| Reading all supplement inventory from localStorage on every drawer open | Slow drawer animation while JS is synchronously reading | Load supplement data once on app init, not on drawer toggle | At ~30+ supplement records |
+| Persisting checked state on every checkbox toggle with full plan serialisation | Sluggish checkbox response | Write only the `checkedIds` array on toggle, not the entire plan record | At ~50+ items in plan |
 
 ---
 
-### Pitfall 12: React Router Navigation Discards Unsaved CRUD Form State
+## UX Pitfalls
 
-**What goes wrong:**
-React Router DOM v7's `HashRouter` does not trigger the browser's native `beforeunload` dialog. A user filling in a long food composition form (name, serving size, 6 macro fields, ingredient list) who taps the bottom navigation bar loses all entered data instantly. There is no native SPA guard.
-
-**Why it happens:**
-SPA navigation bypasses browser history events. React Router v7 provides `useBlocker` for this purpose but it must be explicitly wired to every form.
-
-**Consequences:**
-Users lose work. CRUD forms for composed foods with many ingredients are particularly painful to re-enter.
-
-**Prevention:**
-- Use React Router v7's `useBlocker` hook on the food/supplement creation and edit forms. Block navigation when the form has unsaved changes (`formState.isDirty`).
-- Trigger the blocker on bottom-nav tab clicks (which are React Router links) and on browser back button.
-- Show a zh-TW confirmation dialog: "資料尚未儲存，確定要離開？"
-
-**Warning signs:**
-- CRUD forms do not import `useBlocker` from `react-router-dom`
-- Tapping bottom nav during form entry silently discards data with no warning
-
-**Phase:** Food CRUD UI phase.
+| Pitfall | User Impact | Better Approach |
+|---------|-------------|-----------------|
+| Drawer hamburger icon placed at top-left, thumb cannot reach on large phones | User must stretch thumb to open nav, abandons feature | Place hamburger in a bottom-left or bottom-right FAB, or use a swipe gesture (swipe right from left edge opens drawer) |
+| Drawer does not indicate the currently active page | User cannot tell where they are after opening drawer | Use React Router `useLocation` to apply active styles (same pattern as existing bottom nav's NavLink) |
+| Full page re-random confirmation is a JavaScript `window.confirm()` | Looks like a browser alert, breaks the app's visual language, and is blocked by some mobile browsers | Use an inline confirmation UI (a "確認重新隨機？" button that replaces the shuffle button for 2 seconds, then reverts) |
+| Supplement check → "skipped" three-state toggle migrated into unified view confuses users who expect binary checked/unchecked | Users accidentally skip instead of check | In the unified view, use a long-press or swipe-to-skip gesture for "skipped" state; the primary tap is always "checked" (consumed) |
+| My Menu save confirmation is silent (no visual feedback) | User unsure if save succeeded; taps save multiple times | Optimistic inline confirmation ("已儲存" label replaces save button for 1.5s) — matches existing app style |
 
 ---
 
-## Minor Pitfalls
+## "Looks Done But Isn't" Checklist
+
+- [ ] **Sidebar drawer:** Verify body scroll lock on a real iOS device — desktop browser DevTools mobile emulation does NOT reproduce this bug
+- [ ] **Checkbox state persistence:** Navigate away from `/plan`, return, and confirm checked items are still checked
+- [ ] **Full re-random lock:** Check an item, refresh the page (hard reload), confirm re-random button is still disabled
+- [ ] **Single-item swap:** Swap an unchecked item and verify nutrition budget is unchanged; attempt to swap a checked item and verify the button is disabled
+- [ ] **Nutrition budget:** Check three food items, verify the budget bar updates correctly; uncheck one, verify the bar decreases
+- [ ] **Bottom padding:** Inspect every page in DevTools for unexpected empty space at the bottom after removing the bottom nav
+- [ ] **My Menu schema version:** Write a menu entry, bump the schema version constant, reload, and confirm migration does not crash
+- [ ] **Profile page WeightLog:** Confirm weight log data loads correctly when WeightLog is rendered inside the Profile page (not as a standalone route)
+- [ ] **Drawer active state:** Open drawer on each page and confirm the correct nav item is highlighted
+- [ ] **Drawer close on navigate:** Tap a drawer nav link and confirm the drawer closes before the new page renders
 
 ---
 
-### Pitfall 13: Apps Script doPost Responds 302 Redirect Instead of JSON After Re-deployment
+## Recovery Strategies
 
-**What goes wrong:**
-When an Apps Script Web App is redeployed (new version), the `/exec` URL may temporarily redirect to a new deployment URL. `fetch()` follows the redirect, but Apps Script's CORS headers are not reliably included on the redirect response. The browser blocks the redirected response, and the app receives an opaque network error rather than a meaningful API error.
-
-**Prevention:**
-- After every Apps Script redeployment, test the Web App URL directly in the browser and verify it returns JSON (not an HTML redirect page).
-- Pin the deployment to "Execute as: me" + "Anyone can access" and use a stable versioned deployment URL rather than the `/dev` URL.
-
-**Phase:** Initial GAS setup phase.
-
----
-
-### Pitfall 14: Open Food Facts Search Returns Multiple Products for the Same Ingredient — User Must Choose
-
-**What goes wrong:**
-A search for "豆腐 (tofu)" returns 40+ results with wildly different calorie values (30 kcal/100g to 120 kcal/100g) depending on firmness, brand, and country of origin. If the app auto-selects the first result, the nutrition data is arbitrary. If the app presents all results, the UI becomes a disambiguation exercise that slows ingredient entry.
-
-**Prevention:**
-- Search returns a ranked list; the user selects the specific product.
-- Show serving size and calorie density prominently in search results to enable quick disambiguation.
-- Once a user selects a result, save the FDC/OFF product ID alongside the nutritional values so the same lookup is not repeated and the source is auditable.
-
-**Phase:** Nutrition API integration phase.
+| Pitfall | Recovery Cost | Recovery Steps |
+|---------|---------------|----------------|
+| iOS scroll lock missing (shipped to production) | LOW | Add `position: fixed` body scroll lock in a hotfix; no data changes required |
+| Stale checked IDs from separate storage keys | MEDIUM | Write a migration in `TodayPlanRecord` loader: if old keys found, merge into new unified record and delete old keys |
+| Monolithic TodayPage (built as one 500-LOC component) | HIGH | Extract sub-components in a dedicated refactor phase; must rewrite state lifting and prop interfaces |
+| Bottom nav padding left in (cosmetic only) | LOW | Single CSS class removal across 4 files |
+| My Menu without schema version | MEDIUM | Add schema version + migration on first conflict; requires cache invalidation affecting all users |
+| Lock not persisted (state only) | LOW | Move lock derivation to read from persisted `checkedIds` on mount — 3-line change |
 
 ---
 
-### Pitfall 15: Supplement Routine Determinism Breaks When System Date Changes
+## Pitfall-to-Phase Mapping
 
-**What goes wrong:**
-If the routine generator uses the current date as a seed for any pseudo-random selection (e.g., rotating which supplement to take on which day of a cycling protocol), the "deterministic" plan changes at midnight. A user who generates the routine at 11:58 PM and refers to it at 12:05 AM sees a different plan.
-
-**Prevention:**
-- Persist the generated routine for the day with its generation date. Re-generate only when the user explicitly requests it or when the day advances past the stored date (not at the moment of midnight).
-- If cycling protocols are needed (take supplement A Mon/Wed/Fri, supplement B Tue/Thu/Sat), express the cycle as explicit day-of-week assignments, not date-arithmetic, so the schedule is stable.
-
-**Phase:** Routine generator phase.
-
----
-
-## Phase-Specific Warnings
-
-| Phase Topic | Likely Pitfall | Mitigation |
-|---|---|---|
-| Nutrition API selection | API key exposure in bundle (Pitfall 1) | Use GAS proxy or Open Food Facts (no-key) |
-| Nutrition API integration | USDA FDC CORS failure in browser (Pitfall 2) | Verify with browser fetch before committing |
-| Food CRUD implementation | Apps Script cold start causes double-submit (Pitfall 3) | Optimistic localStorage write + idempotent GAS upsert |
-| Food composition model | Circular ingredient references (Pitfall 4) | Flat (atomic-only) ingredient model |
-| Supplement inventory design | Drift from estimate-based quantity (Pitfall 5) | Event-sourced deduction log, not calculated remaining |
-| Catalog data model | Sheets read bottleneck as items grow (Pitfall 6) | Add `updatedAt` + incremental sync |
-| Local ingredient coverage | Open Food Facts missing Asian foods (Pitfall 7) | Curated Taiwanese seed catalog as fallback |
-| Supplement interaction model | O(n²) flat pair list becomes unmaintainable (Pitfall 8) | Per-supplement interaction map |
-| Routine generator | Over-constrained inputs produce silent empty plan (Pitfall 9) | Explicit unscheduled-item report |
-| localStorage growth | Quota exceeded on large catalogs (Pitfall 10) | ID-reference model, size budget, visible warning |
-| ID namespace | User items collide with hardcoded IDs (Pitfall 11) | Namespaced `uf_` / `us_` prefix |
-| CRUD form UX | Unsaved form state lost on nav (Pitfall 12) | React Router v7 `useBlocker` |
-| GAS redeployment | Redirect loses CORS headers (Pitfall 13) | Test after every redeployment |
-| Routine stability | Date-boundary plan change (Pitfall 15) | Persist generated plan, re-generate on explicit request only |
+| Pitfall | Prevention Phase | Verification |
+|---------|------------------|--------------|
+| iOS body scroll lock (P1) | Sidebar drawer implementation | Test on real iOS device before phase complete |
+| Drawer state placement (P2) | Sidebar drawer implementation, before page work | Navigate to settings and back; confirm plan still rendered |
+| Monolithic component (P3) | Design sub-component boundaries before coding | Design doc lists sub-components with props interface before any TSX is written |
+| Stale checked IDs from split storage (P4) | Data model design for TodayPage | Re-random after checking; confirm checked state clears |
+| Lock reset on refresh (P5) | Same phase as P4 — unified plan record | Check item, hard refresh, confirm lock persists |
+| Swap on checked item corrupts budget (P6) | Single-item re-random implementation | Attempt to swap a checked item; confirm button disabled |
+| Bottom nav padding residue (P7) | Sidebar drawer implementation — remove nav and padding atomically | Inspect bottom of every page for whitespace |
 
 ---
 
 ## Sources
 
-- USDA FoodData Central API documentation: [https://fdc.nal.usda.gov/api-guide/](https://fdc.nal.usda.gov/api-guide/) — rate limits, key requirement; HIGH confidence
-- USDA API CORS issue: [GitHub USDA/USDA-APIs#79](https://github.com/USDA/USDA-APIs/issues/79) — malformed CORS header documented; MEDIUM confidence
-- Open Food Facts API documentation: [https://openfoodfacts.github.io/openfoodfacts-server/api/](https://openfoodfacts.github.io/openfoodfacts-server/api/) — rate limits, no-auth reads; HIGH confidence
-- Open Food Facts rate limits: [GitHub issue #8818](https://github.com/openfoodfacts/openfoodfacts-server/issues/8818) — 100/10/2 req/min limits; MEDIUM confidence
-- API key exposure in static sites: [Sourcery vulnerability database](https://www.sourcery.ai/vulnerabilities/hardcoded-api-keys-javascript); [Wiz Blog mass exposure research](https://www.wiz.io/blog/exposed-moltbook-database-reveals-millions-of-api-keys) — HIGH confidence
-- Apps Script quotas: [https://developers.google.com/apps-script/guides/services/quotas](https://developers.google.com/apps-script/guides/services/quotas) — execution time 6 min, URL fetch 20K/day; HIGH confidence
-- Apps Script performance issues: [Google Apps Script Community](https://groups.google.com/g/google-apps-script-community/c/7mBvElBwvnc) — cold start and shared infrastructure slowness; MEDIUM confidence
-- Apps Script best practices: [https://developers.google.com/apps-script/guides/support/best-practices](https://developers.google.com/apps-script/guides/support/best-practices) — batch reads/writes; HIGH confidence
-- Supplement interaction knowledge: [Supplements-AI interaction guide](https://supplements-ai.com/blog/guides/supplement-interactions) — calcium/magnesium, zinc/copper documented interactions; MEDIUM confidence
-- React Router v7 useBlocker: documentation verified against React Router DOM v7.6.0 (installed version); HIGH confidence
-- localStorage size limits and quota errors: [RxDB localStorage article](https://rxdb.info/articles/localstorage.html) — 5–10 MB quota, QuotaExceededError; MEDIUM confidence
-- Greedy scheduling limitations: [GeeksforGeeks scheduling in greedy algorithms](https://www.geeksforgeeks.org/dsa/scheduling-in-greedy-algorithms/) — sequential infeasibility at end of greedy pass; MEDIUM confidence
-- Existing codebase analysis: `src/lib/sheets-api.ts`, `src/lib/data-service.ts` — direct code audit; HIGH confidence
+- Direct codebase audit: `src/App.tsx`, `src/pages/DailyPlan.tsx`, `src/pages/NutritionTracker.tsx`, `src/pages/SupplementSchedule.tsx`, `src/lib/data-service.ts` — HIGH confidence
+- iOS Safari body scroll lock: [PQINA blog — prevent scrolling on iOS Safari 15](https://pqina.nl/blog/how-to-prevent-scrolling-the-page-on-ios-safari/) — HIGH confidence (cross-referenced with multiple community sources)
+- iOS 100vh viewport units: [DEV Community — 100vh problem with iOS Safari](https://dev.to/maciejtrzcinski/100vh-problem-with-ios-safari-3ge9) — HIGH confidence
+- React state persistence with localStorage: [Josh W. Comeau — Persisting React State in localStorage](https://www.joshwcomeau.com/react/persisting-react-state-in-localstorage/) — HIGH confidence
+- React Context re-render pitfall: WebSearch — "main problem with merging all states under a single context provider" — MEDIUM confidence (multiple sources agree)
+- React Router v7 route unmounting behaviour: Known React Router behaviour; verified against existing project's `HashRouter` usage — HIGH confidence
+- Mobile navigation patterns: [Material Design 3 — Navigation drawer guidelines](https://m3.material.io/components/navigation-drawer/guidelines) — MEDIUM confidence (design guidance, not technical)
+
+---
+*Pitfalls research for: Sidebar drawer navigation + page consolidation — Eat Manager v3.0*
+*Researched: 2026-04-06*

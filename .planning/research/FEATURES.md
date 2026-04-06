@@ -1,357 +1,290 @@
-# Feature Landscape: Item Management & Supplement Routines
+# Feature Research
 
-**Domain:** Food/supplement CRUD, composition-based nutrition, inventory tracking, deterministic routine generation
-**Researched:** 2026-03-30
-**Overall confidence:** HIGH (supplement metadata patterns verified via live app research; inventory formula verified via pharmacy literature; composition model verified via USDA/FDA guidance; routine generation patterns from SuppCo, SuppTrack, Supplements AI product research)
+**Domain:** Sidebar drawer navigation, unified checkbox daily plan, meal menu management, profile page — health/nutrition SPA
+**Researched:** 2026-04-06
+**Confidence:** HIGH (sidebar UX from Material Design + established mobile patterns; checkbox plan from nutrition app analysis; menu management from meal planner app survey; profile page from Material Design drawer spec)
 
 ---
 
 ## Existing Features (Do Not Rebuild)
 
-These features are already in production (v1.0). Listed here to clarify scope boundaries.
+These are already in production. Listed to define scope boundaries for v3.0.
 
 | Existing Feature | Location | Note |
 |-----------------|----------|-------|
-| Weight logging + chart | `WeightLog.tsx` | Complete |
-| Supplement schedule view | `SupplementSchedule.tsx` | Static data only, no CRUD |
-| Daily plan generator | `DailyPlan.tsx` | Random from hardcoded pools |
-| Nutrition tracker page | `NutritionTracker.tsx` | Shell exists, empty data |
-| BMR + TDEE calculation | `src/data/bmr.ts` | Full Mifflin-St Jeor |
-| Dietary guideline presets (3 countries) | `src/data/dietary-guidelines.ts` | Complete |
-| Settings page with Sheets config | `Settings.tsx` | Complete |
-| SettingsService (localStorage schema) | `src/lib/settings-service.ts` | Versioned, complete |
-| Google Apps Script proxy | `scripts/gas-api.js` | CRUD operations |
+| Bottom tab navigation (7 tabs) | `App.tsx` | Being replaced by sidebar drawer |
+| Daily plan generator (random, swap) | `DailyPlan.tsx` | Being merged into unified plan |
+| Nutrition tracker (manual log) | `NutritionTracker.tsx` | Being merged into unified plan |
+| Supplement schedule (tap-to-toggle) | `SupplementSchedule.tsx` | Being merged into unified plan |
+| Food CRUD with nutrition labels | `FoodManager.tsx` | Stays as-is |
+| Supplement CRUD with inventory | `SupplementManager.tsx` | Stays as-is |
+| Weight logging + chart | `WeightLog.tsx` | Moving to Profile page |
+| Settings (BMR, guidelines, Sheets) | `Settings.tsx` | Stays, accessed via drawer icon |
+| Offline-first localStorage + Sheets sync | `data-service.ts` | No change needed |
+| GAS connection health check | `App.tsx` | No change needed |
 
 ---
 
-## Table Stakes
+## Feature Landscape
 
-Features users expect from an item management + supplement tracking app. Missing any of these makes the app feel incomplete or untrustworthy.
+### Table Stakes (Users Expect These)
 
-### Food Management
+Features users assume exist. Missing these = the v3.0 overhaul feels incomplete.
 
-| Feature | Why Expected | Complexity | Notes |
-|---------|--------------|------------|-------|
-| Add food via nutrition label | Every food logger (MyFitnessPal, Cronometer, FatSecret) allows direct macro entry | Low | Fields: name, serving description, cal, protein, fat, carbs, sodium. Optional: sugar, fiber |
-| Edit existing food | Typos in nutrition data are common; no edit = broken trust | Low | Edit all fields; update derived composition values if food is used as ingredient |
-| Delete food | Catalog hygiene; duplicate entries accumulate quickly | Low | Soft-delete or hard-delete; warn if food is used in a composed item |
-| List/browse foods with search | Without search, a catalog of 20+ items is unusable | Low | Filter by name substring; existing `searchFoods()` pattern to follow |
-| Per-serving calorie display | Users think in servings, not 100g | Low | Display as entered; always show serving description alongside numbers |
-| Food type tags (optional) | Health tag association for future filtering | Low-Med | Reuse existing `HealthTag` union type from `types.ts` |
-
-### Food Composition (Ingredient-Based Foods)
+#### Sidebar Drawer Navigation
 
 | Feature | Why Expected | Complexity | Notes |
 |---------|--------------|------------|-------|
-| Create composed food from ingredients | Meal-prep and home-cooked foods cannot be entered as a single label; composition is the only accurate method | Med | One food item can declare `ingredients: { foodId, ratio }[]` where ratio is weight fraction |
-| Dynamic calorie/macro recalculation on ratio change | If you change ingredient ratios the totals must update instantly | Med | `totalCal = sum(ingredient.cal * ratio)` — linear; same formula for all macros |
-| Total nutrition preview before save | Users need to validate the composed result looks right before committing | Low | Show live-updating summary row while editing ingredient ratios |
-| Add/remove ingredients freely | Composition is iterative; fixed ingredient count is a dealbreaker | Low | Dynamic list with add/remove buttons |
+| Hamburger icon opens drawer from left | Universal mobile pattern; any app with >5 nav items uses it | LOW | Fixed top-left `☰` button; 44px tap target minimum |
+| Overlay backdrop closes drawer on tap | Standard dismiss behavior across iOS/Android; users tap outside to close | LOW | Semi-transparent dark overlay (`bg-black/50`) over content; click closes drawer |
+| Swipe-right-to-open gesture | Expected on mobile, especially iOS users; Material Design standard | MEDIUM | Track `touchstart`/`touchmove` on left edge (first 20px of screen); use `useSwipeable` or manual touch handlers — no library needed |
+| Swipe-left-to-close gesture | Mirror of open gesture; expected once open | MEDIUM | Same implementation as open gesture |
+| Active route highlight in drawer | Users need to know where they are | LOW | Match `location.pathname` to drawer item; apply active color class |
+| All nav destinations accessible from drawer | Replaces the bottom tab bar entirely | LOW | Map existing routes to drawer items with icon + label |
+| Drawer slides in with animation | Feels broken without it; jarring without transition | LOW | CSS `transition: transform 300ms ease` on drawer panel |
+| ESC key closes drawer | Desktop/keyboard accessibility | LOW | `useEffect` listening for `keydown` with `key === "Escape"` |
+| Body scroll lock when drawer open | Content should not scroll behind the overlay | LOW | `document.body.style.overflow = "hidden"` when open, restore on close |
 
-### Supplement Management
-
-| Feature | Why Expected | Complexity | Notes |
-|---------|--------------|------------|-------|
-| Add supplement with name + dosage | Core tracking requirement; every supplement app (SuppTrack, CareClinic, Supplemate) starts here | Low | Fields: name (zh-TW + English optional), dose (amount + unit), dosage unit (mg/mcg/IU/g/capsule) |
-| Health goal tags | Grouping by goal (sleep, inflammation, gut health) is standard in all 2025 supplement apps | Low | Reuse existing `HealthTag` system — exactly the right abstraction |
-| Timing metadata | When to take a supplement affects absorption; "with food", "fasting", "before bed" is table stakes | Low | Enum: `"空腹" | "餐前" | "餐中" | "餐後" | "睡前" | "運動前" | "運動後"` |
-| Caution / notes field | Side effects, contraindications, doctor notes belong here | Low | Free text; existing `RemedyItem.caution` field pattern |
-| Edit + delete supplement | Same rationale as food edit/delete | Low | |
-| Core vs optional flag | "Must take daily" vs "take as needed" distinction drives the routine generator | Low | Existing `RemedyItem.isCore` boolean — keep and formalize |
-
-### Supplement Inventory
+#### Profile Section at Drawer Bottom
 
 | Feature | Why Expected | Complexity | Notes |
 |---------|--------------|------------|-------|
-| Record purchase: total capsules/tablets | The only way to calculate "how many days left" | Low | Input: total count purchased. Example: "120 capsules" |
-| Record serving size (capsules per dose) | Combined with purchase quantity and daily dose frequency, this yields days remaining | Low | Input: capsules per dose. Example: "2 capsules per dose" |
-| Record daily dose frequency | How many times per day the supplement is taken | Low | Input: doses per day. Example: "1x daily", "2x daily" |
-| Days remaining calculation | `daysRemaining = totalCapsules / (capsulesPerDose × dosesPerDay)` — standard pharmacy formula | Low | Computed field, not stored. Show as integer. Formula: `floor(remaining / (serving * freq))` |
-| Current capsules remaining | Track consumption: `remaining = purchased - (daysConsumed × capsulesPerDose × dosesPerDay)` | Low-Med | Store `purchasedAt` date + `totalCapsules`; derive remaining from daily log OR use last-purchase anchor |
-| Low stock visual indicator | Users need to reorder before they run out; visual warning is expected | Low | Threshold: ≤ 14 days remaining → amber warning; ≤ 7 days → red alert |
+| User avatar or initials at drawer bottom | Material Design navigation drawer spec; every major app does this (Gmail, Google Maps) | LOW | Avatar circle with name initial fallback; tap navigates to `/profile` |
+| Display name shown in drawer | Personalizes the app; users want to see their name | LOW | Read from `SettingsService` or new `ProfileService`; show "設定名稱" placeholder if empty |
+| Tap avatar navigates to Profile page | Standard behavior; drawer is a doorway to profile | LOW | `navigate("/profile")` + close drawer |
+| Settings icon at drawer bottom | Expected secondary access alongside profile; consistent with iOS/Android apps | LOW | Small gear icon bottom-right of drawer footer; `navigate("/settings")` |
 
-### Supplement Routine Generation
+#### Unified Checkbox Daily Plan
 
 | Feature | Why Expected | Complexity | Notes |
 |---------|--------------|------------|-------|
-| Generate daily routine from all active supplements | The core value proposition of the supplement tracking screen | Med | Group all active (non-out-of-stock) supplements by their timing metadata |
-| Cover all health goals | The routine should include at least one supplement per health goal tag the user has active supplements for | Med | Goal-coverage check: iterate tags, verify ≥1 supplement per tag appears in routine |
-| Deterministic output for same inputs | Same supplement catalog + same date = same routine; no randomness | Med | Sort by: timing slot → isCore first → alphabetical. No random selection |
-| Timing-grouped schedule display | Show routine as time slots: 空腹 / 餐前 / 餐中 / 餐後 / 睡前 etc. | Low | Reuse existing `ScheduleSlot` concept; rename and adapt |
-| Exclude out-of-stock supplements | Do not include supplements with 0 days remaining in the routine | Low | Filter step before grouping |
-| Mark taken / skip for today | Basic compliance tracking; expected by all tracking apps | Low | Boolean per supplement per date; store in `SupplementLogEntry.takenIds` (already exists) |
+| Single page showing food plan + supplements for the day | Users think about "what I did today" as one stream, not 3 separate pages | MEDIUM | Merge slots from SCHEDULE with timing-grouped supplements; render as one scrollable list |
+| Checkbox to mark item as consumed/taken | The primary interaction; makes logging frictionless (one tap per item vs. navigating to a form) | MEDIUM | Toggle state stored in `checkedIds: Set<string>` per date; persist to localStorage |
+| Checked items visually distinguished | Users need to see progress at a glance | LOW | Strike-through + reduced opacity + checkmark icon on checked items |
+| Full re-random locked when any item is checked | Prevents destroying logged progress; universally expected in any planning+tracking hybrid | MEDIUM | `const isLocked = checkedIds.size > 0`; disable full re-random button + show explanation tooltip/toast |
+| Single-item re-random allowed even when locked | Users still want to swap one item without losing other check states | MEDIUM | Per-item swap button still enabled; only regenerates that slot; does not clear other checked states |
+| Today's date shown prominently | Users need to confirm they are on the correct day | LOW | Display `YYYY年MM月DD日` at top of page; auto-detect `todayStr()` |
+| Supplement timing sections within unified view | Supplements have timing context (空腹/餐後/睡前) that matters for effectiveness | MEDIUM | Group supplement rows under their timing label inside the unified scroll; visual separator between food slots and supplement slots |
+| Nutrition summary bar (cal/protein/fat/carbs) | Tracking without a total is incomplete; users need the running sum | MEDIUM | Derive from checked food items only; use existing `FoodItem` macro fields; display as compact bar at top or bottom |
+
+#### Meal Menu Management (我的菜單)
+
+| Feature | Why Expected | Complexity | Notes |
+|---------|--------------|------------|-------|
+| Save current plan as a named menu | Users who find a good combination want to reuse it; manual re-random every time is friction | MEDIUM | Capture current plan's item IDs + slot structure into a named `MenuPreset`; store in localStorage |
+| List of saved menus | Users need to browse their saved combinations | LOW | Simple list with name, item count, created date |
+| Load a menu into today's plan | The entire point of saving; replaces random generation with a known combination | MEDIUM | Populate today's plan state from saved `MenuPreset.slots`; mark plan as "from menu" (not random) |
+| Delete a saved menu | Catalog hygiene; accumulation of unused menus creates clutter | LOW | Confirmation prompt before delete; remove from localStorage |
+| Menu name entry | Menus need names to be distinguishable | LOW | Simple text input at save time; placeholder "我的菜單 #N" auto-incremented |
+
+#### Profile Page
+
+| Feature | Why Expected | Complexity | Notes |
+|---------|--------------|------------|-------|
+| Display name entry | Personalizes the app; shown in drawer | LOW | Single text input; persist to localStorage via `ProfileService` or extend `SettingsService` |
+| Avatar initial or emoji selector | Visual identity; not full image upload (that adds file storage complexity) | LOW | Pick from a grid of emoji/letter options; store as string |
+| Weight log access on profile page | Weight is deeply personal and user-profile-adjacent; MyFitnessPal, Lose It, and others put weight chart on profile | MEDIUM | Move `WeightLog` component or link to it from profile; no rebuild needed |
+| Current weight display | Quick reference without navigating | LOW | Show most recent weight entry from `WeightEntry[]` |
+| BMR and daily targets summary | Context for what the user is working toward | LOW | Read from `SettingsService`; display TDEE, macro targets as non-editable summary row |
 
 ---
 
-## Differentiators
-
-Features that set this app apart. Not universally expected, but meaningfully valued.
-
-### Food
+### Differentiators (Competitive Advantage)
 
 | Feature | Value Proposition | Complexity | Notes |
 |---------|-------------------|------------|-------|
-| Public nutrition database lookup (USDA FoodData Central) | Users don't know the calories in 7-11 chicken breast by heart; search-to-import removes manual entry friction | High | USDA FoodData Central is free, public domain, CC0 1.0. API rate limit: 1,000 req/hr. Requires API key (free). CRITICAL: static site cannot embed full DB; must call API live. Offline fallback = manual entry. Confidence: HIGH |
-| Ingredient ratio normalization | If ratios don't sum to 1.0, normalize automatically and show user the adjustment | Low | Prevents "101% total" silent error |
-| Composition yield factor (cooking weight loss) | Chicken breast loses ~25% weight when cooked; raw-to-cooked conversion prevents systematic overestimation | High | USDA publish yield factors per food. This is a deep nutrition science rabbit hole — defer unless needed. Complexity is HIGH |
-| Duplicate food detection | Warn when a new food name is similar to an existing one (Levenshtein distance ≥ 80%) | Med | Prevents accumulation of "Chicken breast" / "雞胸肉" / "chicken breast (cooked)" variants |
-| Synergy display between supplements | "Vitamin D and Magnesium work better together" — pairing hints visible in supplement detail | Med | Hardcode known synergies (D+Mg, K2+D, Omega-3+D, Curcumin+Black Pepper). Do not use external API |
-| Known interaction warnings | "Calcium blocks iron absorption — separate by 2 hours" | Med | Hardcode ~20 critical pairs. Free Supplement Stack Checker covers 44 supplements, 40+ pairs — use as reference. Examples: Ca+Fe (absorption -60%), Zn+Cu (compete), Fe+polyphenols |
-| Days-until-reorder suggestion | "You'll run out on April 15 — buy by April 8 to avoid a gap" | Low | `runOutDate = today + daysRemaining`; suggest reorder 7 days early |
-| Supplement cycle management | Some supplements (Creatine: 5g/day for 4-6 weeks then deload; Ashwagandha: 8-12 weeks on / 4 weeks off) have protocols | High | Implement loading/deload phases. High complexity, niche audience. Defer to v3 |
-
-### Routine Generation
-
-| Feature | Value Proposition | Complexity | Notes |
-|---------|-------------------|------------|-------|
-| Goal-coverage summary ("Coverage: 8/11 health goals covered") | Gamification signal that motivates users to fill gaps in their supplement stack | Low | Count distinct HealthTags across active supplements vs total tags user has supplements for |
-| Routine comparison: today vs yesterday | Show which supplements were added or removed from yesterday's routine (driven by stock/activation changes) | Low-Med | Diff two generated routines |
-| Routine export as text (for sharing with doctor/dietitian) | Clinical visits benefit from a plain-text summary | Low | Plain text list: name, dose, timing, health goal |
+| Lock icon with tooltip explaining why re-random is disabled | Most apps just disable the button silently; explaining why is better UX | LOW | Show "已打勾項目，鎖定整體重新隨機" tooltip on tap of disabled button |
+| Nutrition progress shown only for checked items | Real-time "how much have I eaten" vs. "what the full plan would be" — most apps don't differentiate | MEDIUM | Two display modes: planned total vs. consumed total |
+| Menu save from any plan state (partial checks OK) | Users may want to save a plan before they start eating it, or after | LOW | Allow save regardless of checked state |
+| Drawer section grouping (主要功能 / 管理 / 帳號) | Organizes 7+ nav items without overwhelming; Group Theory UX principle | LOW | Add section headers in drawer; visual separator lines |
+| Today's supplement coverage indicator in unified plan | Shows "X/Y 補品已服用" summary — gamification signal | LOW | Count `checkedIds` intersected with supplement item IDs |
 
 ---
 
-## Anti-Features
+### Anti-Features (Commonly Requested, Often Problematic)
 
-Features to deliberately NOT build in this milestone.
-
-| Anti-Feature | Why Avoid | What to Do Instead |
-|--------------|-----------|-------------------|
-| Barcode scanning | Requires camera API, ML model, or third-party barcode DB API. Adds native app complexity to a static SPA | USDA FoodData Central text search covers the same need; barcode is a future native wrapper milestone |
-| AI/LLM nutrition analysis | Streaming API calls, API cost, server keys — incompatible with static SPA constraint | Use deterministic rule-based logic for interactions and routine generation |
-| Drug-supplement interaction checker (pharmaceutical-grade) | Requires licensed database (Natural Medicines costs ~$1,500/yr) or NLP over medical literature | Hardcode the ~20 most common interactions as static data; flag complex cases as "consult pharmacist" |
-| Recipe scaling (2x, 0.5x servings) | Composition ratio math already handles this via serving size; a separate scale feature adds UI complexity with minimal payoff | Users can duplicate a food item and adjust ratios |
-| Meal planning calendar (schedule food intake by day) | This is a separate feature domain; the existing DailyPlan page handles meal selection; merging them creates scope creep | Keep DailyPlan and food CRUD as separate concerns |
-| Supplement reminders / push notifications | Static SPA cannot receive push; browser notifications require service worker + user permission + re-engagement flow | Show routine schedule as a screen reference; reminders are a PWA milestone |
-| Community/shared supplement stacks | Requires accounts, moderation, social features — incompatible with single-user static app architecture | Single-user catalog; sharing via export text only |
-| Automatic nutrient tracking from supplement list | Supplement micronutrient amounts (e.g., "Magnesium 200mg") against BMR targets requires a micronutrient database, not just macros | Defer to a future "micronutrient profile" milestone |
-| Multiple inventory bottles per supplement | Tracking multiple open bottles of the same supplement adds bookkeeping complexity users don't need | One active bottle per supplement; user replaces when restocking |
-| BehaviorItem type | PROJECT.md explicitly removes this type | Delete BehaviorItem entirely; migrate any existing behavior IDs out of schedule data |
+| Feature | Why Requested | Why Problematic | Alternative |
+|---------|---------------|-----------------|-------------|
+| Swipe-between-pages gesture navigation | Native app feel | Conflicts with horizontal scroll in cards; React Router's HashRouter does not support swipe-to-go-back natively; adds significant complexity | Drawer and tab nav are sufficient; save swipe for open/close drawer only |
+| Full image upload for avatar | Personal touch | Static SPA has no file storage; base64 in localStorage causes storage bloat (localStorage has ~5MB limit) | Emoji picker or initial-based avatar; visually clear, zero storage cost |
+| Nested/hierarchical drawer menus (expand sub-items) | Seems organized for many pages | Adds interaction complexity; users miss items in collapsed sections; Material Design guidance advises against nesting | Use section headers with visual separators instead of expandable sections |
+| Auto-save plan as menu on date change | Seems helpful | Pollutes menu list with junk entries; users build up 30 "2026-04-06" menus | Manual save only; explicit naming |
+| Drag-to-reorder items in unified plan | Power user feature | Complex touch event handling conflicts with scroll; deferred complexity with low payoff for this app | Re-random swap is sufficient for reordering intent |
+| Plan sharing / export as image | Social motivation | Requires canvas rendering or external service; significant complexity | Plain text export (copy to clipboard) is sufficient for doctor/sharing use case |
+| Multiple profiles | Multi-user households | Single-user architecture; localStorage is not user-scoped; authentication not in scope | Out of scope; document as future PWA milestone |
 
 ---
 
 ## Feature Dependencies
 
 ```
-Food CRUD (label input)
-  └─ Required by: Food composition (ingredients reference food IDs)
-  └─ Required by: Nutrition tracking page (logs food consumption)
-  └─ Required by: Daily plan generator (plan items reference food IDs)
+Sidebar Drawer
+    └──replaces──> Bottom Tab Nav (App.tsx tabs array → drawer items)
+    └──requires──> Route structure unchanged (paths stay same)
+    └──provides──> Profile page entry point (drawer footer avatar tap)
+    └──provides──> Settings entry point (drawer footer gear icon)
 
-Food composition
-  └─ Requires: Food CRUD (at least some ingredient foods must exist first)
-  └─ Requires: Ratio → calorie math (linear: sum of ingredient.cal × ratio)
-  └─ Data model: FoodItem gains optional `ingredients: { foodId: string, ratio: number }[]`
-     When present, cal/protein/fat/carbs are DERIVED not stored
+Unified Daily Plan (今日方案)
+    └──merges──> DailyPlan.tsx (food slot generation + swap)
+    └──merges──> SupplementSchedule.tsx (timing-grouped supplement rows)
+    └──merges──> NutritionTracker.tsx (nutrition summary from checked items)
+    └──requires──> Checkbox state persistence (new: checkedIds per date in localStorage)
+    └──requires──> Lock logic (isLocked = checkedIds.size > 0)
+    └──feeds──> Meal Menu Management (save current plan's item IDs as MenuPreset)
 
-USDA FoodData Central lookup (differentiator)
-  └─ Requires: Network access (no offline fallback)
-  └─ Falls back to: Manual label entry (always available)
-  └─ Provides: Pre-filled nutrition label data → feeds Food CRUD save
+Meal Menu Management (我的菜單)
+    └──requires──> Unified Daily Plan (plan must exist to save)
+    └──requires──> MenuPreset data model (new: name, slots, createdAt in localStorage)
+    └──provides──> Load into daily plan (replaces random generation)
 
-Supplement CRUD
-  └─ Required by: Inventory management (no item = no inventory)
-  └─ Required by: Routine generator (items must exist to be scheduled)
-  └─ Reuses: HealthTag system from types.ts (no new type needed)
-  └─ Extends: RemedyItem pattern (timing, isCore, caution already present)
+Profile Page
+    └──requires──> ProfileService or SettingsService extension (name, avatar stored)
+    └──reuses──> WeightLog.tsx (either embed or link from profile)
+    └──provides to──> Sidebar Drawer (name + avatar shown in drawer footer)
+    └──reads from──> SettingsService (TDEE/macro targets summary)
 
-Supplement inventory
-  └─ Requires: Supplement CRUD (item must exist)
-  └─ Provides to: Routine generator (out-of-stock filter)
-  └─ Provides to: Low-stock UI indicator
-  └─ Formula: daysRemaining = floor(totalCapsules / (capsulesPerDose × dosesPerDay))
-  └─ Tracks: purchasedAt date, totalCapsules, capsulesPerDose, dosesPerDay
-  └─ Derives: remainingCapsules from log (or uses purchase anchor if no log)
-
-Supplement routine generator
-  └─ Requires: Supplement CRUD (items with timing metadata)
-  └─ Requires: Inventory state (to exclude out-of-stock items)
-  └─ Algorithm: Filter active → group by timing → sort isCore first → alphabetical within group
-  └─ Goal coverage: count distinct HealthTags covered by active supplements
-  └─ Output: deterministic — same inputs always produce same routine
-
-Supplement log (taken/skipped)
-  └─ Requires: Routine generator (need a routine to mark items against)
-  └─ Uses: Existing SupplementLogEntry type in types.ts (takenIds, skippedIds)
-
-Interaction warnings (differentiator)
-  └─ Requires: Supplement CRUD (need item list to check pairs)
-  └─ Implementation: Static lookup table of ~20 known pairs; O(n²) scan on catalog
-  └─ No external API required
-
-Data model restructure (prerequisite for everything)
-  └─ Remove: BehaviorItem type
-  └─ Rename/extend: RemedyItem → SupplementItem (add inventory fields)
-  └─ Extend: FoodItem (add optional ingredients array)
-  └─ Update: ScheduleSlot references (remove behavior IDs)
+Nutrition Summary Bar in Unified Plan
+    └──requires──> Checkbox state (only sum macros for checked food items)
+    └──requires──> FoodItem.cal/protein/fat/carbs (already on FoodItem type)
+    └──reads from──> SettingsService (daily targets for progress display)
 ```
+
+### Dependency Notes
+
+- **Unified Plan requires Sidebar Drawer first:** The page restructure removes the bottom nav and adds a new `/plan` route; Drawer must exist before the unified plan page can be navigated to properly.
+- **Profile page data is independent:** Can be built in parallel with Unified Plan; only needs `SettingsService` and `WeightLog` re-export.
+- **Menu Management depends on Unified Plan being stable:** Cannot save a plan that doesn't have a stable item ID structure; build after Unified Plan checkbox state is working.
+- **NutritionTracker page may be deprecated:** Once unified plan handles nutrition logging via checkboxes, the separate `/track` route may become redundant. Decision: keep route but redirect to `/plan` with a deprecation note; remove after v3.0 validated.
 
 ---
 
-## Composition Model: How It Works
+## MVP Definition
 
-The most technically nuanced feature. Documented here for roadmap accuracy.
+### Launch With (v3.0)
 
-### Data Model
+Minimum viable product for the sidebar + unified plan milestone.
+
+- [ ] Sidebar drawer replacing bottom tab nav — without this, the milestone has no visual change
+- [ ] Profile page with name, avatar, weight log link — needed for drawer footer to be functional
+- [ ] Unified checkbox daily plan (food + supplements merged, checkbox logs consumption) — core UX change
+- [ ] Lock full re-random when items checked; single-item re-random always enabled — prevents accidental log destruction
+- [ ] Nutrition macro summary bar (checked items only) — makes checkbox tracking meaningful
+- [ ] Meal Menu save + load (name, save current, load into plan, delete) — the new differentiating feature
+
+### Add After Validation (v3.1)
+
+Features to add once core is working and confirmed stable.
+
+- [ ] Swipe gesture open/close for drawer — adds polish; not blocking functionality
+- [ ] Supplement coverage indicator ("X/Y 已服用") in unified plan — nice signal but not required for MVP
+- [ ] Plan → Menu save from partial check state — edge case; basic save-from-full-plan is sufficient for launch
+
+### Future Consideration (v4+)
+
+Features to defer until product-market fit established.
+
+- [ ] Plain text plan export (copy to clipboard) — low demand until sharing is validated
+- [ ] Multiple saved plan dates (history view) — adds data model complexity
+- [ ] Menu tagging / categorization — needed only when menu list exceeds ~10 items
+
+---
+
+## Feature Prioritization Matrix
+
+| Feature | User Value | Implementation Cost | Priority |
+|---------|------------|---------------------|----------|
+| Sidebar drawer (replaces bottom nav) | HIGH | LOW | P1 |
+| Drawer profile footer (avatar + name) | MEDIUM | LOW | P1 |
+| Profile page (name entry + weight) | MEDIUM | LOW | P1 |
+| Unified daily plan (food + supplements) | HIGH | HIGH | P1 |
+| Checkbox logging in unified plan | HIGH | MEDIUM | P1 |
+| Lock full re-random when checked | HIGH | LOW | P1 |
+| Nutrition summary bar (checked items) | HIGH | MEDIUM | P1 |
+| Meal menu save/load | HIGH | MEDIUM | P1 |
+| Swipe gesture for drawer | LOW | MEDIUM | P2 |
+| Supplement coverage indicator | LOW | LOW | P2 |
+| Drawer section grouping headers | LOW | LOW | P2 |
+| Lock icon tooltip explanation | LOW | LOW | P2 |
+
+**Priority key:**
+- P1: Must have for launch (defines the milestone)
+- P2: Should have, add when P1 items are stable
+- P3: Nice to have, future consideration
+
+---
+
+## Competitor Feature Analysis
+
+| Feature | MyFitnessPal | Cronometer | Our Approach |
+|---------|--------------|------------|--------------|
+| Navigation structure | Bottom tab (5 items) + hamburger for overflow | Bottom tab + side menu | Full sidebar drawer replaces bottom tabs entirely |
+| Daily log structure | Meal sections (B/L/D/S) with + button per meal | Diary with meal sections | Merged slots from schedule + supplement timing groups |
+| Supplement logging | Separate "Supplements" section | Nutrient diary (manual only) | Inline in unified plan under timing headers |
+| Meal saving | "Meals" tab saves food combos | "Custom Foods" | 我的菜單: save named plan presets, load into today |
+| Profile location | Hamburger menu → profile at top | Hamburger → profile icon | Drawer footer → avatar tap → `/profile` page |
+| Re-random / refresh | N/A (not a plan generator) | N/A | Lock on check, per-item swap always available |
+
+---
+
+## Implementation Notes for Roadmap
+
+### Sidebar Drawer: One Component, Zero Libraries
+
+No library needed. The drawer is a `div` with `transform: translateX(-100%)` when closed, `transform: translateX(0)` when open, and a `transition`. Overlay is a separate fixed `div` with `pointer-events-none` when closed. Total: ~80 lines. Using MUI Drawer or similar adds 300KB+ for a 3-line CSS problem.
+
+### Unified Plan: Merging Three Pages
+
+The merge is primarily a UI concern. The underlying data sources stay separate:
+- Food slots: from `SCHEDULE` (existing `src/data/schedule.ts`)
+- Supplements: from `ItemService.getSupplements()` (existing)
+- Checkbox state: new `checkedIds: string[]` stored as `localStorage.setItem("plan_checked_" + todayStr(), JSON.stringify([...ids]))`
+
+The nutrition summary bar reads `FoodItem` macros for checked food IDs only. This requires `FOOD_MAP` to be accessible from the unified plan component.
+
+### Menu Preset Data Model
 
 ```typescript
-// Extended FoodItem (new fields)
-interface FoodItem {
-  // ... existing fields unchanged ...
-  ingredients?: IngredientRef[]; // present = composed food; absent = label food
-}
-
-interface IngredientRef {
-  foodId: string;   // references another FoodItem (leaf, no nested composition)
-  ratio: number;    // weight fraction 0-1; all ratios must sum to 1.0
+interface MenuPreset {
+  id: string;           // nanoid or timestamp string
+  name: string;         // user-entered name
+  createdAt: string;    // ISO date string
+  slots: {
+    slotLabel: string;  // e.g. "早餐", "午餐"
+    itemIds: string[];  // food and supplement IDs
+  }[];
 }
 ```
 
-### Calculation
+Store as `localStorage.setItem("menu_presets", JSON.stringify(MenuPreset[]))`. No Sheets sync needed for v3.0 — menus are device-local like settings.
+
+### Profile Service
+
+Extend `SettingsService` rather than creating a new service. Add a `profile` key to the settings schema:
 
 ```typescript
-// When ingredients present, all macro fields are DERIVED (never stored)
-function deriveNutrition(food: FoodItem, allFoods: Map<string, FoodItem>): MacroGrams {
-  if (!food.ingredients) return { cal: food.cal, protein: food.protein, fat: food.fat, carbs: food.carbs };
-  return food.ingredients.reduce((acc, ing) => {
-    const source = allFoods.get(ing.foodId);
-    if (!source) return acc;
-    return {
-      cal:     acc.cal     + source.cal     * ing.ratio,
-      protein: acc.protein + source.protein * ing.ratio,
-      fat:     acc.fat     + source.fat     * ing.ratio,
-      carbs:   acc.carbs   + source.carbs   * ing.ratio,
-    };
-  }, { cal: 0, protein: 0, fat: 0, carbs: 0 });
+interface ProfileData {
+  displayName: string;
+  avatar: string; // emoji character or 1-2 letter initial
 }
 ```
 
-### Constraints
-
-- No recursive composition (ingredient cannot itself be composed). Enforced at save time.
-- Ratios must sum to 1.0 ± 0.001. Normalize automatically and warn user.
-- If an ingredient food is deleted, composed food is flagged as broken (show warning, don't auto-delete).
-- Serving size of composed food is independent — user defines it (e.g., "1 bowl", "300g").
-
----
-
-## Inventory Model: How It Works
-
-Standard pharmacy days-supply formula adapted for supplements.
-
-### Data Model
-
-```typescript
-interface SupplementInventory {
-  supplementId: string;
-  totalCapsules: number;       // total purchased in this bottle
-  capsulesPerDose: number;     // serving size (e.g., 2 capsules)
-  dosesPerDay: number;         // frequency (e.g., 1 = once daily, 2 = twice daily)
-  purchasedAt: string;         // ISO date, used as consumption anchor
-  // DERIVED (never stored):
-  // daysRemaining = floor(totalCapsules / (capsulesPerDose * dosesPerDay))
-  // runOutDate = addDays(purchasedAt, daysRemaining)
-  // capsuleConsumed = daysSincePurchase * capsulesPerDose * dosesPerDay
-  // capsulesLeft = totalCapsules - capsuleConsumed
-}
-```
-
-### Days Remaining Formula
-
-```
-daysRemaining = floor(totalCapsules / (capsulesPerDose × dosesPerDay))
-```
-
-Example: 120 capsules, 2 per dose, once daily → floor(120 / (2 × 1)) = 60 days
-
-### Simplification Decision
-
-Use purchase date as anchor (time-based consumption) rather than actual log-based tracking. Rationale: requiring users to mark every dose before inventory updates creates friction; time-based calculation is "good enough" and matches how pharmacy apps work. If user skips days, the estimate will be conservative (shows more remaining than reality) — an acceptable error direction.
-
----
-
-## Routine Generation Algorithm: How It Works
-
-Deterministic means: same supplement catalog on same date always produces same output.
-
-### Algorithm
-
-```
-1. Load all supplements from localStorage
-2. Filter: remove out-of-stock (daysRemaining == 0)
-3. Filter: remove any user-deactivated supplements
-4. Group by timing slot (空腹 → 餐前 → 餐中 → 餐後 → 睡前 → 運動前 → 運動後)
-5. Within each timing slot: sort isCore first, then alphabetical by name
-6. Output: timing-keyed object { "空腹": [...], "餐後": [...], ... }
-7. Coverage report: collect all HealthTags across output items, count distinct tags
-```
-
-### Why Deterministic (Not Random)
-
-- Users need to trust their routine is complete. Randomness creates anxiety ("did I miss something today?").
-- The existing `DailyPlan` page uses random selection for food variety — correct for meals. Wrong for supplements.
-- Coverage guarantee: deterministic output means every active supplement appears every day. No missing days for any health goal.
-- This aligns with SuppCo, SuppTrack, CareClinic patterns: supplement routines are schedules, not random selections.
-
-### Interaction Checking (Post-Generation)
-
-After routine is generated, run a pairwise scan against the interaction table. Flag conflicts with the same timing slot (e.g., Calcium + Iron both at 餐後 → warn to separate). Suggestion: display inline warning under the conflicting timing group.
-
----
-
-## MVP Recommendation
-
-**Minimum viable item management that is not embarrassing:**
-
-Priority 1 — Data model restructure (blocks everything):
-1. Remove `BehaviorItem` type; update all references
-2. Extend `FoodItem` with optional `ingredients` array
-3. Extend `RemedyItem` → formalize as `SupplementItem` with inventory fields
-4. Migrate existing hardcoded foods/supplements to new model
-
-Priority 2 — Core CRUD (without CRUD the catalog is static):
-5. Food CRUD: add/edit/delete via nutrition label form
-6. Supplement CRUD: add/edit/delete with timing + isCore + health tags
-
-Priority 3 — Composition + inventory (the differentiated features):
-7. Food composition: add ingredient refs + live calorie derivation
-8. Supplement inventory: purchased quantity + days remaining display + low-stock alert
-
-Priority 4 — Routine generation (the flagship feature):
-9. Supplement routine generator: deterministic, timing-grouped, goal-coverage summary
-10. Mark taken/skip per supplement per day
-
-**Defer to v2.1:**
-- USDA FoodData Central lookup (needs API key management, network error handling)
-- Interaction warnings (needs hardcoded interaction table)
-- Days-until-reorder suggestion
-- Routine export as text
-
----
-
-## Phase-Specific Complexity Notes
-
-| Feature | Phase Risk | Reason |
-|---------|-----------|--------|
-| Data model restructure | HIGH | Touches every existing module: types.ts, foods.ts, remedies.ts, schedule.ts, resolver.ts, data-service.ts, DailyPlan.tsx, SupplementSchedule.tsx — all need migration |
-| Food composition (nested refs) | MED | Linear math is simple; UI for ratio editing (add/remove ingredients, live preview) takes careful component design |
-| Inventory days calculation | LOW | Formula is 3 lines; UI is a progress bar + number display |
-| Routine generator | LOW-MED | Algorithm is a filter+group+sort; complexity is in the UI (timing-grouped list + coverage indicator) |
-| USDA DB lookup | HIGH | Network dependency on static site; API key in env var; rate limiting; search result disambiguation; offline fallback state management |
-| Interaction warnings | MED | Requires curating ~20 pairs (research needed); O(n²) scan is trivial at catalog scale |
+Reading name in drawer and profile page both call `SettingsService.getProfile()`. No new service singleton needed.
 
 ---
 
 ## Sources
 
-- [USDA FoodData Central API — free, public domain CC0 1.0](https://fdc.nal.usda.gov/api-guide/)
-- [Open Food Facts API — open database with offline exports](https://openfoodfacts.github.io/openfoodfacts-server/api/)
-- [SuppCo supplement stack optimizer](https://supp.co/)
-- [SuppTrack — goal-based supplement stacks](https://supptrack.app/)
-- [Supplements AI — timing optimization and interaction detection](https://supplements-ai.com/)
-- [CareClinic supplement tracker features](https://careclinic.io/supplement-tracker/)
-- [Pharmacy days supply formula — ISBE reference](https://www.isbe.net/CTEDocuments/HST-690049.pdf)
-- [MDTools day supply calculator — formula reference](https://mdtools.org/day-supply-calculator)
-- [Free Supplement Stack Checker — open-source interaction pairs reference](https://dev.to/botanica_andina/i-built-a-free-supplement-interaction-checker-heres-what-i-learned-about-dangerous-combinations-2bkh)
-- [USDA recipe nutrition calculation methodology](https://www.ars.usda.gov/ARSUserFiles/80400525/Articles/ndbc26_recipe.pdf)
-- [FDA guidance on nutrition database development](https://www.fda.gov/regulatory-information/search-fda-guidance-documents/guidance-industry-guide-developing-and-using-data-bases-nutrition-labeling)
-- [ScienceDirect — recipe-based diet planning system architecture](https://pubmed.ncbi.nlm.nih.gov/7547833/)
+- [Material Design Navigation Drawer spec — avatar/name in drawer footer](https://m1.material.io/patterns/navigation-drawer.html)
+- [Mobile Navigation UX Best Practices 2026](https://www.designstudiouiux.com/blog/mobile-navigation-ux/)
+- [Side Drawer UI: A Guide to Smarter Navigation](https://www.designmonks.co/blog/side-drawer-ui)
+- [React Swipeable — gesture handling for drawer](https://codingcops.com/react-swipeable/)
+- [Plan to Eat — meal plan save/reuse pattern](https://www.plantoeat.com/)
+- [Samsung Food — unlimited saved meal plans](https://apps.apple.com/us/app/samsung-food-meal-planner/id1133637674)
+- [Paprika Recipe Manager — reusable menus pattern](https://www.paprikaapp.com/)
+- [Best Meal Planner Apps 2025 — feature survey](https://fitia.app/learn/article/best-meal-planner-apps-2025-expert-review/)
+- [11 Best Nutrition Tracking Apps 2025](https://www.nutrisense.io/blog/apps-to-track-nutrition)
+- Existing codebase analysis: `App.tsx`, `DailyPlan.tsx`, `SupplementSchedule.tsx`, `NutritionTracker.tsx`, `src/data/types.ts`, `src/lib/data-service.ts`
+
+---
+*Feature research for: Sidebar drawer navigation, unified checkbox daily plan, meal menu management, profile page*
+*Researched: 2026-04-06*

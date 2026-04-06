@@ -1,370 +1,228 @@
-# Technology Stack — Item Management & Supplement Routines Milestone
+# Stack Research
 
-**Project:** eat-manager (v2.0 Item Management & Supplement Routines)
-**Researched:** 2026-03-30
-**Scope:** Additive changes and new integration points only. Existing fixed stack (React 19, Vite 6, Tailwind v4, TypeScript ~5.8, React Router 7, HashRouter, localStorage + Google Sheets sync, SettingsService) is NOT re-evaluated here.
-
----
-
-## Summary Recommendation
-
-**One new optional runtime dependency is justified: `@openfoodfacts/openfoodfacts-nodejs` for nutrition database lookup.** All other new capabilities — Food/Supplement CRUD, ingredient composition calorie arithmetic, supplement inventory tracking, and routine generation — are pure TypeScript logic that fits the existing codebase pattern of hand-rolled services with localStorage persistence.
-
-The CRUD forms are complex enough (6–12 fields per item, cross-field dependencies) to justify `react-hook-form` + `zod`, which were already flagged as a conditional upgrade in the prior milestone's research. That condition is now met.
+**Domain:** React SPA — Sidebar Drawer Navigation, Checkbox Plan UI, Menu Management
+**Researched:** 2026-04-06
+**Confidence:** HIGH (versions verified via npm registry, peer deps confirmed live)
 
 ---
 
-## Feature Area 1: Public Nutrition Database Integration
+## Scope
 
-### Decision: Open Food Facts API via `@openfoodfacts/openfoodfacts-nodejs` — with raw fetch fallback
+This research covers ONLY what is new for milestone v3.0. The existing fixed stack
+(React 19.1, TypeScript ~5.8, Vite 6, Tailwind v4, React Router v7, HashRouter,
+localStorage + Google Sheets sync, SettingsService, react-hook-form, zod) is validated
+and NOT re-evaluated here.
 
-**The problem:** Users composing a food from ingredients need to look up nutritional data (calories, protein, fat, carbs, sodium per 100g) for raw ingredients. This requires a searchable database of ~hundreds of thousands of foods accessible from a static SPA with no backend.
+---
 
-**Options evaluated:**
+## Core Decision: Drawer Component Strategy
 
-| Option | CORS from Browser | API Key Required | Coverage | Decision |
-|--------|------------------|-----------------|----------|----------|
-| Open Food Facts (world.openfoodfacts.net) | YES — CORS enabled, confirmed by freepublicapis.com daily monitoring | No | ~3M+ products, strong global coverage | **USE** |
-| USDA FoodData Central | Unknown (CORS not confirmed), Node.js wrappers only | Yes (exposed in client bundle) | Comprehensive US foods | Reject — key exposure risk on static site, CORS unconfirmed |
-| CalorieNinjas / API Ninjas | Unknown, requires key | Yes | Limited free tier | Reject — key exposure risk |
-| Edamam / FatSecret | No — requires OAuth / HMAC signing | Yes | Excellent | Reject — auth incompatible with static SPA |
-| Hardcoded ingredient database | N/A | No | Manual curation only | Reject — too limiting for user-driven composition |
+**Recommendation: `@headlessui/react` Dialog used as a left sidebar, styled with Tailwind v4 CSS transitions. No JS animation runtime.**
 
-**Open Food Facts is the only free, no-key-required, CORS-enabled option suitable for a static SPA.**
+### Options Evaluated
 
-The SDK `@openfoodfacts/openfoodfacts-nodejs` (v2.0.0-alpha.29, published 2026-02-09, actively maintained by the OFF team) wraps the API and explicitly supports browser environments by accepting `window.fetch` as a parameter. However, the SDK is still in alpha. **Recommended approach: use raw `fetch` against the OFF v2 API directly** — this avoids an alpha dependency while keeping the integration simple. The OFF API v2 search endpoint is stable and well-documented.
+| Option | Version | React 19 | Bundle Impact | Verdict |
+|--------|---------|----------|---------------|---------|
+| `@headlessui/react` Dialog as drawer | 2.2.9 | Yes — `^18 \|\| ^19` | ~10 kb gzip | **USE** |
+| Pure Tailwind CSS only (no headlessui) | — | — | 0 kb | Skip — no focus trap, no keyboard close |
+| `vaul` | 1.1.2 | Yes — `^19.0.0` | ~5 kb | Skip — wrong UX model (bottom-sheet, not sidebar) |
+| `motion/react` (animation) | 12.38.0 | Yes — `^18 \|\| ^19` | 34 kb min | Skip — overkill for a single-axis slide |
 
-**Integration pattern:**
+Versions confirmed via `npm info` against live npm registry (2026-04-06).
 
-```typescript
-// src/lib/nutrition-search.ts
+### Why @headlessui/react
 
-const OFF_BASE = "https://world.openfoodfacts.net";
+- Maintained by Tailwind Labs — first-class Tailwind v4 integration
+- `DialogPanel` with the `transition` prop emits `data-closed` / `data-enter` / `data-leave`
+  attributes, which Tailwind v4 can target with `data-[closed]:-translate-x-full`
+- Built-in focus trapping, `Escape` to close, `role="dialog"` ARIA — accessibility correct
+  with no extra work
+- `DialogBackdrop` provides the overlay/scrim with its own independent transition
+- `TransitionChild` allows panel and backdrop to animate independently (backdrop fades,
+  panel slides) within the same open/close lifecycle
+- No JS animation runtime — transitions are pure CSS driven by `data-*` attributes
+- Already React 19 compatible: peer dep `"react": "^18 || ^19 || ^19.0.0-rc"` confirmed
 
-export interface NutritionResult {
-  id: string;       // barcode or OFF product code
-  name: string;
-  per100g: {
-    cal: number;
-    protein: number;
-    fat: number;
-    carbs: number;
-    sodium: number;   // mg
-  };
-  source: "off";
-}
+### Why vaul is skipped
 
-export async function searchNutrition(query: string): Promise<NutritionResult[]> {
-  const url = new URL(`${OFF_BASE}/cgi/search.pl`);
-  url.searchParams.set("search_terms", query);
-  url.searchParams.set("search_simple", "1");
-  url.searchParams.set("action", "process");
-  url.searchParams.set("json", "1");
-  url.searchParams.set("fields", "product_name,nutriments,code");
-  url.searchParams.set("page_size", "10");
+vaul's UX contract is a drag-responsive bottom-sheet with snap points. This project needs
+a fixed left sidebar opened by a hamburger button — a fundamentally different interaction
+model. vaul's defaults (drag-to-dismiss, snap positions, scaling) would work against the
+sidebar nav pattern and require significant override fighting.
 
-  const res = await fetch(url.toString(), {
-    headers: { "User-Agent": "EatManager/2.0 (github.com/your-repo)" },
-  });
-  const data = await res.json();
-  return mapOffProducts(data.products ?? []);
-}
+### Why motion/react is skipped
+
+34 kb gzip for a single `translate-x` slide animation is unjustifiable. Tailwind's CSS
+`transition-transform duration-300 ease-in-out` combined with `data-[closed]:-translate-x-full`
+produces identical visual output at zero bundle cost. motion/react adds value for staggered
+lists, spring physics, or gesture-driven interactions — none of which appear in this milestone.
+
+---
+
+## Recommended Stack Additions
+
+### New Runtime Dependencies
+
+| Library | Version | Purpose | Why |
+|---------|---------|---------|-----|
+| `@headlessui/react` | ^2.2.9 | Sidebar drawer (Dialog), accessible overlay | Only library providing focus trap + keyboard close + Tailwind `data-*` transition hooks without a JS animation runtime |
+
+### No Other New Dependencies Needed
+
+| Feature | Approach | Rationale |
+|---------|----------|-----------|
+| Sidebar slide animation | Tailwind `translate-x-full` + `data-[closed]:-translate-x-full transition duration-300 ease-in-out` | Pure CSS, zero bundle cost, sufficient for a single-axis translate |
+| Backdrop fade | `DialogBackdrop transition` + `data-[closed]:opacity-0 transition duration-200` | Built into headlessui |
+| Checkbox-based daily plan | Native `<input type="checkbox">` + Tailwind | Checked state = `Set<string>` in `useState`; no library needed |
+| Lock full re-random | Derived boolean: `checkedIds.size > 0` | Pure React state, no library |
+| Menu save/load (我的菜單) | `localStorage` via existing `DataService` pattern | New key `"my_menus"`, `SavedMenu[]` shape — follows codebase conventions exactly |
+| Profile page (avatar + name) | `SettingsService` extension | Consistent read-on-render pattern; no new state management |
+
+---
+
+## Supporting Libraries (no change from v2.0)
+
+The `react-hook-form` + `zod` + `@hookform/resolvers` stack added in v2.0 remains appropriate
+for any new forms (Profile, Menu creation). No version changes needed.
+
+---
+
+## Installation
+
+```bash
+# Single new runtime dependency
+npm install @headlessui/react
 ```
 
-**Rate limits:** OFF does not publish hard rate limits but asks for 1 call per real user action. Debouncing the search input at 300ms is sufficient to stay well within acceptable use.
-
-**Offline fallback:** When the API is unreachable, show a manual entry form so users can type nutritional values directly. Never block the CRUD flow on network availability.
-
-**Fields returned by OFF v2 (relevant subset):**
-
-| OFF field | Maps to |
-|-----------|---------|
-| `nutriments.energy-kcal_100g` | `cal` |
-| `nutriments.proteins_100g` | `protein` |
-| `nutriments.fat_100g` | `fat` |
-| `nutriments.carbohydrates_100g` | `carbs` |
-| `nutriments.sodium_100g` × 1000 | `sodium` (mg) |
-| `product_name` | ingredient name |
-| `code` | OFF product ID |
-
-**No npm package needed for this integration.** Raw fetch is sufficient and avoids the alpha SDK dependency.
-
-**Confidence:** MEDIUM-HIGH — CORS-enabled status confirmed via freepublicapis.com daily monitoring. OFF has maintained browser-accessible endpoints for years. The v1 API (search.pl with JSON format, shown above) has been stable. The v2 REST API is newer and primarily for product lookups by barcode. For text search, v1 search endpoint remains the documented approach.
+No dev dependency changes.
 
 ---
 
-## Feature Area 2: Food CRUD with Ingredient Composition
+## Integration Points
 
-### Decision: Native React state for composition + pure arithmetic (no library)
+### Sidebar Drawer Pattern
 
-**The problem:** A composed food item is a named food whose caloric/macro values are derived by summing weighted contributions from ingredients. Changing any ingredient's quantity must recalculate the parent food's totals in real time.
+```tsx
+// src/components/Sidebar.tsx
+import { Dialog, DialogBackdrop, DialogPanel } from "@headlessui/react";
 
-**Calorie arithmetic is 4–6 lines of arithmetic. No library is needed.**
-
-```typescript
-// src/data/food-composition.ts
-
-export interface IngredientEntry {
-  ingredientId: string;   // references a base FoodItem or OFF lookup result
-  name: string;           // denormalized for offline display
-  grams: number;
-  per100g: { cal: number; protein: number; fat: number; carbs: number; sodium: number };
+interface Props {
+  open: boolean;
+  onClose: () => void;
 }
 
-export function computeComposedNutrition(ingredients: IngredientEntry[]): {
-  cal: number; protein: number; fat: number; carbs: number; sodium: number;
-} {
-  return ingredients.reduce(
-    (acc, ing) => ({
-      cal:     acc.cal     + (ing.per100g.cal     * ing.grams) / 100,
-      protein: acc.protein + (ing.per100g.protein * ing.grams) / 100,
-      fat:     acc.fat     + (ing.per100g.fat     * ing.grams) / 100,
-      carbs:   acc.carbs   + (ing.per100g.carbs   * ing.grams) / 100,
-      sodium:  acc.sodium  + (ing.per100g.sodium  * ing.grams) / 100,
-    }),
-    { cal: 0, protein: 0, fat: 0, carbs: 0, sodium: 0 }
+export function Sidebar({ open, onClose }: Props) {
+  return (
+    <Dialog open={open} onClose={onClose} className="relative z-50">
+      <DialogBackdrop
+        transition
+        className="fixed inset-0 bg-black/50 data-[closed]:opacity-0 transition duration-200 ease-in-out"
+      />
+      <DialogPanel
+        transition
+        className="fixed inset-y-0 left-0 w-72 bg-slate-900 flex flex-col
+                   data-[closed]:-translate-x-full transition duration-300 ease-in-out"
+      >
+        {/* nav items */}
+      </DialogPanel>
+    </Dialog>
   );
 }
 ```
 
-This function is called on every ingredient list change; the results flow into the food form preview. No memoization needed at this scale (<20 ingredients per food).
+The `transition` prop on `DialogPanel` makes headlessui emit `data-closed` when closing,
+which drives the Tailwind `data-[closed]:-translate-x-full` class. No framer-motion needed.
 
-**Storage model:** Composed foods store their computed totals (not the ingredient list) as a `FoodItem` in localStorage/Sheets. The `ingredients` array is stored separately as metadata for future re-composition. This mirrors how existing `FoodItem` is structured and keeps the read path simple.
+### Checkbox Daily Plan State
 
-**Confidence:** HIGH — pure TypeScript arithmetic, no external dependency involved.
-
----
-
-## Feature Area 3: Food & Supplement CRUD Forms
-
-### Decision: `react-hook-form` v7 + `zod` v3 + `@hookform/resolvers` v5
-
-**The condition from the prior milestone's research is now met.** Food CRUD has 10+ fields with cross-field constraints (e.g., composed food must have at least one ingredient OR direct nutrition values must be provided). Supplement CRUD has rich metadata: interactions, synergies, timing windows, dosage per frequency. Native controlled components would require significant manual validation boilerplate.
-
-**Packages:**
-
-| Package | Version | Purpose |
-|---------|---------|---------|
-| `react-hook-form` | ^7.72.0 | Form state, dirty tracking, submit handling |
-| `zod` | ^4.3.6 | Schema definition + TypeScript type inference |
-| `@hookform/resolvers` | ^5.2.2 | Connects zod resolver to react-hook-form |
-
-Versions confirmed as current as of 2026-03-30 via `npm info`.
-
-**Why these versions are safe with this stack:**
-- `react-hook-form` v7 is compatible with React 19 (confirmed, v7.52+ added React 19 support)
-- `zod` v3 is the stable major; v4 is not yet released (v4.3.6 refers to v3 patch series in npm)
-- `@hookform/resolvers` v5 is the current major for react-hook-form v7 + zod v3
-
-**Validation schema examples:**
-
-```typescript
-// Food (nutrition-label entry path)
-const foodLabelSchema = z.object({
-  name:    z.string().min(1).max(60),
-  serving: z.string().min(1),
-  cal:     z.number().min(0).max(5000),
-  protein: z.number().min(0).max(500),
-  fat:     z.number().min(0).max(500),
-  carbs:   z.number().min(0).max(500),
-  sodium:  z.number().min(0).max(10000),
-  source:  z.string().optional(),
+```tsx
+// Checked IDs as a Set — O(1) lookup, serializable to JSON array for localStorage
+const [checkedIds, setCheckedIds] = useState<Set<string>>(() => {
+  const saved = localStorage.getItem("today_checked");
+  return new Set<string>(saved ? (JSON.parse(saved) as string[]) : []);
 });
 
-// Supplement
-const supplementSchema = z.object({
-  name:         z.string().min(1).max(80),
-  dose:         z.string().min(1),
-  timing:       z.enum(["空腹", "餐前", "餐後", "睡前"]).optional(),
-  tags:         z.array(healthTagSchema).min(1, "至少選一個健康標籤"),
-  interactions: z.string().optional(),
-  synergies:    z.string().optional(),
-  isCore:       z.boolean(),
-  daysPerWeek:  z.number().int().min(1).max(7),
-});
-```
+// Persist on change
+useEffect(() => {
+  localStorage.setItem("today_checked", JSON.stringify([...checkedIds]));
+}, [checkedIds]);
 
-**Installation:**
+// Lock re-random when any item is checked
+const isLocked = checkedIds.size > 0;
 
-```bash
-npm install react-hook-form zod @hookform/resolvers
-```
-
-**Confidence:** HIGH — all three packages are actively maintained (react-hook-form 7 days ago, zod 2 months ago, @hookform/resolvers 6 months ago as of research date). Versions confirmed via npm registry.
-
----
-
-## Feature Area 4: Supplement Inventory Management
-
-### Decision: Extend `SettingsService` / `DataService` pattern — no new library
-
-**The problem:** Track purchased quantity (e.g., 120 capsules), daily dose count, and compute remaining quantity. Trigger low-stock UI when remaining drops below a threshold.
-
-**Arithmetic is straightforward:**
-
-```typescript
-// src/data/supplement-inventory.ts
-
-export interface InventoryRecord {
-  supplementId: string;
-  purchasedQty: number;     // e.g. 120 capsules
-  capsulePerDose: number;   // e.g. 2
-  daysPerWeek: number;      // e.g. 7 (daily)
-  purchasedDate: string;    // ISO date — start of tracking
-}
-
-export function computeRemaining(record: InventoryRecord, asOfDate: string): number {
-  const start = new Date(record.purchasedDate);
-  const now   = new Date(asOfDate);
-  const days  = Math.max(0, Math.round((now.getTime() - start.getTime()) / 86_400_000));
-  const weeksElapsed = days / 7;
-  const consumed = Math.floor(weeksElapsed * record.daysPerWeek) * record.capsulePerDose;
-  return Math.max(0, record.purchasedQty - consumed);
-}
-
-export function daysUntilEmpty(record: InventoryRecord, asOfDate: string): number {
-  const remaining = computeRemaining(record, asOfDate);
-  if (remaining === 0) return 0;
-  const dailyUsage = (record.daysPerWeek / 7) * record.capsulePerDose;
-  return Math.floor(remaining / dailyUsage);
-}
-```
-
-**Storage:** `InventoryRecord[]` stored in localStorage under `wellness_supplement_inventory`, synced to a new `supplement_inventory` Sheets tab via the existing `DataService` upsert pattern.
-
-**No new dependency.** The computation is pure arithmetic. The persistence reuses the existing `cacheGet` / `cacheSet` + `SheetsAPI.upsert` pattern verbatim.
-
-**Confidence:** HIGH — follows the established DataService pattern exactly.
-
----
-
-## Feature Area 5: Supplement Routine Generator
-
-### Decision: Deterministic pure function — no library
-
-**The problem:** Given a user's supplement list, generate a deterministic daily plan that:
-1. Includes all `isCore` supplements
-2. Fills remaining slots from the pool, distributed across health goals (tags) to avoid over-concentration in one area
-3. Respects timing constraints (空腹/餐前/餐後/睡前)
-4. Is deterministic for the same date (same plan every time the page loads for a given day, so the user can follow it)
-
-**This is a sorting + filtering + grouping problem, solvable with pure TypeScript. No scheduling library is needed.**
-
-**Algorithm sketch:**
-
-```typescript
-// src/data/routine-generator.ts
-
-export function generateSupplementRoutine(
-  supplements: SupplementItem[],
-  date: string,
-): RoutineSlot[] {
-  // 1. Always include isCore items
-  const core = supplements.filter((s) => s.isCore);
-
-  // 2. From non-core, pick items deterministically using date as seed
-  //    Group by tag, pick one per unique tag to maximize coverage
-  const nonCore = supplements.filter((s) => !s.isCore);
-  const seed = dateSeed(date);  // integer derived from date string
-  const selected = deterministicPick(nonCore, seed);
-
-  // 3. Merge and assign to timing slots
-  return assignTimingSlots([...core, ...selected]);
-}
-
-function dateSeed(date: string): number {
-  // "2026-03-30" -> 20260330 as integer
-  return parseInt(date.replace(/-/g, ""), 10);
-}
-
-function deterministicPick(items: SupplementItem[], seed: number): SupplementItem[] {
-  // Simple linear congruential shuffle (deterministic, no external dependency)
-  const shuffled = [...items].sort((a, b) => {
-    const ha = simpleHash(a.id + seed);
-    const hb = simpleHash(b.id + seed);
-    return ha - hb;
-  });
-  // Pick one per distinct tag
-  const seen = new Set<string>();
-  return shuffled.filter((item) => {
-    const newTag = item.tags.find((t) => !seen.has(t));
-    if (newTag) { seen.add(newTag); return true; }
-    return false;
+function toggle(id: string) {
+  setCheckedIds((prev) => {
+    const next = new Set(prev);
+    next.has(id) ? next.delete(id) : next.add(id);
+    return next;
   });
 }
 ```
 
-**Why not a scheduling library (e.g., Temporal workflow engine)?** Temporal is a distributed workflow orchestration platform requiring a server. It is entirely incompatible with a static SPA. The routine generation here is a pure in-memory computation that runs in under 1ms for any realistic supplement list (<50 items).
+All existing-stack capability — no new library.
 
-**Confidence:** HIGH — standard algorithmic pattern with no external dependencies. The determinism requirement is met by deriving a seed from the date string.
+### Menu Management Data Shape
 
----
-
-## Complete Dependency Delta for This Milestone
-
-**New runtime dependencies:**
-
-| Package | Version | Purpose | Justification |
-|---------|---------|---------|---------------|
-| `react-hook-form` | ^7.72.0 | Form state + validation for CRUD forms | 10+ fields with cross-field constraints on Food and Supplement forms |
-| `zod` | ^4.3.6 | Schema validation + TypeScript type inference | Paired with react-hook-form; provides compile-time safety for form schemas |
-| `@hookform/resolvers` | ^5.2.2 | Zod resolver bridge | Required to wire zod schemas into react-hook-form |
-
-**New dev dependencies:** None.
-
-**External API integrations (no npm install needed):**
-
-| Integration | URL | Auth | CORS | Use |
-|-------------|-----|------|------|-----|
-| Open Food Facts v1 Search | `https://world.openfoodfacts.net/cgi/search.pl` | None | Enabled | Ingredient name search for food composition |
-
-**Installation:**
-
-```bash
-npm install react-hook-form zod @hookform/resolvers
+```typescript
+// Extends existing DataService with new localStorage key: "my_menus"
+interface SavedMenu {
+  id: string;        // crypto.randomUUID() — available natively, no uuid package
+  name: string;      // user-provided name (Traditional Chinese)
+  itemIds: string[]; // existing item IDs from FOOD_MAP / REMEDY_MAP
+  createdAt: string; // ISO date string
+}
 ```
 
----
-
-## What to Explicitly NOT Add
-
-| Package/Approach | Reason |
-|-----------------|--------|
-| `@openfoodfacts/openfoodfacts-nodejs` | Alpha (v2.0.0-alpha.29). Raw `fetch` against the same endpoints is simpler, stable, and adds zero bundle weight. |
-| USDA FoodData Central API | Requires API key (would be exposed in client bundle on GitHub Pages). CORS support unconfirmed. |
-| Edamam / FatSecret / Spoonacular | Require OAuth or HMAC signing — incompatible with static SPA. |
-| Any scheduling/workflow library (Temporal, etc.) | Server-required; completely incompatible with static GitHub Pages deployment. |
-| `mathjs` or similar numeric library | All nutrition math is basic arithmetic reducible to 5-line pure functions. |
-| `uuid` | Use `crypto.randomUUID()` — available in all modern browsers (ES2021+), zero bundle cost. |
-| Redux / Zustand / Jotai | Existing `SettingsService` read-on-render pattern handles cross-page state without global state. Adding a store would require architectural overhaul with no functional benefit for a single-user app. |
-| `react-query` / `swr` | The existing `DataService` pattern (localStorage-first + background Sheets sync) is already the correct abstraction. A data-fetching library would duplicate it. |
-| `dexie` / IndexedDB | localStorage is sufficient for single-user data at this scale. Item catalogs are small (<500 items). No binary data stored. |
-| `immer` | Object spreads are sufficient for the immutable update patterns used here. |
+Persists as `SavedMenu[]` under `"my_menus"` in localStorage, synced to a `menus` Sheets
+tab via the existing `SheetsAPI.upsert` pattern.
 
 ---
 
-## Integration Points with Existing Codebase
+## Alternatives Considered
 
-| Existing Module | How New Features Interact |
-|----------------|--------------------------|
-| `src/data/types.ts` | New `SupplementItem`, `ComposedFoodItem`, `IngredientEntry`, `InventoryRecord` interfaces added here. `BehaviorItem` removed. |
-| `src/lib/data-service.ts` | New `getFoods()`, `saveFoodItem()`, `getSupplements()`, `saveSupplementItem()`, `getInventory()`, `saveInventoryRecord()` methods follow the existing `cacheGet` / `cacheSet` + `SheetsAPI.upsert` pattern exactly. |
-| `src/lib/settings-service.ts` | No changes needed for this milestone. |
-| `src/lib/sheets-api.ts` | No changes needed. New Sheets tabs (`foods_catalog`, `supplements_catalog`, `supplement_inventory`) follow the existing tab-name pattern. |
-| `scripts/gas-api.js` | New sheet tabs require no GAS changes — the existing `upsert`, `readAll`, `append`, `delete` actions are generic and handle any tab by name. |
-| `src/styles/index.css` | No new tokens needed. Existing dark theme palette covers CRUD form states. |
-| `src/App.tsx` | Two new routes added: `/foods` and `/supplements`. Bottom nav gains two new tabs. |
+| Recommended | Alternative | When Alternative Is Better |
+|-------------|-------------|---------------------------|
+| `@headlessui/react` Dialog as sidebar | Pure Tailwind `translate-x` (no headlessui) | Prototypes, or if accessibility/focus management is not a concern |
+| `@headlessui/react` Dialog as sidebar | `vaul` | If the UI is a mobile bottom-sheet drawer, not a sidebar (e.g., item detail sheet) |
+| CSS `transition` via Tailwind v4 | `motion/react` | If multiple orchestrated animations needed — stagger, spring physics, gesture drag |
+| `localStorage` + `DataService` extension | Zustand / Jotai | Only if cross-component state becomes unmanageable — not the case at current 3K LOC scale |
+
+---
+
+## What NOT to Add
+
+| Avoid | Why | Use Instead |
+|-------|-----|-------------|
+| `motion/react` (framer-motion) | 34 kb gzip for a single translate animation | Tailwind `translate-x` + `data-[closed]` CSS transitions |
+| `vaul` | Bottom-sheet drag UX conflicts with fixed sidebar nav interaction model | `@headlessui/react` Dialog |
+| `@radix-ui/react-dialog` | Direct Radix UI primitive — headlessui wraps the same accessibility patterns with better Tailwind integration | `@headlessui/react` |
+| `zustand` / `jotai` | No cross-component state sharing problem at this scale | `useState` per page + `SettingsService` read-on-render |
+| `react-spring` | Same overkill as motion; adds CSS-in-JS patterns inconsistent with Tailwind-only codebase | Tailwind CSS transitions |
+| shadcn/ui component collection | Adds opinionated component boilerplate on top of a codebase with its own established conventions | Direct `@headlessui/react` primitives |
+| `uuid` npm package | Native `crypto.randomUUID()` available in all modern browsers | `crypto.randomUUID()` built-in |
+
+---
+
+## Version Compatibility
+
+| Package | Compatible With | Verified |
+|---------|-----------------|---------|
+| `@headlessui/react@2.2.9` | `react@^19.1.0` | Yes — peer dep `^18 \|\| ^19 \|\| ^19.0.0-rc` |
+| `@headlessui/react@2.2.9` | `tailwindcss@^4.1.7` | Yes — `data-[closed]:` variant syntax is Tailwind v4 standard |
+| `@headlessui/react@2.2.9` | `react-router-dom@^7.6.0` | Yes — no routing dependencies in headlessui |
 
 ---
 
 ## Sources
 
-- Open Food Facts CORS status: [FreePublicAPIs — OpenFoodFacts](https://www.freepublicapis.com/openfoodfacts) (daily monitoring, CORS: Enabled confirmed)
-- Open Food Facts API docs: [OFF API Introduction](https://openfoodfacts.github.io/openfoodfacts-server/api/)
-- Open Food Facts JS SDK: [npm @openfoodfacts/openfoodfacts-nodejs](https://www.npmjs.com/package/@openfoodfacts/openfoodfacts-nodejs) (v2.0.0-alpha.29, published 2026-02-09)
-- USDA FoodData Central API key requirement: [FDC API Guide](https://fdc.nal.usda.gov/api-guide/)
-- react-hook-form v7.72.0: [npm react-hook-form](https://www.npmjs.com/package/react-hook-form) (confirmed current via npm info 2026-03-30)
-- zod v4.3.6: [npm zod](https://www.npmjs.com/package/zod) (confirmed current via npm info 2026-03-30)
-- @hookform/resolvers v5.2.2: [npm @hookform/resolvers](https://www.npmjs.com/package/@hookform/resolvers) (confirmed current via npm info 2026-03-30)
-- Zod + React Hook Form integration: [Tecktol — Zod v4 + RHF v7](https://tecktol.com/zod-react-hook-form/)
-- React 19 form patterns: [Best Practices for Handling Forms in React (2025)](https://medium.com/@farzanekazemi8517/best-practices-for-handling-forms-in-react-2025-edition-62572b14452f)
+- npm registry live query: `npm info @headlessui/react version peerDependencies` — 2.2.9, `"react": "^18 || ^19 || ^19.0.0-rc"` confirmed
+- npm registry live query: `npm info vaul version peerDependencies` — 1.1.2, `"react": "^16.8 || ^17.0 || ^18.0 || ^19.0.0 || ^19.0.0-rc"` confirmed
+- npm registry live query: `npm info motion version peerDependencies` — 12.38.0, `"react": "^18.0.0 || ^19.0.0"` confirmed
+- [Headless UI Dialog docs](https://headlessui.com/react/dialog) — `data-closed` transition API and sidebar panel pattern
+- [Headless UI v2.1 release notes](https://tailwindcss.com/blog/2024-06-21-headless-ui-v2-1) — simplified transition API with `data-*` attributes
+- [motion.dev bundle reduction guide](https://motion.dev/docs/react-reduce-bundle-size) — 34 kb full, 4.6 kb LazyMotion minimum confirmed
+- [vaul GitHub](https://github.com/emilkowalski/vaul) — drawer-sheet UX model confirmed (not sidebar nav)
+
+---
+*Stack research for: Eat Manager v3.0 — Sidebar Drawer, Checkbox Plan, Menu Management*
+*Researched: 2026-04-06*
