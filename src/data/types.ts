@@ -335,6 +335,10 @@ export interface UserProfile {
   /** 體重（公斤） */
   weightKg: number;
   activityLevelId: ActivityLevelId;
+  /** 顯示名稱（選用） */
+  displayName?: string;
+  /** 縮寫（1-2 字，選用） */
+  initials?: string;
 }
 
 /** BMR + TDEE 計算結果 */

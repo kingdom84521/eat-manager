@@ -77,7 +77,7 @@ function writeRaw(data: AppSettings): void {
 
 function defaultSettings(): AppSettings {
   return {
-    settings_version: 2,
+    settings_version: 3,
     userProfile: null,
     activeGuidelineId: null,
     sheetsConfig: null,
@@ -114,7 +114,16 @@ function migrate(raw: unknown): AppSettings {
   }
 
   if (version === 2) {
-    // Current schema version — no migration needed
+    const profile = data.userProfile as Record<string, unknown> | null;
+    if (profile) {
+      if (typeof profile.displayName !== "string") profile.displayName = "";
+      if (typeof profile.initials !== "string") profile.initials = "";
+    }
+    data.settings_version = 3;
+    version = 3;
+  }
+
+  if (version === 3) {
     return data as unknown as AppSettings;
   }
 
@@ -184,5 +193,14 @@ export const SettingsService = {
   saveSheetsConfig(config: SheetsConfig): void {
     const current = loadSettings();
     writeRaw({ ...current, sheetsConfig: config });
+  },
+
+  /** 取得顯示名稱與縮寫，供抽屜頁尾使用。未設定時回傳空字串。(per D-03) */
+  getDisplayProfile(): { displayName: string; initials: string } {
+    const profile = loadSettings().userProfile;
+    return {
+      displayName: profile?.displayName ?? "",
+      initials: profile?.initials ?? "",
+    };
   },
 };
