@@ -111,6 +111,25 @@ export const SUPPLEMENT_TIMING_LABELS: Record<SupplementTiming, string> = {
   bedtime: "睡前",
 };
 
+// ── Unit Conversion ─────────────────────────────
+
+/**
+ * 單位轉換定義
+ * 定義一條轉換鏈: 1 baseUnit = factor targetUnit
+ * Example chain for fish oil:
+ *   { baseUnit: "罐", factor: 100, targetUnit: "顆" }
+ *   { baseUnit: "顆", factor: 1000, targetUnit: "mg" }
+ * This means: 1 罐 = 100 顆, 1 顆 = 1000mg
+ */
+export interface UnitConversion {
+  /** 來源單位名稱 */
+  baseUnit: string;
+  /** 轉換倍率 */
+  factor: number;
+  /** 目標單位名稱 */
+  targetUnit: string;
+}
+
 // ── Food Item (一般食物) ────────────────────────
 
 export interface FoodItem {
@@ -176,6 +195,24 @@ export interface SupplementItem {
   tcm?: TCMInfo;
   /** 是否納入每日排程 */
   isActive: boolean;
+  /**
+   * 單位轉換鏈（選填）
+   * 定義從購買單位到劑量單位的轉換關係
+   * e.g. [{ baseUnit: "罐", factor: 100, targetUnit: "顆" }, { baseUnit: "顆", factor: 1000, targetUnit: "mg" }]
+   */
+  unitConversions?: UnitConversion[];
+  /**
+   * 劑量單位（選填）
+   * dosagePerUnit 的單位，e.g. "mg"、"mcg"、"mL"
+   * 當存在時，劑量顯示為 "{dosagePerUnit}{doseUnit}"
+   */
+  doseUnit?: string;
+  /**
+   * 服用單位（選填）
+   * 每次服用的最小單位，e.g. "顆"、"粒"、"包"
+   * 未設定時顯示預設值 "顆"
+   */
+  consumptionUnit?: string;
 }
 
 // ── Union type ──────────────────────────────────
@@ -249,10 +286,21 @@ export interface SupplementLogEntry {
  */
 export interface InventoryEntry {
   supplementId: string;
-  /** 本次購入顆數 */
+  /** 本次購入顆數（以 consumptionUnit 為單位，換算後儲存） */
   purchasedUnits: number;
   /** 購買日期 ISO YYYY-MM-DD */
   purchaseDate: string;
+  /**
+   * 購入時的原始單位（選填）
+   * 當以非 consumptionUnit 購入時記錄，e.g. "罐"
+   * 未設定時預設為 consumptionUnit 或 "顆"（向下相容）
+   */
+  unit?: string;
+  /**
+   * 購入時的原始數量（選填）
+   * 與 unit 搭配使用，e.g. unit="罐", originalQty=2
+   */
+  originalQty?: number;
 }
 
 /**
