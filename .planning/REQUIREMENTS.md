@@ -1,73 +1,110 @@
-# Requirements: Eat Manager — Item Management & Supplement Routines
+# Requirements: Eat Manager
 
-**Defined:** 2026-03-30
-**Core Value:** Users can manage their food and supplement items, track supplement inventory, and generate intelligent daily supplement routines
+**Defined:** 2026-03-30 | **Updated:** 2026-04-06
+**Core Value:** Users can manage their food and supplement items, track supplement inventory, and generate intelligent daily supplement routines — all from a static site synced to Google Sheets.
 
-## v2.0 Requirements
+## v2.0 Requirements (Complete)
 
-Requirements for this milestone. Each maps to roadmap phases.
+All v2.0 requirements shipped. See traceability table below.
 
 ### Data Model
 
 - [x] **DM-01**: Remove `BehaviorItem` type and all references from codebase
-- [x] **DM-02**: Two hardcoded item categories only: Food (`food`) and Supplement (`supplement`) — no `remedy` or `behavior` subtypes
-- [x] **DM-03**: `FoodItem` supports optional `ingredients` field for composed foods (array of ingredient references with quantities)
-- [x] **DM-04**: `SupplementItem` type with metadata fields: interactions, synergies, recommended timing, dosage per intake, daily max dosage, health tags
-- [x] **DM-05**: `InventoryEntry` type for tracking purchased supplement quantities with purchase date
-- [x] **DM-06**: Composed food nutrition values are always derived (never stored), matching existing derived-values pattern
+- [x] **DM-02**: Two hardcoded item categories only: Food (`food`) and Supplement (`supplement`)
+- [x] **DM-03**: `FoodItem` supports optional `ingredients` field for composed foods
+- [x] **DM-04**: `SupplementItem` type with metadata fields: interactions, synergies, timing, dosage
+- [x] **DM-05**: `InventoryEntry` type for tracking purchased supplement quantities
+- [x] **DM-06**: Composed food nutrition values are always derived (never stored)
 
 ### Backend (GAS)
 
-- [x] **GAS-01**: Google Apps Script supports id-keyed upsert (not just date-keyed) for catalog CRUD operations
-- [x] **GAS-02**: Google Apps Script supports id-keyed delete for catalog items
+- [x] **GAS-01**: Google Apps Script supports id-keyed upsert
+- [x] **GAS-02**: Google Apps Script supports id-keyed delete
 
 ### Food Management
 
-- [x] **FOOD-01**: User can add a food item by filling in nutrition label fields (name, calories, protein, fat, carbs, sodium, serving size)
-- [x] **FOOD-02**: User can compose a food from multiple ingredients with adjustable quantities
-- [x] **FOOD-03**: Composed food displays dynamically calculated total calories and macros based on current ingredient ratios
-- [x] **FOOD-04**: User can search Open Food Facts for ingredient data when composing a food
+- [x] **FOOD-01**: User can add a food item by filling in nutrition label fields
+- [x] **FOOD-02**: User can compose a food from multiple ingredients
+- [x] **FOOD-03**: Composed food displays dynamically calculated totals
+- [x] **FOOD-04**: User can search Open Food Facts for ingredient data
 - [x] **FOOD-05**: User can edit an existing food item
 - [x] **FOOD-06**: User can delete a food item
-- [x] **FOOD-07**: Food list page accessible from app navigation, showing all saved foods with nutrition summary
+- [x] **FOOD-07**: Food list page accessible from app navigation
 
 ### Supplement Management
 
-- [x] **SUPP-01**: User can add a supplement with name, brand, dosage per capsule/tablet, health tags, recommended timing
-- [x] **SUPP-02**: User can add interaction warnings for a supplement (conflicts with other supplements)
-- [x] **SUPP-03**: User can add synergy notes for a supplement (pairs well with other supplements)
+- [x] **SUPP-01**: User can add a supplement with name, brand, dosage, health tags, timing
+- [x] **SUPP-02**: User can add interaction warnings for a supplement
+- [x] **SUPP-03**: User can add synergy notes for a supplement
 - [x] **SUPP-04**: User can edit an existing supplement
 - [x] **SUPP-05**: User can delete a supplement
-- [x] **SUPP-06**: Supplement list page accessible from app navigation, showing all supplements with key metadata
+- [x] **SUPP-06**: Supplement list page accessible from app navigation
 
 ### Supplement Inventory
 
-- [x] **INV-01**: User can record a supplement purchase (quantity, purchase date)
-- [x] **INV-02**: App tracks remaining quantity based on actual consumption events (event-sourced, not estimated)
-- [x] **INV-03**: User can see remaining quantity and estimated days of supply for each supplement
-- [x] **INV-04**: Low inventory warning when estimated days remaining drops below threshold
+- [x] **INV-01**: User can record a supplement purchase
+- [x] **INV-02**: App tracks remaining quantity based on consumption events
+- [x] **INV-03**: User can see remaining quantity and estimated days of supply
+- [x] **INV-04**: Low inventory warning when days remaining drops below threshold
 
 ### Supplement Routine
 
-- [x] **RTN-01**: App generates a deterministic daily supplement routine grouped by timing slots (not random)
-- [x] **RTN-02**: Routine ensures all active, in-stock supplements appear in the daily plan
-- [x] **RTN-03**: Routine respects supplement interaction warnings (conflicting supplements separated by timing)
-- [x] **RTN-04**: User can mark supplements as taken or skipped in the daily routine
-- [x] **RTN-05**: Marking a supplement as taken deducts from inventory
-- [x] **RTN-06**: Routine displays unsatisfied supplements explicitly when timing conflicts prevent scheduling all items
+- [x] **RTN-01**: App generates a deterministic daily supplement routine by timing slots
+- [x] **RTN-02**: Routine ensures all active, in-stock supplements appear in daily plan
+- [x] **RTN-03**: Routine respects interaction warnings (conflicts separated by timing)
+- [x] **RTN-04**: User can mark supplements as taken or skipped
+- [x] **RTN-05**: Marking taken deducts from inventory
+- [x] **RTN-06**: Routine displays unsatisfied supplements when timing conflicts prevent scheduling
 
 ## v3.0 Requirements
 
-Deferred to future milestone. Tracked but not in current roadmap.
+Requirements for Sidebar Navigation & Page Consolidation milestone.
+
+### Navigation
+
+- [ ] **NAV-01**: User can open/close a sidebar drawer via hamburger icon
+- [ ] **NAV-02**: Drawer shows 4 main items: 今日方案, 我的食材, 我的菜單, 營養補充
+- [ ] **NAV-03**: Drawer bottom shows avatar+name (→ profile) and settings icon (→ settings)
+- [ ] **NAV-04**: Drawer auto-closes on route navigation
+
+### Unified Daily Plan
+
+- [ ] **PLAN-01**: Today's plan shows food items + supplement routine in one unified view
+- [ ] **PLAN-02**: User can check/uncheck items with debounce; check logs consumption, confirmed uncheck removes log from localStorage and Sheets
+- [ ] **PLAN-03**: Full-page re-random is locked when any item is checked
+- [ ] **PLAN-04**: User can re-random a single unchecked item
+- [ ] **PLAN-05**: Supplement routine integrated into daily plan (no separate page)
+
+### Menu Management
+
+- [ ] **MENU-01**: User can save current meal plan as a named menu preset
+- [ ] **MENU-02**: User can browse and load saved menu presets
+- [ ] **MENU-03**: User can edit and delete saved menu presets
+
+### Profile
+
+- [ ] **PROF-01**: Profile page accessible from drawer bottom (avatar+name)
+- [ ] **PROF-02**: Profile page includes weight log (moved from standalone page)
+- [ ] **PROF-03**: Placeholder avatar image displayed
+
+## Future Requirements
+
+Deferred to future release.
 
 ### Enhanced Food
 - **FOOD-08**: Barcode scanning for food lookup via Open Food Facts
-- **FOOD-09**: Meal logging with food items (connect to NutritionTracker page)
 - **FOOD-10**: Favorite/frequent foods for quick access
 
 ### Enhanced Supplements
 - **SUPP-07**: Supplement effectiveness tracking (user-rated over time)
 - **SUPP-08**: Auto-reorder reminders when inventory is critically low
+
+### Profile Enhancements
+- **PROF-04**: User can upload custom avatar image
+- **PROF-05**: Profile page shows BMR summary and macro targets
+
+### Menu Sync
+- **MENU-04**: Menu presets sync to Google Sheets
 
 ### Enhanced UX
 - **UX-06**: Undo/redo for item edits
@@ -80,13 +117,14 @@ Deferred to future milestone. Tracked but not in current roadmap.
 | Custom macro ratio editor | v1 explicit exclusion; preset-only |
 | User authentication/accounts | Single-user static app |
 | Server-side anything | Static SPA constraint |
-| Barcode scanning | Requires camera API complexity; defer to v3 |
-| Meal logging integration | NutritionTracker page is placeholder; defer to v3 |
-| Automatic nutrient tracking against BMR targets | Defer to v3 |
+| Barcode scanning | Requires camera API complexity; defer |
+| Swipe-to-open drawer gesture | Complexity vs value; hamburger tap sufficient for v3.0 |
+| NutritionTracker as standalone page | Replaced by unified plan checkbox logging |
+| SupplementSchedule as standalone page | Replaced by unified plan supplement section |
+| Real avatar upload | Deferred; placeholder image for v3.0 |
+| Global state management (Context/Redux) | Checkbox state is simple Set in useState |
 
 ## Traceability
-
-Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
@@ -121,11 +159,26 @@ Which phases cover which requirements. Updated during roadmap creation.
 | RTN-04 | Phase 9 | Complete |
 | RTN-05 | Phase 9 | Complete |
 | RTN-06 | Phase 9 | Complete |
+| NAV-01 | — | Pending |
+| NAV-02 | — | Pending |
+| NAV-03 | — | Pending |
+| NAV-04 | — | Pending |
+| PLAN-01 | — | Pending |
+| PLAN-02 | — | Pending |
+| PLAN-03 | — | Pending |
+| PLAN-04 | — | Pending |
+| PLAN-05 | — | Pending |
+| MENU-01 | — | Pending |
+| MENU-02 | — | Pending |
+| MENU-03 | — | Pending |
+| PROF-01 | — | Pending |
+| PROF-02 | — | Pending |
+| PROF-03 | — | Pending |
 
 **Coverage:**
-- v2.0 requirements: 27 total
-- Mapped to phases: 27
-- Unmapped: 0
+- v2.0 requirements: 27 total, 27 complete
+- v3.0 requirements: 15 total, 0 complete
+- Unmapped: 15
 
 ---
-*Requirements defined: 2026-03-30*
+*Requirements defined: 2026-03-30 | Updated: 2026-04-06*
