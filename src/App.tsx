@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Routes, Route, NavLink, Navigate, useNavigate } from "react-router-dom";
+import { Routes, Route, NavLink, Navigate, useNavigate, useLocation } from "react-router-dom";
 import DailyPlan from "./pages/DailyPlan";
 import FoodManager from "./pages/FoodManager";
 import NutritionTracker from "./pages/NutritionTracker";
@@ -28,9 +28,10 @@ const tabs = [
 
 export default function App() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [gasBroken, setGasBroken] = useState<string | false>(false);
 
-  // Auto-check GAS connection + version on app load
+  // Auto-check GAS connection + version on app load and after navigation (e.g. leaving Settings)
   useEffect(() => {
     const cfg = SettingsService.getSheetsConfig();
     if (!cfg?.gasUrl) return;
@@ -50,13 +51,14 @@ export default function App() {
         if (data.version < EXPECTED_API_VERSION) {
           throw new Error(`GAS 版本 ${data.version}，需要 ${EXPECTED_API_VERSION}。請重新複製程式碼並部署`);
         }
+        setGasBroken(false);
       })
       .catch((err) => {
         SettingsService.saveSheetsConfig({ gasUrl: "", sheetId: "" });
         setGasBroken(err instanceof Error ? err.message : "GAS 連線失敗");
         navigate("/settings");
       });
-  }, [navigate]);
+  }, [navigate, location.pathname]);
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 pb-20 max-w-xl mx-auto">
