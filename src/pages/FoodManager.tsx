@@ -432,6 +432,7 @@ function OffSearchPanel({ onAddFood, onClose }: OffSearchPanelProps) {
   const [offQuery, setOffQuery] = useState("");
   const [offResults, setOffResults] = useState<OffProduct[]>([]);
   const [offLoading, setOffLoading] = useState(false);
+  const [offError, setOffError] = useState("");
 
   useEffect(() => {
     if (!offQuery.trim()) {
@@ -440,13 +441,20 @@ function OffSearchPanel({ onAddFood, onClose }: OffSearchPanelProps) {
     }
     const timer = setTimeout(async () => {
       setOffLoading(true);
+      setOffError("");
       try {
         const gasUrl = SettingsService.getSheetsConfig()?.gasUrl || import.meta.env.VITE_GAS_URL;
         const url = `${gasUrl}?action=proxyOff&query=${encodeURIComponent(offQuery)}&pageSize=10`;
         const res = await fetch(url);
-        const data = await res.json() as { products?: OffProduct[] };
-        setOffResults(data.products ?? []);
+        const data = await res.json() as { products?: OffProduct[]; error?: string };
+        if (data.error) {
+          setOffError(data.error);
+          setOffResults([]);
+        } else {
+          setOffResults(data.products ?? []);
+        }
       } catch {
+        setOffError("無法連線 Open Food Facts");
         setOffResults([]);
       } finally {
         setOffLoading(false);
@@ -475,7 +483,10 @@ function OffSearchPanel({ onAddFood, onClose }: OffSearchPanelProps) {
         autoFocus
       />
       {offLoading && (
-        <p className="text-xs text-slate-400 text-center py-2">搜尋中...</p>
+        <p className="text-xs text-slate-400 text-center py-2">搜尋中（OFF 不穩定時可能需要幾秒）...</p>
+      )}
+      {offError && (
+        <p className="text-xs text-amber-400 text-center py-2">⚠ {offError}</p>
       )}
       {!offLoading && offQuery.trim() && offResults.length === 0 && (
         <p className="text-xs text-slate-500 text-center py-2">找不到結果</p>

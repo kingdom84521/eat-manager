@@ -36,7 +36,15 @@ function doGet(e) {
           + encodeURIComponent(query)
           + "&json=true&page_size=" + pageSize
           + "&fields=" + fields;
-        const offRes = UrlFetchApp.fetch(offUrl, { muteHttpExceptions: true });
+        var offRes;
+        for (var attempt = 0; attempt < 5; attempt++) {
+          offRes = UrlFetchApp.fetch(offUrl, { muteHttpExceptions: true });
+          if (offRes.getResponseCode() === 200) break;
+          Utilities.sleep(500);
+        }
+        if (offRes.getResponseCode() !== 200) {
+          return jsonResponse({ error: "OFF 暫時無法使用", products: [] });
+        }
         return ContentService.createTextOutput(offRes.getContentText())
           .setMimeType(ContentService.MimeType.JSON);
       }
