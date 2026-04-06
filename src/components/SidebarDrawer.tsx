@@ -1,5 +1,6 @@
 import { Dialog, DialogBackdrop, DialogPanel } from "@headlessui/react";
 import { NavLink } from "react-router-dom";
+import { SettingsService } from "../lib/settings-service";
 
 // ── Nav Items ──────────────────────────────────────────────────────────────────
 /** 側邊選單的 4 個主要導航項目 */
@@ -19,6 +20,7 @@ interface SidebarDrawerProps {
 // ── Component ─────────────────────────────────────────────────────────────────
 /** 側邊抽屜導航元件，使用 headlessui Dialog 提供焦點陷阱、Escape 關閉及捲動鎖定 */
 export function SidebarDrawer({ open, onClose }: SidebarDrawerProps) {
+  const { displayName, initials } = SettingsService.getDisplayProfile();
   return (
     <Dialog open={open} onClose={onClose} className="relative z-50">
       {/* 背景遮罩 */}
@@ -74,9 +76,9 @@ export function SidebarDrawer({ open, onClose }: SidebarDrawerProps) {
               className="flex items-center gap-2 text-slate-400 hover:text-slate-200"
             >
               <div className="w-7 h-7 rounded-full bg-slate-700 flex items-center justify-center text-xs">
-                👤
+                {initials ? initials.toUpperCase().slice(0, 2) : "\u{1F464}"}
               </div>
-              <span className="text-sm">使用者</span>
+              <span className="text-sm">{displayName || "使用者"}</span>
             </NavLink>
             <NavLink
               to="/settings"

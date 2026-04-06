@@ -5,10 +5,9 @@ import FoodManager from "./pages/FoodManager";
 import NutritionTracker from "./pages/NutritionTracker";
 import SupplementSchedule from "./pages/SupplementSchedule";
 import SupplementManager from "./pages/SupplementManager";
-import WeightLog from "./pages/WeightLog";
 import Settings from "./pages/Settings";
 import MenuPlaceholder from "./pages/MenuPlaceholder";
-import ProfilePlaceholder from "./pages/ProfilePlaceholder";
+import Profile from "./pages/Profile";
 import { SidebarDrawer } from "./components/SidebarDrawer";
 import { SettingsService } from "./lib/settings-service";
 import gasApiCode from "../scripts/gas-api.js?raw";
@@ -92,10 +91,10 @@ export default function App() {
           <Route path="/track" element={<NutritionTracker />} />
           <Route path="/supplements" element={<SupplementManager />} />
           <Route path="/items" element={<SupplementSchedule />} />
-          <Route path="/weight" element={<WeightLog />} />
+          <Route path="/weight" element={<Navigate to="/profile" replace />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/menu" element={<MenuPlaceholder />} />
-          <Route path="/profile" element={<ProfilePlaceholder />} />
+          <Route path="/profile" element={<Profile />} />
           <Route path="*" element={<Navigate to="/plan" replace />} />
         </Routes>
       </div>
