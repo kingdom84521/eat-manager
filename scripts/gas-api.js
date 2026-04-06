@@ -12,7 +12,7 @@
  */
 
 const SHEET_ID = SpreadsheetApp.getActiveSpreadsheet().getId();
-const API_VERSION = 3;
+const API_VERSION = 4;
 
 function doGet(e) {
   const action = e.parameter.action;
