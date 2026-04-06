@@ -83,9 +83,9 @@ Requirements for Sidebar Navigation & Page Consolidation milestone.
 
 ### Profile
 
-- [ ] **PROF-01**: Profile page accessible from drawer bottom (avatar+name)
-- [ ] **PROF-02**: Profile page includes weight log (moved from standalone page)
-- [ ] **PROF-03**: Placeholder avatar image displayed
+- [x] **PROF-01**: Profile page accessible from drawer bottom (avatar+name)
+- [x] **PROF-02**: Profile page includes weight log (moved from standalone page)
+- [x] **PROF-03**: Placeholder avatar image displayed
 
 ## Future Requirements
 
@@ -171,9 +171,9 @@ Deferred to future release.
 | MENU-01 | Phase 13 | Pending |
 | MENU-02 | Phase 13 | Pending |
 | MENU-03 | Phase 13 | Pending |
-| PROF-01 | Phase 11 | Pending |
-| PROF-02 | Phase 11 | Pending |
-| PROF-03 | Phase 11 | Pending |
+| PROF-01 | Phase 11 | Complete |
+| PROF-02 | Phase 11 | Complete |
+| PROF-03 | Phase 11 | Complete |
 
 **Coverage:**
 - v2.0 requirements: 27 total, 27 complete
