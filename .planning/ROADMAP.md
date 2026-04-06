@@ -111,6 +111,6 @@ Plans:
 | 8. Supplement Manager + Inventory | v2.0 | 2/2 | Complete | 2026-04-02 |
 | 9. Supplement Routine Generator | v2.0 | 2/2 | Complete | 2026-04-05 |
 | 10. Sidebar Drawer Shell | v3.0 | 1/1 | Complete    | 2026-04-06 |
-| 11. Profile Page | v3.0 | 1/1 | Complete   | 2026-04-06 |
+| 11. Profile Page | v3.0 | 1/1 | Complete    | 2026-04-06 |
 | 12. Unified Daily Plan | v3.0 | 0/? | Not started | - |
 | 13. My Menu | v3.0 | 0/? | Not started | - |
