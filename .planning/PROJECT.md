@@ -8,17 +8,18 @@ A health/nutrition tracking SPA (React + TypeScript + Vite) deployed to GitHub P
 
 Users can manage their food and supplement items, track supplement inventory, and generate intelligent daily supplement routines that deterministically cover all their health goals — all from a static site synced to Google Sheets.
 
-## Current Milestone: v2.0 Item Management & Supplement Routines
+## Current Milestone: v3.0 Sidebar Navigation & Page Consolidation
 
-**Goal:** Restructure the app around two core item types (食物 & 營養品) with proper CRUD, composition-based food creation, supplement inventory tracking, and intelligent routine generation.
+**Goal:** 從底部 tab 改為 sidebar drawer 導航，合併今日方案 + 飲食紀錄 + 補品時程為統一的打勾式介面，新增菜單管理功能。
 
 **Target features:**
-- Two hardcoded categories: Food & Supplement (remove "behavior" type)
-- Food CRUD: add via nutrition label input or compose from ingredients with dynamic calorie recalculation
-- Public nutrition database integration for ingredient lookup
-- Supplement CRUD with rich metadata (interactions, synergies, timing, dosage)
-- Supplement inventory management (purchased quantity, remaining based on consumption)
-- Supplement routine generator: deterministic daily plan covering all user's supplementation goals
+- Collapsable sidebar drawer replacing bottom tab navigation
+- Today's Plan overhaul: merged food plan + nutrition log + supplement routine into unified checkbox-based interface
+  - Check = log consumed, uncheck = remove log entry
+  - Lock full-page re-random when any item is checked; allow single-item re-random
+- My Menu (我的菜單): new feature — create, save, reuse meal combinations
+- Profile page: weight log + avatar+name entry at drawer bottom (separate from settings)
+- Settings page: icon entry at drawer bottom (independent page)
 
 ## Requirements
 
@@ -41,7 +42,12 @@ Users can manage their food and supplement items, track supplement inventory, an
 
 ### Active
 
-None — v2.0 milestone complete.
+- [ ] Sidebar drawer navigation replacing bottom tab bar
+- [ ] Today's Plan: unified checkbox interface merging food plan + nutrition log + supplement routine
+- [ ] Single-item re-random with lock on full re-random when items are checked
+- [ ] My Menu: create, save, reuse meal combinations
+- [ ] Profile page with weight log, avatar+name at drawer bottom
+- [ ] Settings page accessible via icon at drawer bottom
 
 ### Recently Validated (v2.0)
 
@@ -90,7 +96,7 @@ None — v2.0 milestone complete.
 | Read-on-render for cross-page state | No React Context needed; SettingsService reads localStorage synchronously | ✓ Shipped v1.0 |
 
 ---
-*Last updated: 2026-04-05 after v2.0 milestone complete (all phases shipped)*
+*Last updated: 2026-04-06 — milestone v3.0 started*
 
 ## Evolution
 
