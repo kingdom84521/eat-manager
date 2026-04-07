@@ -5,10 +5,10 @@ import { SettingsService } from "../lib/settings-service";
 // ── Nav Items ──────────────────────────────────────────────────────────────────
 /** 側邊選單的 4 個主要導航項目 */
 const NAV_ITEMS = [
-  { path: "/plan",        icon: "🎲", label: "今日方案" },
-  { path: "/foods",       icon: "🍽️", label: "我的食材" },
-  { path: "/menu",        icon: "📋", label: "我的菜單" },
-  { path: "/plan",        icon: "💊", label: "營養補充" },
+  { key: "plan",          path: "/plan",        icon: "🎲", label: "今日方案" },
+  { key: "foods",         path: "/foods",       icon: "🍽️", label: "我的食材" },
+  { key: "menu",          path: "/menu",        icon: "📋", label: "我的菜單" },
+  { key: "supplements",   path: "/plan",        icon: "💊", label: "營養補充" },
 ];
 
 // ── Props ──────────────────────────────────────────────────────────────────────
@@ -51,7 +51,7 @@ export function SidebarDrawer({ open, onClose }: SidebarDrawerProps) {
           <nav className="flex-1 overflow-y-auto py-2">
             {NAV_ITEMS.map((item) => (
               <NavLink
-                key={item.path}
+                key={item.key}
                 to={item.path}
                 onClick={onClose}
                 className={({ isActive }) =>
