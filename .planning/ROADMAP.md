@@ -4,7 +4,7 @@
 
 - ✅ **v1.0 Settings & Nutrition Configuration** — Phases 1-4 (shipped 2026-03-30)
 - ✅ **v2.0 Item Management & Supplement Routines** — Phases 5-9 (shipped 2026-04-05)
-- 🚧 **v3.0 Sidebar Navigation & Page Consolidation** — Phases 10-13 (in progress)
+- ✅ **v3.0 Sidebar Navigation & Page Consolidation** — Phases 10-13 (shipped 2026-04-07)
 
 ## Phases
 
@@ -29,81 +29,21 @@ See: `.planning/milestones/v1.0-ROADMAP.md` for full details
 - [x] Phase 8: Supplement Manager + Inventory (2/2 plans) — Supplement CRUD + inventory
 - [x] Phase 9: Supplement Routine Generator (2/2 plans) — Deterministic daily routine
 
+See: `.planning/milestones/v2.0-ROADMAP.md` for full details
+
 </details>
 
-### 🚧 v3.0 Sidebar Navigation & Page Consolidation (In Progress)
+<details>
+<summary>✅ v3.0 Sidebar Navigation & Page Consolidation (Phases 10-13) — SHIPPED 2026-04-07</summary>
 
-**Milestone Goal:** Replace bottom tab navigation with a sidebar drawer, merge food plan + nutrition log + supplement routine into a unified checkbox-driven daily plan, add My Menu saved presets, and introduce a Profile page.
+- [x] Phase 10: Sidebar Drawer Shell (1/1 plan) — headlessui sidebar drawer replacing bottom tab nav
+- [x] Phase 11: Profile Page (1/1 plan) — Profile page with weight log, avatar+name
+- [x] Phase 12: Unified Daily Plan (2/2 plans) — Merged food + supplement view with checkbox logging
+- [x] Phase 13: My Menu (2/2 plans) — Named meal preset CRUD
 
-- [x] **Phase 10: Sidebar Drawer Shell** - Sidebar drawer replacing bottom tab nav; hamburger in fixed top bar; all routes accessible; body scroll lock (completed 2026-04-06)
-- [x] **Phase 11: Profile Page** - Profile page with display name, avatar initials, weight log embedded; drawer footer functional (completed 2026-04-06)
-- [x] **Phase 12: Unified Daily Plan** - Merged food + supplement view with checkbox logging, nutrition bar, lock mechanic, and single-item swap (completed 2026-04-07)
-- [x] **Phase 13: My Menu** - Named meal preset CRUD; save current plan, browse and load saved menus (completed 2026-04-07)
+See: `.planning/milestones/v3.0-ROADMAP.md` for full details
 
-## Phase Details
-
-### Phase 10: Sidebar Drawer Shell
-**Goal**: Users navigate the entire app through a sidebar drawer — bottom tab bar is gone, all destinations are reachable, and the drawer behaves correctly on iOS Safari
-**Depends on**: Phase 9
-**Requirements**: NAV-01, NAV-02, NAV-03, NAV-04
-**Success Criteria** (what must be TRUE):
-  1. User can open the sidebar by tapping a hamburger icon in the fixed top bar, and close it by tapping the X, tapping the backdrop, or pressing Escape
-  2. The drawer lists all four main navigation items (今日方案, 我的食材, 我的菜單, 營養補充) and tapping any item navigates to that route
-  3. Tapping a navigation item auto-closes the drawer and highlights the active route
-  4. The drawer footer shows an avatar+name area (stub) linking to `/profile` and a settings icon linking to `/settings`
-  5. The page behind the drawer does not scroll while the drawer is open on an iOS Safari device
-**Plans**: 1 plan
-
-Plans:
-- [x] 10-01-PLAN.md — Sidebar drawer shell: install headlessui, create SidebarDrawer component, wire into App.tsx, remove bottom nav
-**UI hint**: yes
-
-### Phase 11: Profile Page
-**Goal**: Users can view and edit their display name and avatar initials on a dedicated Profile page, and access their weight log there — the `/weight` standalone route is retired
-**Depends on**: Phase 10
-**Requirements**: PROF-01, PROF-02, PROF-03
-**Success Criteria** (what must be TRUE):
-  1. User can tap the avatar+name area in the drawer footer and land on the `/profile` page
-  2. User can enter a display name and avatar initials; they persist after a page reload and appear in the drawer footer
-  3. A placeholder avatar using the user's initials (or a default icon) is visible on the Profile page and in the drawer footer
-  4. User can log weight entries and view their weight history from the Profile page (WeightLog content absorbed)
-**Plans**: 1 plan
-
-Plans:
-- [x] 11-01-PLAN.md — Profile page: types + migration, WeightSection extraction, Profile page, drawer footer update, route cleanup
-**UI hint**: yes
-
-### Phase 12: Unified Daily Plan
-**Goal**: Today's Plan shows food items and supplement routine in one view where users check off consumed items — checking logs the entry, unchecking removes it, full re-random is locked while any item is checked, and single-item swap is available on unchecked items
-**Depends on**: Phase 11
-**Requirements**: PLAN-01, PLAN-02, PLAN-03, PLAN-04, PLAN-05
-**Success Criteria** (what must be TRUE):
-  1. The `/plan` page shows food plan slots and supplement routine sections together without requiring separate page visits
-  2. User can check an item to log it as consumed; the nutrition macro bar updates immediately to reflect checked-item totals; unchecking removes the log entry from localStorage and Sheets
-  3. Once any item is checked, the full re-random button is disabled (locked); the lock clears automatically when all items are unchecked
-  4. User can tap a re-random icon on any single unchecked item to swap only that item; the icon is absent (or disabled) on checked items
-  5. Checked state and the generated plan survive navigation away and back, and survive a page reload
-**Plans**: 2 plans
-
-Plans:
-- [x] 12-01-PLAN.md — TodayPlanRecord types, persistence helpers, UnifiedPlan.tsx with merged food+supplement+nutrition sub-components
-- [x] 12-02-PLAN.md — Route wiring (App.tsx), old page deletion (DailyPlan, SupplementSchedule, NutritionTracker), browser verification
-**UI hint**: yes
-
-### Phase 13: My Menu
-**Goal**: Users can save the current meal plan as a named preset, browse saved presets, and load one to replace today's plan — with full edit and delete capability
-**Depends on**: Phase 12
-**Requirements**: MENU-01, MENU-02, MENU-03
-**Success Criteria** (what must be TRUE):
-  1. User can tap a "儲存為菜單" button on the plan page, enter a name, and the menu appears in the My Menu list immediately
-  2. User can open the `/menu` page, see all saved menu presets with their names and item summaries, and tap one to load it as today's plan
-  3. User can rename or delete a saved menu preset and the change is reflected immediately in the list
-**Plans**: 2 plans
-
-Plans:
-- [x] 13-01-PLAN.md — MenuService singleton + save-as-menu button and dialog in UnifiedPlan
-- [x] 13-02-PLAN.md — MyMenu page (browse, load, rename, delete), route wiring, placeholder removal
-**UI hint**: yes
+</details>
 
 ## Progress
 
@@ -118,7 +58,7 @@ Plans:
 | 7. Food Manager | v2.0 | 3/3 | Complete | 2026-03-31 |
 | 8. Supplement Manager + Inventory | v2.0 | 2/2 | Complete | 2026-04-02 |
 | 9. Supplement Routine Generator | v2.0 | 2/2 | Complete | 2026-04-05 |
-| 10. Sidebar Drawer Shell | v3.0 | 1/1 | Complete    | 2026-04-06 |
-| 11. Profile Page | v3.0 | 1/1 | Complete    | 2026-04-06 |
-| 12. Unified Daily Plan | v3.0 | 2/2 | Complete    | 2026-04-07 |
-| 13. My Menu | v3.0 | 2/2 | Complete    | 2026-04-07 |
+| 10. Sidebar Drawer Shell | v3.0 | 1/1 | Complete | 2026-04-06 |
+| 11. Profile Page | v3.0 | 1/1 | Complete | 2026-04-06 |
+| 12. Unified Daily Plan | v3.0 | 2/2 | Complete | 2026-04-07 |
+| 13. My Menu | v3.0 | 2/2 | Complete | 2026-04-07 |
