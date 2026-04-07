@@ -98,7 +98,11 @@ Plans:
   1. User can tap a "儲存為菜單" button on the plan page, enter a name, and the menu appears in the My Menu list immediately
   2. User can open the `/menu` page, see all saved menu presets with their names and item summaries, and tap one to load it as today's plan
   3. User can rename or delete a saved menu preset and the change is reflected immediately in the list
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 13-01-PLAN.md — MenuService singleton + save-as-menu button and dialog in UnifiedPlan
+- [ ] 13-02-PLAN.md — MyMenu page (browse, load, rename, delete), route wiring, placeholder removal
 **UI hint**: yes
 
 ## Progress
@@ -117,4 +121,4 @@ Plans:
 | 10. Sidebar Drawer Shell | v3.0 | 1/1 | Complete    | 2026-04-06 |
 | 11. Profile Page | v3.0 | 1/1 | Complete    | 2026-04-06 |
 | 12. Unified Daily Plan | v3.0 | 2/2 | Complete    | 2026-04-07 |
-| 13. My Menu | v3.0 | 0/? | Not started | - |
+| 13. My Menu | v3.0 | 0/2 | Not started | - |
