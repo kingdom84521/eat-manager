@@ -83,7 +83,11 @@ Plans:
   3. Once any item is checked, the full re-random button is disabled (locked); the lock clears automatically when all items are unchecked
   4. User can tap a re-random icon on any single unchecked item to swap only that item; the icon is absent (or disabled) on checked items
   5. Checked state and the generated plan survive navigation away and back, and survive a page reload
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 12-01-PLAN.md — TodayPlanRecord types, persistence helpers, UnifiedPlan.tsx with merged food+supplement+nutrition sub-components
+- [ ] 12-02-PLAN.md — Route wiring (App.tsx), old page deletion (DailyPlan, SupplementSchedule, NutritionTracker), browser verification
 **UI hint**: yes
 
 ### Phase 13: My Menu
@@ -112,5 +116,5 @@ Plans:
 | 9. Supplement Routine Generator | v2.0 | 2/2 | Complete | 2026-04-05 |
 | 10. Sidebar Drawer Shell | v3.0 | 1/1 | Complete    | 2026-04-06 |
 | 11. Profile Page | v3.0 | 1/1 | Complete    | 2026-04-06 |
-| 12. Unified Daily Plan | v3.0 | 0/? | Not started | - |
+| 12. Unified Daily Plan | v3.0 | 0/2 | In Progress | - |
 | 13. My Menu | v3.0 | 0/? | Not started | - |
