@@ -61,7 +61,7 @@ export default function App() {
       <SidebarDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
 
       {/* Fixed top bar */}
-      <header className="fixed top-0 left-0 right-0 z-40 bg-slate-900/95 backdrop-blur border-b border-slate-800 relative flex items-center">
+      <header className="fixed top-0 left-0 right-0 z-40 bg-slate-900/95 backdrop-blur border-b border-slate-800">
         <button
           onClick={() => setDrawerOpen(true)}
           aria-label="開啟選單"
