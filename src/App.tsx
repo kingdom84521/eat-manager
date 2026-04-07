@@ -1,9 +1,7 @@
 import { useState, useEffect } from "react";
 import { Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
-import DailyPlan from "./pages/DailyPlan";
+import UnifiedPlan from "./pages/UnifiedPlan";
 import FoodManager from "./pages/FoodManager";
-import NutritionTracker from "./pages/NutritionTracker";
-import SupplementSchedule from "./pages/SupplementSchedule";
 import SupplementManager from "./pages/SupplementManager";
 import Settings from "./pages/Settings";
 import MenuPlaceholder from "./pages/MenuPlaceholder";
@@ -86,11 +84,11 @@ export default function App() {
 
         {/* Page content */}
         <Routes>
-          <Route path="/plan" element={<DailyPlan />} />
+          <Route path="/plan" element={<UnifiedPlan />} />
           <Route path="/foods" element={<FoodManager />} />
-          <Route path="/track" element={<NutritionTracker />} />
+          <Route path="/track" element={<Navigate to="/plan" replace />} />
           <Route path="/supplements" element={<SupplementManager />} />
-          <Route path="/items" element={<SupplementSchedule />} />
+          <Route path="/items" element={<Navigate to="/plan" replace />} />
           <Route path="/weight" element={<Navigate to="/profile" replace />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/menu" element={<MenuPlaceholder />} />
