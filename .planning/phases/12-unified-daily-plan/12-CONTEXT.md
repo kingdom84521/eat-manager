@@ -14,7 +14,7 @@ Merge the food daily plan and supplement routine into a single unified `/plan` p
 ## Implementation Decisions
 
 ### TodayPlanRecord Schema
-- **D-01:** Create a `TodayPlanRecord` interface stored in a single localStorage key (`today_plan`). Fields: `date: string`, `foodSlots: GeneratedSlot[]` (the food plan), `supplementRoutine: RoutineResult` (the supplement routine), `checkedIds: Set<string>` (serialized as array). This is the atomic unit of today's plan state.
+- **D-01:** Create a `TodayPlanRecord` interface stored in a single localStorage key (`today_plan`). Fields: `date: string`, `foodSlots: GeneratedSlot[]` (the food plan), `checkedIds: string[]` (serialized from Set), `skippedSupplementIds: string[]`. Supplement routine is NOT stored — it is re-computed on mount from live data via `generateRoutine()` because `RoutineResult.slots` is a `Map` which is not JSON-serializable. (Revised from original — dropped `supplementRoutine` field per research finding.)
 - **D-02:** On plan generation, food slots and supplement routine are computed together and stored atomically. If the stored date doesn't match today, the plan is stale and should be regenerated.
 - **D-03:** `checkedIds` covers both food items and supplement IDs in one flat Set. The type of item is distinguishable by lookup (food items in FOOD_MAP, supplements in ItemService).
 - **D-04:** Supplement three-state toggle (untouched → taken → skipped) is preserved for supplements. Food items use two-state (unchecked → checked). Store `skippedSupplementIds` separately in the record.
@@ -42,7 +42,7 @@ Merge the food daily plan and supplement routine into a single unified `/plan` p
   - `SupplementRoutineSection` — renders supplement timing slots with RoutineRow, three-state toggle
 - **D-16:** The existing `ItemCard` and `TagBadge` sub-components from DailyPlan.tsx are reused. `RoutineRow`, `TimingSlotCard` from SupplementSchedule.tsx are absorbed into the new file.
 - **D-17:** `DailyPlan.tsx` is deleted and replaced by `UnifiedPlan.tsx`. Route `/plan` points to `UnifiedPlan`.
-- **D-18:** `SupplementSchedule.tsx` is deleted. Route `/supplements` redirects to `/plan` (supplement section is now part of unified plan). The sidebar nav item "營養補充" still navigates to `/plan` but could optionally scroll to the supplement section.
+- **D-18:** `SupplementSchedule.tsx` is deleted. Route `/supplements` stays pointing to `SupplementManager` (it is the CRUD page, not the routine). The sidebar nav item "營養補充" is updated from `/supplements` to `/plan` so users navigate to the unified plan's supplement section. Route `/items` (legacy) redirects to `/plan`. (Revised from original — research found `/supplements` is SupplementManager CRUD, not the routine page.)
 - **D-19:** `NutritionTracker.tsx` is deleted. Route `/track` redirects to `/plan`.
 
 ### Persistence and Reload Survival
