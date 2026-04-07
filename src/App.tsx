@@ -86,10 +86,7 @@ export default function App() {
         <Routes>
           <Route path="/plan" element={<UnifiedPlan />} />
           <Route path="/foods" element={<FoodManager />} />
-          <Route path="/track" element={<Navigate to="/plan" replace />} />
           <Route path="/supplements" element={<SupplementManager />} />
-          <Route path="/items" element={<Navigate to="/plan" replace />} />
-          <Route path="/weight" element={<Navigate to="/profile" replace />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/menu" element={<MenuPlaceholder />} />
           <Route path="/profile" element={<Profile />} />
