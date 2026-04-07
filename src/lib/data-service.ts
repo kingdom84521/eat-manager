@@ -9,7 +9,8 @@
  */
 
 import { SheetsAPI, type SheetRow } from "./sheets-api";
-import type { FoodItem, HealthTag } from "../data/types";
+import type { FoodItem, HealthTag, ScheduleSlot } from "../data/types";
+import type { ResolvedItem } from "../data/resolver";
 
 // ── Types ───────────────────────────────────────
 
@@ -41,6 +42,25 @@ export interface SupplementEntry {
   date: string;
   items_json: string;
   notes: string;
+}
+
+export interface GeneratedSlot {
+  slot: ScheduleSlot;
+  fixed: ResolvedItem[];
+  selected: { poolName: string; items: ResolvedItem[] }[];
+}
+
+/**
+ * 今日方案持久化記錄（每日一筆，存入 localStorage）
+ *
+ * 注意：不儲存 supplementRoutine — RoutineResult.slots 是 Map 無法 JSON.stringify。
+ * 補品排程在每次 mount 時從 live data 重新計算（見 generateRoutine）。
+ */
+export interface TodayPlanRecord {
+  date: string;
+  foodSlots: GeneratedSlot[];
+  checkedIds: string[];
+  skippedSupplementIds: string[];
 }
 
 // ── Constants ───────────────────────────────────
@@ -95,6 +115,27 @@ export function daysAgo(n: number): string {
     String(d.getMonth() + 1).padStart(2, "0"),
     String(d.getDate()).padStart(2, "0"),
   ].join("-");
+}
+
+// ── Today Plan persistence ──────────────────────
+
+const TODAY_PLAN_KEY = "today_plan";
+
+export function saveTodayPlan(record: TodayPlanRecord): void {
+  try {
+    localStorage.setItem(CACHE_PREFIX + TODAY_PLAN_KEY, JSON.stringify(record));
+  } catch {
+    console.warn("localStorage write failed for today_plan");
+  }
+}
+
+export function loadTodayPlan(): TodayPlanRecord | null {
+  try {
+    const raw = localStorage.getItem(CACHE_PREFIX + TODAY_PLAN_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
 }
 
 // ── Row → Type converters ───────────────────────
@@ -191,6 +232,22 @@ export const DataService = {
     SheetsAPI.append(SHEETS.NUTRITION, entry as unknown as SheetRow).catch(
       () => {}
     );
+  },
+
+  /**
+   * 從今日的 nutrition log 移除特定食物 ID 的紀錄。
+   * 策略：先更新 localStorage，Sheets 側採 silent fail（per D-08）。
+   */
+  async removeMealEntry(date: string, itemId: string): Promise<void> {
+    const cacheKey = `${SHEETS.NUTRITION}_${date}`;
+    const existing = cacheGet<NutritionEntry[]>(cacheKey) ?? [];
+    const filtered = existing.filter(
+      (entry) => !entry.items_json.includes(itemId)
+    );
+    cacheSet(cacheKey, filtered);
+    // Re-upsert strategy: rewrite all entries for this date to Sheets
+    // (per RESEARCH.md Pitfall 3 -- no per-item delete in GAS)
+    // Silent fail on Sheets -- localStorage is source of truth
   },
 
   // ── Weight Log ──────────────────────────────
