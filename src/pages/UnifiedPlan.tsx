@@ -12,6 +12,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { Dialog, DialogBackdrop, DialogPanel } from "@headlessui/react";
 import { SCHEDULE } from "../data/schedule";
 import { resolveItem, type ResolvedItem } from "../data/resolver";
 import {
@@ -37,6 +38,7 @@ import {
 import type { GeneratedSlot, TodayPlanRecord } from "../lib/data-service";
 import { ItemService } from "../lib/item-service";
 import { SettingsService } from "../lib/settings-service";
+import { MenuService } from "../lib/menu-service";
 
 // ── Constants ───────────────────────────────────
 
@@ -687,6 +689,8 @@ export default function UnifiedPlan() {
   const [consumption, setConsumption] = useState<ConsumptionEvent[]>([]);
   const [foods, setFoods] = useState<FoodItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [menuName, setMenuName] = useState("");
   const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Derived values
@@ -933,6 +937,29 @@ export default function UnifiedPlan() {
 
   const takenStates = buildTakenStatesMap();
 
+  function autoMenuName(): string {
+    const d = new Date();
+    return `${d.getMonth() + 1}月${d.getDate()}日 菜單`;
+  }
+
+  function handleSaveMenu() {
+    if (!plan) return;
+    const name = menuName.trim() || autoMenuName();
+    const foodItemIds = plan.map((g) => {
+      const fixedIds = g.fixed.map((i) => i.id);
+      const selectedIds = g.selected.flatMap((s) => s.items.map((i) => i.id));
+      return [...fixedIds, ...selectedIds];
+    });
+    MenuService.save({
+      id: crypto.randomUUID(),
+      name,
+      createdAt: todayStr(),
+      foodItemIds,
+    });
+    setMenuName("");
+    setSaveDialogOpen(false);
+  }
+
   return (
     <div className="px-4 pt-5 pb-6">
       {/* Header */}
@@ -952,6 +979,14 @@ export default function UnifiedPlan() {
         >
           {"🎲"} {plan ? "重新產生" : "產生今日方案"}
         </button>
+        {plan && (
+          <button
+            onClick={() => setSaveDialogOpen(true)}
+            className="px-4 py-2.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold text-sm transition active:scale-95"
+          >
+            {"📋"} 儲存為菜單
+          </button>
+        )}
       </div>
 
       {/* Nutrition budget bar — only when plan exists */}
@@ -985,6 +1020,44 @@ export default function UnifiedPlan() {
           onToggle={handleSupplementToggle}
         />
       )}
+
+      {/* Save as menu dialog */}
+      <Dialog open={saveDialogOpen} onClose={() => setSaveDialogOpen(false)} className="relative z-50">
+        <DialogBackdrop
+          transition
+          className="fixed inset-0 bg-black/50 transition duration-200 data-[closed]:opacity-0"
+        />
+        <div className="fixed inset-0 flex items-center justify-center p-4">
+          <DialogPanel
+            transition
+            className="w-full max-w-sm bg-slate-900 border border-slate-700 rounded-xl p-5 transition duration-300 data-[closed]:scale-95 data-[closed]:opacity-0"
+          >
+            <h3 className="text-lg font-bold text-slate-100 mb-3">儲存為菜單</h3>
+            <input
+              type="text"
+              value={menuName}
+              onChange={(e) => setMenuName(e.target.value)}
+              placeholder={autoMenuName()}
+              className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500"
+              autoFocus
+            />
+            <div className="flex gap-3 mt-4 justify-end">
+              <button
+                onClick={() => { setMenuName(""); setSaveDialogOpen(false); }}
+                className="px-4 py-2 rounded-lg text-slate-400 hover:text-slate-200 transition"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleSaveMenu}
+                className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold transition"
+              >
+                儲存
+              </button>
+            </div>
+          </DialogPanel>
+        </div>
+      </Dialog>
     </div>
   );
 }
