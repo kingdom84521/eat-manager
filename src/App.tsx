@@ -61,16 +61,15 @@ export default function App() {
       <SidebarDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
 
       {/* Fixed top bar */}
-      <header className="fixed top-0 left-0 right-0 z-40 bg-slate-900/95 backdrop-blur border-b border-slate-800">
-        <div className="max-w-xl mx-auto flex items-center px-3 h-10">
-          <button
-            onClick={() => setDrawerOpen(true)}
-            aria-label="開啟選單"
-            className="text-slate-400 hover:text-slate-200 p-1"
-          >
-            ☰
-          </button>
-        </div>
+      <header className="fixed top-0 left-0 right-0 z-40 bg-slate-900/95 backdrop-blur border-b border-slate-800 relative flex items-center">
+        <button
+          onClick={() => setDrawerOpen(true)}
+          aria-label="開啟選單"
+          className="absolute left-0 top-0 h-10 px-3 flex items-center text-slate-400 hover:text-slate-200"
+        >
+          ☰
+        </button>
+        <div className="max-w-xl mx-auto h-10" />
       </header>
 
       {/* Content offset for top bar */}
