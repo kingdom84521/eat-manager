@@ -42,7 +42,6 @@ Users can manage their food and supplement items, track supplement inventory, an
 
 ### Active
 
-- [ ] My Menu: create, save, reuse meal combinations
 - [ ] Settings page accessible via icon at drawer bottom
 
 ### Recently Validated (v3.0)
@@ -51,6 +50,7 @@ Users can manage their food and supplement items, track supplement inventory, an
 - ✓ Profile page with weight log, avatar+name at drawer bottom — Phase 11
 - ✓ Unified daily plan: checkbox interface merging food plan + nutrition log + supplement routine — Phase 12
 - ✓ Single-item re-random with lock on full re-random when items are checked — Phase 12
+- ✓ My Menu: create, save, reuse meal combinations — Phase 13
 
 ### Recently Validated (v2.0)
 
