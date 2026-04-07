@@ -101,7 +101,7 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 13-01-PLAN.md — MenuService singleton + save-as-menu button and dialog in UnifiedPlan
+- [x] 13-01-PLAN.md — MenuService singleton + save-as-menu button and dialog in UnifiedPlan
 - [ ] 13-02-PLAN.md — MyMenu page (browse, load, rename, delete), route wiring, placeholder removal
 **UI hint**: yes
 
@@ -121,4 +121,4 @@ Plans:
 | 10. Sidebar Drawer Shell | v3.0 | 1/1 | Complete    | 2026-04-06 |
 | 11. Profile Page | v3.0 | 1/1 | Complete    | 2026-04-06 |
 | 12. Unified Daily Plan | v3.0 | 2/2 | Complete    | 2026-04-07 |
-| 13. My Menu | v3.0 | 0/2 | Not started | - |
+| 13. My Menu | v3.0 | 1/2 | In Progress|  |

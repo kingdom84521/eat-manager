@@ -77,7 +77,7 @@ Requirements for Sidebar Navigation & Page Consolidation milestone.
 
 ### Menu Management
 
-- [ ] **MENU-01**: User can save current meal plan as a named menu preset
+- [x] **MENU-01**: User can save current meal plan as a named menu preset
 - [ ] **MENU-02**: User can browse and load saved menu presets
 - [ ] **MENU-03**: User can edit and delete saved menu presets
 
@@ -168,7 +168,7 @@ Deferred to future release.
 | PLAN-03 | Phase 12 | Complete |
 | PLAN-04 | Phase 12 | Complete |
 | PLAN-05 | Phase 12 | Complete |
-| MENU-01 | Phase 13 | Pending |
+| MENU-01 | Phase 13 | Complete |
 | MENU-02 | Phase 13 | Pending |
 | MENU-03 | Phase 13 | Pending |
 | PROF-01 | Phase 11 | Complete |
