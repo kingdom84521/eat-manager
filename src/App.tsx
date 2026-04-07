@@ -4,7 +4,7 @@ import UnifiedPlan from "./pages/UnifiedPlan";
 import FoodManager from "./pages/FoodManager";
 import SupplementManager from "./pages/SupplementManager";
 import Settings from "./pages/Settings";
-import MenuPlaceholder from "./pages/MenuPlaceholder";
+import MyMenu from "./pages/MyMenu";
 import Profile from "./pages/Profile";
 import { SidebarDrawer } from "./components/SidebarDrawer";
 import { SettingsService } from "./lib/settings-service";
@@ -88,7 +88,7 @@ export default function App() {
           <Route path="/foods" element={<FoodManager />} />
           <Route path="/supplements" element={<SupplementManager />} />
           <Route path="/settings" element={<Settings />} />
-          <Route path="/menu" element={<MenuPlaceholder />} />
+          <Route path="/menu" element={<MyMenu />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="*" element={<Navigate to="/plan" replace />} />
         </Routes>
