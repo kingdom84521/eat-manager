@@ -38,7 +38,7 @@ See: `.planning/milestones/v1.0-ROADMAP.md` for full details
 - [x] **Phase 10: Sidebar Drawer Shell** - Sidebar drawer replacing bottom tab nav; hamburger in fixed top bar; all routes accessible; body scroll lock (completed 2026-04-06)
 - [x] **Phase 11: Profile Page** - Profile page with display name, avatar initials, weight log embedded; drawer footer functional (completed 2026-04-06)
 - [x] **Phase 12: Unified Daily Plan** - Merged food + supplement view with checkbox logging, nutrition bar, lock mechanic, and single-item swap (completed 2026-04-07)
-- [ ] **Phase 13: My Menu** - Named meal preset CRUD; save current plan, browse and load saved menus
+- [x] **Phase 13: My Menu** - Named meal preset CRUD; save current plan, browse and load saved menus (completed 2026-04-07)
 
 ## Phase Details
 
@@ -102,7 +102,7 @@ Plans:
 
 Plans:
 - [x] 13-01-PLAN.md — MenuService singleton + save-as-menu button and dialog in UnifiedPlan
-- [ ] 13-02-PLAN.md — MyMenu page (browse, load, rename, delete), route wiring, placeholder removal
+- [x] 13-02-PLAN.md — MyMenu page (browse, load, rename, delete), route wiring, placeholder removal
 **UI hint**: yes
 
 ## Progress
@@ -121,4 +121,4 @@ Plans:
 | 10. Sidebar Drawer Shell | v3.0 | 1/1 | Complete    | 2026-04-06 |
 | 11. Profile Page | v3.0 | 1/1 | Complete    | 2026-04-06 |
 | 12. Unified Daily Plan | v3.0 | 2/2 | Complete    | 2026-04-07 |
-| 13. My Menu | v3.0 | 1/2 | In Progress|  |
+| 13. My Menu | v3.0 | 2/2 | Complete   | 2026-04-07 |
