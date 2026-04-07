@@ -69,11 +69,11 @@ Requirements for Sidebar Navigation & Page Consolidation milestone.
 
 ### Unified Daily Plan
 
-- [ ] **PLAN-01**: Today's plan shows food items + supplement routine in one unified view
-- [ ] **PLAN-02**: User can check/uncheck items with debounce; check logs consumption, confirmed uncheck removes log from localStorage and Sheets
-- [ ] **PLAN-03**: Full-page re-random is locked when any item is checked
-- [ ] **PLAN-04**: User can re-random a single unchecked item
-- [ ] **PLAN-05**: Supplement routine integrated into daily plan (no separate page)
+- [x] **PLAN-01**: Today's plan shows food items + supplement routine in one unified view
+- [x] **PLAN-02**: User can check/uncheck items with debounce; check logs consumption, confirmed uncheck removes log from localStorage and Sheets
+- [x] **PLAN-03**: Full-page re-random is locked when any item is checked
+- [x] **PLAN-04**: User can re-random a single unchecked item
+- [x] **PLAN-05**: Supplement routine integrated into daily plan (no separate page)
 
 ### Menu Management
 
@@ -163,11 +163,11 @@ Deferred to future release.
 | NAV-02 | Phase 10 | Complete |
 | NAV-03 | Phase 10 | Complete |
 | NAV-04 | Phase 10 | Complete |
-| PLAN-01 | Phase 12 | Pending |
-| PLAN-02 | Phase 12 | Pending |
-| PLAN-03 | Phase 12 | Pending |
-| PLAN-04 | Phase 12 | Pending |
-| PLAN-05 | Phase 12 | Pending |
+| PLAN-01 | Phase 12 | Complete |
+| PLAN-02 | Phase 12 | Complete |
+| PLAN-03 | Phase 12 | Complete |
+| PLAN-04 | Phase 12 | Complete |
+| PLAN-05 | Phase 12 | Complete |
 | MENU-01 | Phase 13 | Pending |
 | MENU-02 | Phase 13 | Pending |
 | MENU-03 | Phase 13 | Pending |
