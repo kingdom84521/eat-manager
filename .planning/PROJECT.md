@@ -42,8 +42,6 @@ Users can manage their food and supplement items, track supplement inventory, an
 
 ### Active
 
-- [ ] Today's Plan: unified checkbox interface merging food plan + nutrition log + supplement routine
-- [ ] Single-item re-random with lock on full re-random when items are checked
 - [ ] My Menu: create, save, reuse meal combinations
 - [ ] Settings page accessible via icon at drawer bottom
 
@@ -51,6 +49,8 @@ Users can manage their food and supplement items, track supplement inventory, an
 
 - ✓ Sidebar drawer navigation replacing bottom tab bar — Phase 10
 - ✓ Profile page with weight log, avatar+name at drawer bottom — Phase 11
+- ✓ Unified daily plan: checkbox interface merging food plan + nutrition log + supplement routine — Phase 12
+- ✓ Single-item re-random with lock on full re-random when items are checked — Phase 12
 
 ### Recently Validated (v2.0)
 
