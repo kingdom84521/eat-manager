@@ -50,7 +50,7 @@ See: `.planning/milestones/v3.0-ROADMAP.md` for full details
 
 - [x] **Phase 14: Foundation Fix** — Rename sidebar label + fix resolveItem() to resolve user-created foods (completed 2026-04-08)
 - [x] **Phase 15: Menu Composition Editor** — Full menu editor: create/edit per-slot, food picker with search, nutritional totals, save via MenuService.update() (completed 2026-04-08)
-- [ ] **Phase 16: Inline Food Creation** — Quick-create food from within menu flow; newly created food appears immediately in picker
+- [x] **Phase 16: Inline Food Creation** — Quick-create food from within menu flow; newly created food appears immediately in picker (completed 2026-04-08)
 
 ## Phase Details
 
@@ -92,7 +92,7 @@ Plans:
   3. The quick-created food is saved to ItemService and is available in the full food list (我的食物) after the user navigates there
 **Plans**: 1 plan
 Plans:
-- [ ] 16-01-PLAN.md — Inline quick-create food form in FoodPickerPanel with auto-add to slot
+- [x] 16-01-PLAN.md — Inline quick-create food form in FoodPickerPanel with auto-add to slot
 **UI hint**: yes
 
 ## Progress
@@ -114,4 +114,4 @@ Plans:
 | 13. My Menu | v3.0 | 2/2 | Complete | 2026-04-07 |
 | 14. Foundation Fix | v4.0 | 1/1 | Complete    | 2026-04-08 |
 | 15. Menu Composition Editor | v4.0 | 2/2 | Complete    | 2026-04-08 |
-| 16. Inline Food Creation | v4.0 | 0/1 | Not started | - |
+| 16. Inline Food Creation | v4.0 | 1/1 | Complete   | 2026-04-08 |
