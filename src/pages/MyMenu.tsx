@@ -427,14 +427,22 @@ export default function MyMenu() {
 
   return (
     <div className="px-4 pt-4 pb-8">
-      <h1 className="text-xl font-bold text-slate-100 mb-4">我的菜單</h1>
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-xl font-bold text-slate-100">我的菜單</h1>
+        <button
+          onClick={() => { setEditingPreset(null); setView("editor"); }}
+          className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold transition"
+        >
+          + 新增菜單
+        </button>
+      </div>
 
       {/* Empty state */}
       {menus.length === 0 && (
         <div className="text-center py-12 text-slate-500">
           <div className="text-4xl mb-3">📋</div>
           <p className="text-base font-medium">尚無菜單</p>
-          <p className="text-sm mt-1">從今日方案儲存你的第一份菜單</p>
+          <p className="text-sm mt-1">點擊上方「+ 新增菜單」建立你的第一份菜單</p>
         </div>
       )}
 
