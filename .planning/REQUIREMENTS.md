@@ -20,8 +20,8 @@ Requirements for Menu Composition & Navigation Refinement milestone.
 - [ ] **MENU-05**: User can create a new menu from scratch by selecting food items per time slot
 - [ ] **MENU-06**: User can open an existing menu and add/remove food items per slot
 - [ ] **MENU-07**: User can search and filter the food list when picking items for a menu slot
-- [ ] **MENU-08**: Menu editor shows nutritional totals (calories, protein, fat, carbs) for the composed menu
-- [ ] **MENU-09**: Changes to a menu's food items are saved via MenuService.update()
+- [x] **MENU-08**: Menu editor shows nutritional totals (calories, protein, fat, carbs) for the composed menu
+- [x] **MENU-09**: Changes to a menu's food items are saved via MenuService.update()
 
 ### Inline Food Creation
 
@@ -67,8 +67,8 @@ Deferred to future release.
 | MENU-05 | Phase 15 | Pending |
 | MENU-06 | Phase 15 | Pending |
 | MENU-07 | Phase 15 | Pending |
-| MENU-08 | Phase 15 | Pending |
-| MENU-09 | Phase 15 | Pending |
+| MENU-08 | Phase 15 | Complete |
+| MENU-09 | Phase 15 | Complete |
 | FOOD-08 | Phase 16 | Pending |
 | FOOD-09 | Phase 16 | Pending |
 

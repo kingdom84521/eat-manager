@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Menu Composition & Navigation Refinement
-status: verifying
-stopped_at: Phase 15 plans verified
-last_updated: "2026-04-08T16:07:23.676Z"
+status: executing
+stopped_at: Completed 15-01-PLAN.md
+last_updated: "2026-04-08T16:12:02.229Z"
 last_activity: 2026-04-08
 progress:
   total_phases: 3
   completed_phases: 1
   total_plans: 3
-  completed_plans: 1
+  completed_plans: 2
   percent: 0
 ---
 
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-08)
 
 **Core value:** Users can manage food/supplement items, generate unified daily plans with checkbox logging, save/load meal presets, and track supplement inventory — all from a static site synced to Google Sheets
-**Current focus:** Phase 14 — foundation-fix
+**Current focus:** Phase 15 — menu-composition-editor
 
 ## Current Position
 
-Phase: 15
-Plan: Not started
-Status: Phase complete — ready for verification
+Phase: 15 (menu-composition-editor) — EXECUTING
+Plan: 2 of 2
+Status: Ready to execute
 Last activity: 2026-04-08
 
 Progress: [░░░░░░░░░░] 0%
@@ -42,6 +42,7 @@ Progress: [░░░░░░░░░░] 0%
 | v2.0 | 5 | 12 | 6 days |
 | v3.0 | 4 | 6 | 2 days |
 | Phase 14-foundation-fix P01 | 5 | 1 tasks | 2 files |
+| Phase 15-menu-composition-editor P01 | 8 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -51,6 +52,8 @@ Decisions are logged in PROJECT.md Key Decisions table.
 
 - [Phase 14-foundation-fix]: Synchronous localStorage read in resolveItem() avoids making it async and breaking all .map(resolveItem) call sites
 - [Phase 14-foundation-fix]: No ItemService import in resolver.ts — direct localStorage access keeps the data layer dependency-free
+- [Phase 15-menu-composition-editor]: MenuEditor defined as inline sub-component in MyMenu.tsx (not separate file) — mirrors FoodManager pattern
+- [Phase 15-menu-composition-editor]: Totals computed from raw FoodItem macros via foodMap, not resolveItem — avoids macro loss from ResolvedItem adapter
 
 ### Key Architecture Notes (v4.0)
 
@@ -81,6 +84,6 @@ Decisions are logged in PROJECT.md Key Decisions table.
 
 ## Session Continuity
 
-Last session: 2026-04-08T16:07:23.670Z
-Stopped at: Phase 15 plans verified
-Resume file: .planning/phases/15-menu-composition-editor/15-01-PLAN.md
+Last session: 2026-04-08T16:12:02.223Z
+Stopped at: Completed 15-01-PLAN.md
+Resume file: None
