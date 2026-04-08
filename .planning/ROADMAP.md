@@ -114,4 +114,4 @@ Plans:
 | 13. My Menu | v3.0 | 2/2 | Complete | 2026-04-07 |
 | 14. Foundation Fix | v4.0 | 1/1 | Complete    | 2026-04-08 |
 | 15. Menu Composition Editor | v4.0 | 2/2 | Complete    | 2026-04-08 |
-| 16. Inline Food Creation | v4.0 | 1/1 | Complete   | 2026-04-08 |
+| 16. Inline Food Creation | v4.0 | 1/1 | Complete    | 2026-04-08 |
