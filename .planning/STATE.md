@@ -7,7 +7,7 @@ stopped_at: null
 last_updated: "2026-04-08"
 last_activity: 2026-04-08
 progress:
-  total_phases: 0
+  total_phases: 3
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-08)
 
 **Core value:** Users can manage food/supplement items, generate unified daily plans with checkbox logging, save/load meal presets, and track supplement inventory — all from a static site synced to Google Sheets
-**Current focus:** Defining requirements for v4.0
+**Current focus:** Phase 14 — Foundation Fix (resolveItem() bug + sidebar rename)
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 14 — Foundation Fix
 Plan: —
-Status: Defining requirements
-Last activity: 2026-04-08 — Milestone v4.0 started
+Status: Not started
+Last activity: 2026-04-08 — Roadmap created for v4.0
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -48,6 +48,15 @@ Progress: [░░░░░░░░░░] 0%
 
 Decisions are logged in PROJECT.md Key Decisions table.
 
+### Key Architecture Notes (v4.0)
+
+- **resolveItem() fix (RES-01):** Must merge user-created foods from ItemService into the resolver's lookup so menus containing user-created food IDs don't fail silently. This is a prerequisite for all menu loading — must land in Phase 14 before any menu editor work.
+- **FoodPickerPanel:** Must be a manual slide-up panel (NOT a headlessui Dialog) — nested Dialog conflicts with the existing sidebar drawer. Build as a plain `div` with `fixed inset-x-0 bottom-0` and controlled `translate-y` transition.
+- **In-page ViewState machine:** Menu editor uses internal view state (`"list" | "editor" | "picker"`) within the existing `/menu` route — no new routes needed. Mirrors the FoodManager pattern from v2.0.
+- **QuickFoodCreate:** Minimal form only (name + serving size + macros). Not an extraction of NutritionLabelForm — different intent. Renders inline within or adjacent to FoodPickerPanel.
+- **MenuService.update():** Needs to be added to menu-service.ts. Should accept a full MenuPreset and upsert by id in the `wellness_menus` localStorage key.
+- **Per-slot structure preserved:** MenuPreset.foodItemIds remains `string[][]` (array of slots, each slot an array of food IDs). Do not flatten.
+
 ### Quick Tasks Completed
 
 | # | Description | Date | Commit | Directory |
@@ -64,10 +73,10 @@ Decisions are logged in PROJECT.md Key Decisions table.
 
 ### Blockers/Concerns
 
-(Cleared for next milestone)
+(None — roadmap defined, ready to plan Phase 14)
 
 ## Session Continuity
 
-Last session: 2026-04-07
-Stopped at: Milestone v3.0 completed
+Last session: 2026-04-08
+Stopped at: Roadmap created for v4.0
 Resume file: None

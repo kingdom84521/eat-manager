@@ -62,21 +62,21 @@ Deferred to future release.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| NAV-05 | — | Pending |
-| RES-01 | — | Pending |
-| MENU-05 | — | Pending |
-| MENU-06 | — | Pending |
-| MENU-07 | — | Pending |
-| MENU-08 | — | Pending |
-| MENU-09 | — | Pending |
-| FOOD-08 | — | Pending |
-| FOOD-09 | — | Pending |
+| NAV-05 | Phase 14 | Pending |
+| RES-01 | Phase 14 | Pending |
+| MENU-05 | Phase 15 | Pending |
+| MENU-06 | Phase 15 | Pending |
+| MENU-07 | Phase 15 | Pending |
+| MENU-08 | Phase 15 | Pending |
+| MENU-09 | Phase 15 | Pending |
+| FOOD-08 | Phase 16 | Pending |
+| FOOD-09 | Phase 16 | Pending |
 
 **Coverage:**
 - v4.0 requirements: 9 total
-- Mapped to phases: 0 (awaiting roadmap)
-- Unmapped: 9
+- Mapped to phases: 9
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-04-08*
-*Last updated: 2026-04-08 after initial definition*
+*Last updated: 2026-04-08 after roadmap creation*
