@@ -9,11 +9,11 @@ Requirements for Menu Composition & Navigation Refinement milestone.
 
 ### Navigation
 
-- [ ] **NAV-05**: Sidebar label "我的食材" renamed to "我的食物"
+- [x] **NAV-05**: Sidebar label "我的食材" renamed to "我的食物"
 
 ### Food Resolution
 
-- [ ] **RES-01**: User-created food items resolve correctly when loading a menu preset (not only static FOOD_MAP)
+- [x] **RES-01**: User-created food items resolve correctly when loading a menu preset (not only static FOOD_MAP)
 
 ### Menu Composition
 
@@ -62,8 +62,8 @@ Deferred to future release.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| NAV-05 | Phase 14 | Pending |
-| RES-01 | Phase 14 | Pending |
+| NAV-05 | Phase 14 | Complete |
+| RES-01 | Phase 14 | Complete |
 | MENU-05 | Phase 15 | Pending |
 | MENU-06 | Phase 15 | Pending |
 | MENU-07 | Phase 15 | Pending |

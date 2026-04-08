@@ -48,7 +48,7 @@ See: `.planning/milestones/v3.0-ROADMAP.md` for full details
 
 ### v4.0 Menu Composition & Navigation Refinement
 
-- [ ] **Phase 14: Foundation Fix** — Rename sidebar label + fix resolveItem() to resolve user-created foods
+- [x] **Phase 14: Foundation Fix** — Rename sidebar label + fix resolveItem() to resolve user-created foods (completed 2026-04-08)
 - [ ] **Phase 15: Menu Composition Editor** — Full menu editor: create/edit per-slot, food picker with search, nutritional totals, save via MenuService.update()
 - [ ] **Phase 16: Inline Food Creation** — Quick-create food from within menu flow; newly created food appears immediately in picker
 
@@ -64,7 +64,7 @@ See: `.planning/milestones/v3.0-ROADMAP.md` for full details
   3. User-created food items added to FOOD_MAP (or equivalent lookup) so resolveItem() returns them alongside static catalog foods
 **Plans**: 1 plan
 Plans:
-- [ ] 14-01-PLAN.md — Rename sidebar label + resolveItem() user-food fallback
+- [x] 14-01-PLAN.md — Rename sidebar label + resolveItem() user-food fallback
 
 ### Phase 15: Menu Composition Editor
 **Goal**: Users can build and edit menus slot-by-slot, see live nutritional totals, and persist changes
@@ -111,6 +111,6 @@ Plans:
 | 11. Profile Page | v3.0 | 1/1 | Complete | 2026-04-06 |
 | 12. Unified Daily Plan | v3.0 | 2/2 | Complete | 2026-04-07 |
 | 13. My Menu | v3.0 | 2/2 | Complete | 2026-04-07 |
-| 14. Foundation Fix | v4.0 | 0/? | Not started | - |
+| 14. Foundation Fix | v4.0 | 1/1 | Complete   | 2026-04-08 |
 | 15. Menu Composition Editor | v4.0 | 0/? | Not started | - |
 | 16. Inline Food Creation | v4.0 | 0/? | Not started | - |

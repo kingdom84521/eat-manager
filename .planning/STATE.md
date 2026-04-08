@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Menu Composition & Navigation Refinement
-status: Not started
-stopped_at: Phase 14 context gathered
-last_updated: "2026-04-08T15:37:41.738Z"
-last_activity: 2026-04-08 — Roadmap created for v4.0
+status: verifying
+stopped_at: Completed 14-foundation-fix-01-PLAN.md
+last_updated: "2026-04-08T15:46:06.875Z"
+last_activity: 2026-04-08
 progress:
   total_phases: 3
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  completed_phases: 1
+  total_plans: 1
+  completed_plans: 1
   percent: 0
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-08)
 
 **Core value:** Users can manage food/supplement items, generate unified daily plans with checkbox logging, save/load meal presets, and track supplement inventory — all from a static site synced to Google Sheets
-**Current focus:** Phase 14 — Foundation Fix (resolveItem() bug + sidebar rename)
+**Current focus:** Phase 14 — foundation-fix
 
 ## Current Position
 
-Phase: 14 — Foundation Fix
-Plan: —
-Status: Not started
-Last activity: 2026-04-08 — Roadmap created for v4.0
+Phase: 14 (foundation-fix) — EXECUTING
+Plan: 1 of 1
+Status: Phase complete — ready for verification
+Last activity: 2026-04-08
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -41,12 +41,16 @@ Progress: [░░░░░░░░░░] 0%
 | v1.0 | 4 | 6 | 2 days |
 | v2.0 | 5 | 12 | 6 days |
 | v3.0 | 4 | 6 | 2 days |
+| Phase 14-foundation-fix P01 | 5 | 1 tasks | 2 files |
 
 ## Accumulated Context
 
 ### Decisions
 
 Decisions are logged in PROJECT.md Key Decisions table.
+
+- [Phase 14-foundation-fix]: Synchronous localStorage read in resolveItem() avoids making it async and breaking all .map(resolveItem) call sites
+- [Phase 14-foundation-fix]: No ItemService import in resolver.ts — direct localStorage access keeps the data layer dependency-free
 
 ### Key Architecture Notes (v4.0)
 
@@ -77,6 +81,6 @@ Decisions are logged in PROJECT.md Key Decisions table.
 
 ## Session Continuity
 
-Last session: 2026-04-08T15:37:41.733Z
-Stopped at: Phase 14 context gathered
-Resume file: .planning/phases/14-foundation-fix/14-CONTEXT.md
+Last session: 2026-04-08T15:46:06.869Z
+Stopped at: Completed 14-foundation-fix-01-PLAN.md
+Resume file: None
