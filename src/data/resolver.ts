@@ -70,6 +70,28 @@ export function resolveItem(id: string): ResolvedItem | null {
     };
   }
 
+  // 最後查使用者自建食物（localStorage wellness_foods_catalog）
+  try {
+    const raw = localStorage.getItem("wellness_foods_catalog");
+    const userFoods: FoodItem[] = raw ? JSON.parse(raw) : [];
+    const userFood = userFoods.find((f) => f.id === id);
+    if (userFood) {
+      return {
+        id: userFood.id,
+        type: "food",
+        name: userFood.name,
+        dose: userFood.serving,
+        cal: userFood.cal,
+        tags: userFood.tags ?? [],
+        description: `P${userFood.protein}g / F${userFood.fat}g / C${userFood.carbs}g / Na${userFood.sodium}mg`,
+        isCore: false,
+        raw: userFood,
+      };
+    }
+  } catch {
+    // localStorage unavailable or corrupted — fall through to warn
+  }
+
   console.warn(`[resolveItem] Unknown ID: ${id}`);
   return null;
 }
