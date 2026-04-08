@@ -8,7 +8,7 @@ const NAV_ITEMS = [
   { key: "plan",          path: "/plan",        icon: "🎲", label: "今日方案" },
   { key: "foods",         path: "/foods",       icon: "🍽️", label: "我的食材" },
   { key: "menu",          path: "/menu",        icon: "📋", label: "我的菜單" },
-  { key: "supplements",   path: "/plan",        icon: "💊", label: "營養補充" },
+  { key: "supplements",   path: "/supplements",  icon: "💊", label: "營養補充" },
 ];
 
 // ── Props ──────────────────────────────────────────────────────────────────────
