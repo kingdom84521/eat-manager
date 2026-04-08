@@ -76,9 +76,10 @@ Plans:
   3. User types a keyword in the food picker search field and the list filters to matching foods only
   4. The menu editor displays calorie, protein, fat, and carb totals that update as items are added or removed
   5. Saved changes persist across page navigation and page reload (MenuService.update() called on save)
-**Plans**: 1 plan
+**Plans**: 2 plans
 Plans:
-- [ ] 14-01-PLAN.md — Rename sidebar label + resolveItem() user-food fallback
+- [ ] 15-01-PLAN.md — MenuService.update() + MenuEditor with slot cards, totals bar, save logic
+- [ ] 15-02-PLAN.md — FoodPickerPanel with search/tag filter + create/edit entry points
 **UI hint**: yes
 
 ### Phase 16: Inline Food Creation
@@ -112,5 +113,5 @@ Plans:
 | 12. Unified Daily Plan | v3.0 | 2/2 | Complete | 2026-04-07 |
 | 13. My Menu | v3.0 | 2/2 | Complete | 2026-04-07 |
 | 14. Foundation Fix | v4.0 | 1/1 | Complete    | 2026-04-08 |
-| 15. Menu Composition Editor | v4.0 | 0/? | Not started | - |
+| 15. Menu Composition Editor | v4.0 | 0/2 | Planning | - |
 | 16. Inline Food Creation | v4.0 | 0/? | Not started | - |
