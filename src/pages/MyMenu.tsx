@@ -18,8 +18,9 @@ import { SCHEDULE } from "../data/schedule";
 import { resolveItem, type ResolvedItem } from "../data/resolver";
 import { saveTodayPlan, loadTodayPlan, todayStr } from "../lib/data-service";
 import type { GeneratedSlot } from "../lib/data-service";
-import type { FoodItem } from "../data/types";
-import { FOODS } from "../data/foods";
+import type { FoodItem, HealthTag } from "../data/types";
+import { HEALTH_TAG_LABELS, HEALTH_TAG_COLORS } from "../data/types";
+import { FOODS, FOOD_MAP } from "../data/foods";
 import { ItemService } from "../lib/item-service";
 
 // ── ViewState machine ────────────────────────────────────────
@@ -88,13 +89,59 @@ function MenuEditor({ preset, onSave, onCancel }: {
     );
   }
 
-  // ── Add food handler (called by FoodPickerPanel in Plan 02) ──
+  // ── Picker search/filter state ────────────────────────────
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeTags, setActiveTags] = useState<HealthTag[]>([]);
+
+  // ── Data-derived tag list (per D-07 — NEVER hardcode) ────
+  const availableTags = useMemo(() => {
+    const tagSet = new Set<HealthTag>();
+    allFoods.forEach((f) => (f.tags ?? []).forEach((t) => tagSet.add(t)));
+    return [...tagSet].sort();
+  }, [allFoods]);
+
+  // ── Filtered food list (user-created first) ──────────────
+  const filteredFoods = useMemo(() => {
+    let result = [...allFoods].sort((a, b) => {
+      const aIsUser = !FOOD_MAP.has(a.id) ? 0 : 1;
+      const bIsUser = !FOOD_MAP.has(b.id) ? 0 : 1;
+      return aIsUser - bIsUser;
+    });
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter((f) => f.name.toLowerCase().includes(q));
+    }
+    if (activeTags.length > 0) {
+      result = result.filter((f) =>
+        activeTags.every((tag) => f.tags?.includes(tag))
+      );
+    }
+    return result;
+  }, [allFoods, searchQuery, activeTags]);
+
+  // ── Tag toggle ────────────────────────────────────────────
+  function toggleTag(tag: HealthTag) {
+    setActiveTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+    );
+  }
+
+  // ── Close picker ──────────────────────────────────────────
+  function closePicker() {
+    setActiveSlotIdx(null);
+    setSearchQuery("");
+    setActiveTags([]);
+  }
+
+  // ── Add food handler ──────────────────────────────────────
   function handleAddFood(foodId: string) {
     if (activeSlotIdx === null) return;
     setSlotFoodIds((prev) =>
       prev.map((ids, i) => (i === activeSlotIdx ? [...ids, foodId] : ids))
     );
     setActiveSlotIdx(null);
+    setSearchQuery("");
+    setActiveTags([]);
   }
 
   // ── Save handler ──────────────────────────────────────────
@@ -219,25 +266,87 @@ function MenuEditor({ preset, onSave, onCancel }: {
         </div>
       )}
 
-      {/* activeSlotIdx placeholder — FoodPickerPanel will be wired in Plan 02 */}
+      {/* Backdrop — closes picker on tap */}
       {activeSlotIdx !== null && (
-        <div className="fixed inset-x-0 bottom-0 bg-slate-900 border-t border-slate-700 p-4">
-          <p className="text-slate-400 text-sm text-center">
-            食物選擇器將於下一版本啟用
-          </p>
-          <button
-            onClick={() => setActiveSlotIdx(null)}
-            className="mt-2 w-full py-2 rounded-lg bg-slate-700 text-slate-300 text-sm"
-          >
-            關閉
-          </button>
-        </div>
+        <div
+          className="fixed inset-0 bg-black/30 z-30"
+          onClick={closePicker}
+        />
       )}
+
+      {/* FoodPickerPanel — slide-up panel (NOT a headlessui Dialog) */}
+      <div
+        className={`fixed inset-x-0 bottom-0 z-40 bg-slate-900 border-t border-slate-700 rounded-t-2xl
+          transition-transform duration-300 ease-in-out max-h-[70vh] flex flex-col
+          ${activeSlotIdx !== null ? "translate-y-0" : "translate-y-full pointer-events-none"}`}
+      >
+        {/* Drag handle */}
+        <div className="w-10 h-1 bg-slate-600 rounded-full mx-auto mt-3 mb-2" />
+
+        {/* Header with slot name */}
+        <div className="px-4 pb-2 flex items-center justify-between">
+          <span className="text-slate-200 font-medium text-sm">
+            {activeSlotIdx !== null ? SCHEDULE[activeSlotIdx]?.label ?? "選擇食物" : "選擇食物"}
+          </span>
+          <button onClick={closePicker} className="text-slate-400 hover:text-slate-200 text-sm">關閉</button>
+        </div>
+
+        {/* Search field (per D-06) */}
+        <div className="px-4 pb-2">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="搜尋食物..."
+            className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-slate-100 text-sm focus:outline-none focus:border-blue-500"
+          />
+        </div>
+
+        {/* Tag filter chips (per D-07) */}
+        {availableTags.length > 0 && (
+          <div className="px-4 pb-2 flex flex-wrap gap-1.5">
+            {availableTags.map((tag) => (
+              <button
+                key={tag}
+                onClick={() => toggleTag(tag)}
+                className={`px-2.5 py-1 rounded-full text-xs font-medium transition ${
+                  activeTags.includes(tag)
+                    ? "text-white"
+                    : "text-slate-300 bg-slate-800 hover:bg-slate-700"
+                }`}
+                style={activeTags.includes(tag) ? {
+                  backgroundColor: HEALTH_TAG_COLORS[tag],
+                } : undefined}
+              >
+                {HEALTH_TAG_LABELS[tag]}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Scrollable food list */}
+        <div className="flex-1 overflow-y-auto px-4 pb-4">
+          {filteredFoods.length === 0 ? (
+            <p className="text-center text-slate-500 py-8 text-sm">找不到符合的食物</p>
+          ) : (
+            filteredFoods.map((food) => (
+              <button
+                key={food.id}
+                onClick={() => handleAddFood(food.id)}
+                className="w-full flex items-center justify-between py-3 border-b border-slate-700/30 last:border-0 text-left hover:bg-slate-800/50 transition"
+              >
+                <div>
+                  <span className="text-slate-100 text-sm">{food.name}</span>
+                  <span className="text-slate-500 text-xs ml-2">{food.serving}</span>
+                </div>
+                <span className="text-slate-400 text-xs">{food.cal} kcal</span>
+              </button>
+            ))
+          )}
+        </div>
+      </div>
     </div>
   );
-
-  // Suppress unused warning for handleAddFood — used by Plan 02 FoodPickerPanel
-  void handleAddFood;
 }
 
 // ── MyMenu component ─────────────────────────────────────────
