@@ -48,7 +48,7 @@ Users can manage their food and supplement items, generate a unified daily plan 
 - ✓ resolveItem() resolves user-created foods from localStorage — Phase 14
 - ✓ Menu editing: open a saved menu and add/remove food items — Phase 15
 - ✓ Menu creation: build a new menu from scratch with food picker and nutritional totals — Phase 15
-- Inline food creation: add new food items from within the menu flow (sub-page/modal that doesn't compete with menu UI)
+- ✓ Inline food creation: quick-create food from within the food picker panel — Phase 16
 - Standalone food list page (我的食物) remains for browsing and editing all foods
 
 ### Out of Scope
