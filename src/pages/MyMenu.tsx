@@ -6,9 +6,11 @@
  * 瀏覽、載入、重命名、刪除已儲存的菜單預設。
  * - MENU-02: 瀏覽並載入菜單預設
  * - MENU-03: 編輯與刪除菜單預設
+ * - MENU-08: 菜單編輯器（新增/編輯食物）
+ * - MENU-09: 儲存與更新菜單預設
  */
 
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogBackdrop, DialogPanel } from "@headlessui/react";
 import { MenuService, type MenuPreset } from "../lib/menu-service";
@@ -16,6 +18,13 @@ import { SCHEDULE } from "../data/schedule";
 import { resolveItem, type ResolvedItem } from "../data/resolver";
 import { saveTodayPlan, loadTodayPlan, todayStr } from "../lib/data-service";
 import type { GeneratedSlot } from "../lib/data-service";
+import type { FoodItem } from "../data/types";
+import { FOODS } from "../data/foods";
+import { ItemService } from "../lib/item-service";
+
+// ── ViewState machine ────────────────────────────────────────
+
+type ViewState = "list" | "editor";
 
 // ── Helper ───────────────────────────────────────────────────
 
@@ -32,15 +41,228 @@ function reconstructSlots(foodItemIds: string[][]): GeneratedSlot[] {
   });
 }
 
-// ── Component ────────────────────────────────────────────────
+// ── MenuEditor sub-component ─────────────────────────────────
+
+function MenuEditor({ preset, onSave, onCancel }: {
+  preset: MenuPreset | null;
+  onSave: () => void;
+  onCancel: () => void;
+}) {
+  // ── Load foods for lookup (do NOT use resolveItem for macros) ──
+  const [allFoods, setAllFoods] = useState<FoodItem[]>([...FOODS]);
+  useEffect(() => {
+    ItemService.getFoods().then(setAllFoods);
+  }, []);
+  const foodMap = useMemo(() => new Map(allFoods.map((f) => [f.id, f])), [allFoods]);
+
+  // ── Slot state ────────────────────────────────────────────
+  const [menuName, setMenuName] = useState(preset?.name ?? "");
+  const [slotFoodIds, setSlotFoodIds] = useState<string[][]>(
+    () => SCHEDULE.map((_slot, idx) => preset?.foodItemIds[idx] ? [...preset.foodItemIds[idx]] : [])
+  );
+  const [expandedSlot, setExpandedSlot] = useState<number | null>(null);
+  const [activeSlotIdx, setActiveSlotIdx] = useState<number | null>(null);
+
+  // ── Live nutritional totals ───────────────────────────────
+  const totals = useMemo(() => {
+    const allIds = slotFoodIds.flat();
+    return allIds.reduce(
+      (acc, id) => {
+        const food = foodMap.get(id);
+        if (!food) return acc;
+        return {
+          cal: acc.cal + food.cal,
+          protein: acc.protein + food.protein,
+          fat: acc.fat + food.fat,
+          carbs: acc.carbs + food.carbs,
+        };
+      },
+      { cal: 0, protein: 0, fat: 0, carbs: 0 }
+    );
+  }, [slotFoodIds, foodMap]);
+
+  // ── Remove food handler ───────────────────────────────────
+  function handleRemoveFood(slotIdx: number, foodIdx: number) {
+    setSlotFoodIds((prev) =>
+      prev.map((ids, i) => (i === slotIdx ? ids.filter((_, j) => j !== foodIdx) : ids))
+    );
+  }
+
+  // ── Add food handler (called by FoodPickerPanel in Plan 02) ──
+  function handleAddFood(foodId: string) {
+    if (activeSlotIdx === null) return;
+    setSlotFoodIds((prev) =>
+      prev.map((ids, i) => (i === activeSlotIdx ? [...ids, foodId] : ids))
+    );
+    setActiveSlotIdx(null);
+  }
+
+  // ── Save handler ──────────────────────────────────────────
+  function handleSave() {
+    const name = menuName.trim() || `菜單 ${todayStr()}`;
+    if (preset) {
+      MenuService.update({ ...preset, name, foodItemIds: slotFoodIds });
+    } else {
+      MenuService.save({
+        id: crypto.randomUUID(),
+        name,
+        createdAt: todayStr(),
+        foodItemIds: slotFoodIds,
+      });
+    }
+    onSave();
+  }
+
+  // ── Render ────────────────────────────────────────────────
+  return (
+    <div className="min-h-screen bg-slate-950">
+      {/* Sticky totals bar */}
+      <div className="sticky top-0 z-10 bg-slate-900 border-b border-slate-700 px-4 py-3">
+        <div className="flex items-center justify-between mb-2">
+          <button
+            onClick={onCancel}
+            className="text-slate-400 hover:text-slate-200 text-sm"
+          >
+            ← 返回
+          </button>
+          <button
+            onClick={handleSave}
+            className="px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold transition"
+          >
+            儲存
+          </button>
+        </div>
+        <input
+          type="text"
+          value={menuName}
+          onChange={(e) => setMenuName(e.target.value)}
+          placeholder="菜單名稱"
+          className="w-full px-3 py-2 mb-3 rounded-lg bg-slate-800 border border-slate-600 text-slate-100 text-sm focus:outline-none focus:border-blue-500"
+        />
+        <div className="grid grid-cols-4 gap-2 text-center text-xs">
+          <div>
+            <span className="text-slate-400">熱量</span>
+            <br />
+            <span className="text-amber-400 font-bold">{totals.cal}</span>
+          </div>
+          <div>
+            <span className="text-slate-400">蛋白質</span>
+            <br />
+            <span className="text-red-400 font-bold">{totals.protein}g</span>
+          </div>
+          <div>
+            <span className="text-slate-400">脂肪</span>
+            <br />
+            <span className="text-yellow-400 font-bold">{totals.fat}g</span>
+          </div>
+          <div>
+            <span className="text-slate-400">碳水</span>
+            <br />
+            <span className="text-green-400 font-bold">{totals.carbs}g</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Slot cards or empty state */}
+      {SCHEDULE.length === 0 ? (
+        <div className="text-center py-12 text-slate-500">
+          <p className="text-base font-medium">尚無時段排程</p>
+          <p className="text-sm mt-1">請先透過 Google Sheets 設定排程</p>
+        </div>
+      ) : (
+        <div className="px-4 py-4 space-y-3">
+          {SCHEDULE.map((slot, idx) => (
+            <div
+              key={idx}
+              className="bg-slate-800/50 border border-slate-700 rounded-xl overflow-hidden"
+            >
+              <button
+                onClick={() => setExpandedSlot(expandedSlot === idx ? null : idx)}
+                className="w-full flex items-center justify-between px-4 py-3 text-left"
+              >
+                <span className="text-slate-100 font-medium">{slot.label}</span>
+                <span className="text-slate-400 text-sm">
+                  {slotFoodIds[idx]?.length ?? 0} 項
+                </span>
+              </button>
+              {expandedSlot === idx && (
+                <div className="px-4 pb-3 border-t border-slate-700/50">
+                  {(slotFoodIds[idx] ?? []).map((foodId, foodIdx) => {
+                    const food = foodMap.get(foodId);
+                    return (
+                      <div
+                        key={foodIdx}
+                        className="flex items-center justify-between py-2 border-b border-slate-700/30 last:border-0"
+                      >
+                        <span className="text-slate-200 text-sm">
+                          {food?.name ?? foodId}
+                        </span>
+                        <button
+                          onClick={() => handleRemoveFood(idx, foodIdx)}
+                          className="text-red-400 hover:text-red-300 text-xs px-2 py-1"
+                        >
+                          移除
+                        </button>
+                      </div>
+                    );
+                  })}
+                  <button
+                    onClick={() => setActiveSlotIdx(idx)}
+                    className="mt-2 w-full py-2 rounded-lg border border-dashed border-slate-600 text-slate-400 hover:text-slate-200 hover:border-slate-400 text-sm transition"
+                  >
+                    + 新增食物
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* activeSlotIdx placeholder — FoodPickerPanel will be wired in Plan 02 */}
+      {activeSlotIdx !== null && (
+        <div className="fixed inset-x-0 bottom-0 bg-slate-900 border-t border-slate-700 p-4">
+          <p className="text-slate-400 text-sm text-center">
+            食物選擇器將於下一版本啟用
+          </p>
+          <button
+            onClick={() => setActiveSlotIdx(null)}
+            className="mt-2 w-full py-2 rounded-lg bg-slate-700 text-slate-300 text-sm"
+          >
+            關閉
+          </button>
+        </div>
+      )}
+    </div>
+  );
+
+  // Suppress unused warning for handleAddFood — used by Plan 02 FoodPickerPanel
+  void handleAddFood;
+}
+
+// ── MyMenu component ─────────────────────────────────────────
 
 export default function MyMenu() {
   const navigate = useNavigate();
+  const [view, setView] = useState<ViewState>("list");
+  const [editingPreset, setEditingPreset] = useState<MenuPreset | null>(null);
   const [menus, setMenus] = useState<MenuPreset[]>(() => MenuService.getAll());
   const [confirmPreset, setConfirmPreset] = useState<MenuPreset | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<MenuPreset | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
+
+  // ── Editor view ──────────────────────────────────────────
+
+  if (view === "editor") {
+    return (
+      <MenuEditor
+        preset={editingPreset}
+        onSave={() => { setMenus(MenuService.getAll()); setView("list"); }}
+        onCancel={() => setView("list")}
+      />
+    );
+  }
 
   // ── Load logic ───────────────────────────────────────────
 
@@ -162,6 +384,13 @@ export default function MyMenu() {
               className="flex gap-1 shrink-0"
               onClick={(e) => e.stopPropagation()}
             >
+              <button
+                onClick={() => { setEditingPreset(preset); setView("editor"); }}
+                className="p-2 rounded-lg text-slate-400 hover:text-blue-400 hover:bg-slate-700 transition text-base"
+                title="編輯菜單"
+              >
+                📝
+              </button>
               <button
                 onClick={() => startRename(preset)}
                 className="p-2 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-700 transition text-base"
