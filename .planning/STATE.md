@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Menu Composition & Navigation Refinement
-status: active
-stopped_at: null
-last_updated: "2026-04-08"
-last_activity: 2026-04-08
+status: Not started
+stopped_at: Phase 14 context gathered
+last_updated: "2026-04-08T15:37:41.738Z"
+last_activity: 2026-04-08 — Roadmap created for v4.0
 progress:
   total_phases: 3
   completed_phases: 0
@@ -77,6 +77,6 @@ Decisions are logged in PROJECT.md Key Decisions table.
 
 ## Session Continuity
 
-Last session: 2026-04-08
-Stopped at: Roadmap created for v4.0
-Resume file: None
+Last session: 2026-04-08T15:37:41.733Z
+Stopped at: Phase 14 context gathered
+Resume file: .planning/phases/14-foundation-fix/14-CONTEXT.md
