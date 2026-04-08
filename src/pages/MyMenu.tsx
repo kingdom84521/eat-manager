@@ -42,6 +42,19 @@ function reconstructSlots(foodItemIds: string[][]): GeneratedSlot[] {
   });
 }
 
+// ── QuickFoodDraft interface ──────────────────────────────────
+
+interface QuickFoodDraft {
+  name: string;
+  serving: string;
+  cal: string;
+  protein: string;
+  fat: string;
+  carbs: string;
+}
+
+const EMPTY_DRAFT: QuickFoodDraft = { name: "", serving: "", cal: "0", protein: "0", fat: "0", carbs: "0" };
+
 // ── MenuEditor sub-component ─────────────────────────────────
 
 function MenuEditor({ preset, onSave, onCancel }: {
@@ -93,6 +106,11 @@ function MenuEditor({ preset, onSave, onCancel }: {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTags, setActiveTags] = useState<HealthTag[]>([]);
 
+  // ── Picker mode (list vs. quick-create form) ──────────────
+  const [pickerMode, setPickerMode] = useState<"list" | "create">("list");
+  const [draft, setDraft] = useState<QuickFoodDraft>(EMPTY_DRAFT);
+  const [saving, setSaving] = useState(false);
+
   // ── Data-derived tag list (per D-07 — NEVER hardcode) ────
   const availableTags = useMemo(() => {
     const tagSet = new Set<HealthTag>();
@@ -131,6 +149,8 @@ function MenuEditor({ preset, onSave, onCancel }: {
     setActiveSlotIdx(null);
     setSearchQuery("");
     setActiveTags([]);
+    setPickerMode("list");  // reset so next open shows list, not form
+    setDraft(EMPTY_DRAFT);
   }
 
   // ── Add food handler ──────────────────────────────────────
@@ -142,6 +162,34 @@ function MenuEditor({ preset, onSave, onCancel }: {
     setActiveSlotIdx(null);
     setSearchQuery("");
     setActiveTags([]);
+  }
+
+  // ── Quick-create food handler ─────────────────────────────
+  async function handleQuickCreate() {
+    if (!draft.name.trim() || !draft.serving.trim()) return;
+    setSaving(true);
+    try {
+      const foodItem: FoodItem = {
+        id: `food_${Date.now()}`,
+        type: "food",
+        name: draft.name.trim(),
+        serving: draft.serving.trim(),
+        cal: parseFloat(draft.cal) || 0,
+        protein: parseFloat(draft.protein) || 0,
+        fat: parseFloat(draft.fat) || 0,
+        carbs: parseFloat(draft.carbs) || 0,
+        sodium: 0,
+        source: "",
+      };
+      await ItemService.saveFood(foodItem);           // D-09: persist
+      const updated = await ItemService.getFoods();   // FOOD-09: refresh
+      setAllFoods(updated);
+      handleAddFood(foodItem.id);                     // D-07: auto-add to active slot
+      setPickerMode("list");                          // D-08: return to list view
+      setDraft(EMPTY_DRAFT);
+    } finally {
+      setSaving(false);
+    }
   }
 
   // ── Save handler ──────────────────────────────────────────
@@ -291,19 +339,21 @@ function MenuEditor({ preset, onSave, onCancel }: {
           <button onClick={closePicker} className="text-slate-400 hover:text-slate-200 text-sm">關閉</button>
         </div>
 
-        {/* Search field (per D-06) */}
-        <div className="px-4 pb-2">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="搜尋食物..."
-            className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-slate-100 text-sm focus:outline-none focus:border-blue-500"
-          />
-        </div>
+        {/* Search field (per D-06) — hidden in create mode */}
+        {pickerMode === "list" && (
+          <div className="px-4 pb-2">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="搜尋食物..."
+              className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-slate-100 text-sm focus:outline-none focus:border-blue-500"
+            />
+          </div>
+        )}
 
-        {/* Tag filter chips (per D-07) */}
-        {availableTags.length > 0 && (
+        {/* Tag filter chips (per D-07) — hidden in create mode */}
+        {pickerMode === "list" && availableTags.length > 0 && (
           <div className="px-4 pb-2 flex flex-wrap gap-1.5">
             {availableTags.map((tag) => (
               <button
@@ -324,24 +374,123 @@ function MenuEditor({ preset, onSave, onCancel }: {
           </div>
         )}
 
-        {/* Scrollable food list */}
+        {/* Scrollable area — food list or quick-create form */}
         <div className="flex-1 overflow-y-auto px-4 pb-4">
-          {filteredFoods.length === 0 ? (
-            <p className="text-center text-slate-500 py-8 text-sm">找不到符合的食物</p>
-          ) : (
-            filteredFoods.map((food) => (
+          {pickerMode === "list" ? (
+            <>
+              {/* Quick-create entry button */}
               <button
-                key={food.id}
-                onClick={() => handleAddFood(food.id)}
-                className="w-full flex items-center justify-between py-3 border-b border-slate-700/30 last:border-0 text-left hover:bg-slate-800/50 transition"
+                onClick={() => setPickerMode("create")}
+                className="w-full py-2.5 mb-3 rounded-lg border border-dashed border-blue-600 text-blue-400 hover:text-blue-300 hover:border-blue-400 text-sm transition"
               >
-                <div>
-                  <span className="text-slate-100 text-sm">{food.name}</span>
-                  <span className="text-slate-500 text-xs ml-2">{food.serving}</span>
-                </div>
-                <span className="text-slate-400 text-xs">{food.cal} kcal</span>
+                + 快速新增食物
               </button>
-            ))
+              {filteredFoods.length === 0 ? (
+                <p className="text-center text-slate-500 py-8 text-sm">找不到符合的食物</p>
+              ) : (
+                filteredFoods.map((food) => (
+                  <button
+                    key={food.id}
+                    onClick={() => handleAddFood(food.id)}
+                    className="w-full flex items-center justify-between py-3 border-b border-slate-700/30 last:border-0 text-left hover:bg-slate-800/50 transition"
+                  >
+                    <div>
+                      <span className="text-slate-100 text-sm">{food.name}</span>
+                      <span className="text-slate-500 text-xs ml-2">{food.serving}</span>
+                    </div>
+                    <span className="text-slate-400 text-xs">{food.cal} kcal</span>
+                  </button>
+                ))
+              )}
+            </>
+          ) : (
+            /* Quick-create form */
+            <div>
+              <button
+                onClick={() => { setPickerMode("list"); setDraft(EMPTY_DRAFT); }}
+                className="text-slate-400 hover:text-slate-200 text-sm mb-3"
+              >
+                ← 返回
+              </button>
+              <h3 className="text-slate-100 font-medium mb-3">快速新增食物</h3>
+              <div className="mb-3">
+                <label className="block text-slate-400 text-xs mb-1">食物名稱</label>
+                <input
+                  type="text"
+                  value={draft.name}
+                  onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))}
+                  placeholder="食物名稱"
+                  className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-slate-100 text-sm focus:outline-none focus:border-blue-500"
+                />
+              </div>
+              <div className="mb-3">
+                <label className="block text-slate-400 text-xs mb-1">份量</label>
+                <input
+                  type="text"
+                  value={draft.serving}
+                  onChange={(e) => setDraft((d) => ({ ...d, serving: e.target.value }))}
+                  placeholder="份量（如：100g, 1碗）"
+                  className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-slate-100 text-sm focus:outline-none focus:border-blue-500"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <div>
+                  <label className="block text-slate-400 text-xs mb-1">熱量 kcal</label>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    min="0"
+                    step="any"
+                    value={draft.cal}
+                    onChange={(e) => setDraft((d) => ({ ...d, cal: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-slate-100 text-sm focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-400 text-xs mb-1">蛋白質 g</label>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    min="0"
+                    step="any"
+                    value={draft.protein}
+                    onChange={(e) => setDraft((d) => ({ ...d, protein: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-slate-100 text-sm focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-400 text-xs mb-1">脂肪 g</label>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    min="0"
+                    step="any"
+                    value={draft.fat}
+                    onChange={(e) => setDraft((d) => ({ ...d, fat: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-slate-100 text-sm focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-400 text-xs mb-1">碳水 g</label>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    min="0"
+                    step="any"
+                    value={draft.carbs}
+                    onChange={(e) => setDraft((d) => ({ ...d, carbs: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-slate-100 text-sm focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+              </div>
+              <button
+                onClick={handleQuickCreate}
+                disabled={saving || !draft.name.trim() || !draft.serving.trim()}
+                className="w-full py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                新增並加入
+              </button>
+            </div>
           )}
         </div>
       </div>
