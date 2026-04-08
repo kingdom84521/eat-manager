@@ -1,12 +1,12 @@
 # Architecture Research
 
-**Domain:** Offline-first React SPA — Sidebar Drawer Navigation & Page Consolidation (v3.0)
-**Researched:** 2026-04-06
+**Domain:** Menu composition and inline food creation — React SPA with flat HashRouter (v4.0)
+**Researched:** 2026-04-08
 **Confidence:** HIGH — all decisions derived from direct codebase analysis of current source files
 
-> **Note:** This file supersedes v2.0 research (2026-03-30) for the v3.0 milestone.
-> v2.0 research remains valid as historical context — the v2.0 component architecture
-> described there is now the "existing" baseline that v3.0 builds on.
+> **Note:** This file supersedes v3.0 research (2026-04-06) for the v4.0 milestone.
+> v3.0 research remains valid as historical context — the v3.0 component architecture
+> described there is now the "existing" baseline that v4.0 builds on.
 
 ---
 
@@ -15,43 +15,53 @@
 ### System Overview
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                     App.tsx (Shell)                          │
-│  ┌────────────────────────┐  ┌──────────────────────────┐   │
-│  │   SidebarDrawer        │  │   GAS Banner (error)     │   │
-│  │   (overlay + backdrop) │  └──────────────────────────┘   │
-│  │   ┌────────────────┐   │                                  │
-│  │   │  NavItems      │   │  ┌───────────────────────────┐  │
-│  │   │  /plan         │   │  │  Routes (content area)    │  │
-│  │   │  /foods        │   │  │  /plan    → UnifiedPlan   │  │
-│  │   │  /supplements  │   │  │  /foods   → FoodManager   │  │
-│  │   │  /menu         │   │  │  /supps   → SupplMgr      │  │
-│  │   │  /weight       │   │  │  /menu    → MyMenu        │  │
-│  │   ├────────────────┤   │  │  /weight  → WeightLog     │  │
-│  │   │  ProfileLink   │   │  │  /profile → Profile       │  │
-│  │   │  SettingsLink  │   │  │  /settings→ Settings      │  │
-│  │   └────────────────┘   │  └───────────────────────────┘  │
-│  └────────────────────────┘                                  │
-└─────────────────────────────────────────────────────────────┘
-         ↓                              ↓
-┌─────────────────┐          ┌─────────────────────────────┐
-│  SettingsService │          │  DataService / ItemService  │
-│  (localStorage) │          │  (localStorage + SheetsAPI) │
-└─────────────────┘          └─────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│                        Presentation Layer                            │
+│                                                                      │
+│  ┌──────────┐  ┌──────────┐  ┌──────────────────────────────────┐  │
+│  │UnifiedPlan│  │FoodManager│ │       MyMenu (MODIFIED)          │  │
+│  │  /plan   │  │  /foods  │  │            /menu                 │  │
+│  └──────────┘  └──────────┘  │                                  │  │
+│                               │  ┌────────────────────────────┐ │  │
+│  ┌──────────┐  ┌──────────┐  │  │  view state machine        │ │  │
+│  │Supplement│  │  Profile │  │  │  "list" | "compose" |      │ │  │
+│  │  /supp.  │  │ /profile │  │  │  "pick-food"               │ │  │
+│  └──────────┘  └──────────┘  └──────────────────────────────────┘  │
+│                                                                      │
+│  ┌────────────────────────┐  ┌──────────────────────────────────┐  │
+│  │  FoodPickerPanel (NEW) │  │    QuickFoodCreate (NEW)         │  │
+│  │  src/components/       │  │    src/components/               │  │
+│  │  searchable list,      │  │    headlessui Dialog over panel  │  │
+│  │  multi-select, add btn │  │    minimal nutrition form        │  │
+│  └────────────────────────┘  └──────────────────────────────────┘  │
+├─────────────────────────────────────────────────────────────────────┤
+│                         Service Layer                                │
+│                                                                      │
+│  ┌────────────────┐  ┌────────────────┐  ┌────────────────────┐    │
+│  │  MenuService   │  │  ItemService   │  │   DataService      │    │
+│  │  + update()    │  │ (unchanged)    │  │  (unchanged)       │    │
+│  │  (EXTENDED)    │  │                │  │                    │    │
+│  └────────────────┘  └────────────────┘  └────────────────────┘    │
+├─────────────────────────────────────────────────────────────────────┤
+│                          Data Layer                                  │
+│                                                                      │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐      │
+│  │ localStorage │  │ Google Sheets│  │  Hardcoded Catalogs  │      │
+│  │  (primary)   │  │  (async bg)  │  │  (FOODS, SUPPLEMENTS)│      │
+│  └──────────────┘  └──────────────┘  └──────────────────────┘      │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Component Responsibilities
 
-| Component | Responsibility | Typical Implementation |
-|-----------|----------------|------------------------|
-| `App.tsx` | Shell: drawer open/close state, GAS check, routes | `useState(drawerOpen)`, HashRouter routes |
-| `SidebarDrawer` | Overlay nav, open/close animation, nav links, profile+settings links at bottom | Fixed overlay, `translate-x` CSS transition |
-| `UnifiedPlan` (replaces `DailyPlan`) | Today's plan + nutrition log + supplement routine as one checkbox interface | Tabs or sections within single page |
-| `MyMenu` | Create/save/reuse named meal combinations | New page, `ItemService` or new `MenuService` |
-| `Profile` | Weight log display + avatar + name entry | Extracts from existing `WeightLog` + new avatar/name fields |
-| `Settings` | Unchanged — BMR, guidelines, Sheets config | No change to internal logic |
-| `FoodManager` | Unchanged from v2.0 | No change |
-| `SupplementManager` | Unchanged from v2.0 | No change |
+| Component | Responsibility | Where |
+|-----------|----------------|-------|
+| `MyMenu` (modified) | View-state router: list / compose / pick-food modes. List, rename, delete, load, edit, create menus. | `src/pages/MyMenu.tsx` |
+| `FoodPickerPanel` (new) | Searchable food grid with multi-select. Hosts "新增食材" button. Slides up over content area. | `src/components/FoodPickerPanel.tsx` |
+| `QuickFoodCreate` (new) | Minimal nutrition form as headlessui Dialog. Opens over FoodPickerPanel. | `src/components/QuickFoodCreate.tsx` |
+| `FoodManager` (unchanged) | Full food CRUD — canonical add/edit/compose flows. Not involved in menu composition. | `src/pages/FoodManager.tsx` |
+| `SidebarDrawer` (label change only) | "我的食材" → "我的食物" string change in `NAV_ITEMS`. No structural change. | `src/components/SidebarDrawer.tsx` |
+| `MenuService` (extended) | Gains `update(id, patch)` for editing existing preset's `name` and `foodItemIds`. | `src/lib/menu-service.ts` |
 
 ---
 
@@ -59,250 +69,280 @@
 
 ```
 src/
-├── components/
-│   └── SidebarDrawer.tsx      # NEW — drawer nav component
 ├── pages/
-│   ├── UnifiedPlan.tsx        # NEW — replaces DailyPlan.tsx
-│   ├── MyMenu.tsx             # NEW — menu management
-│   ├── Profile.tsx            # NEW — weight + avatar/name
-│   ├── FoodManager.tsx        # Unchanged (v2.0)
-│   ├── SupplementManager.tsx  # Unchanged (v2.0)
-│   ├── WeightLog.tsx          # Retire — absorb into Profile.tsx
-│   ├── NutritionTracker.tsx   # Retire — absorb into UnifiedPlan.tsx
-│   ├── SupplementSchedule.tsx # Retire — absorb into UnifiedPlan.tsx
-│   └── Settings.tsx           # Unchanged
-├── lib/
-│   ├── menu-service.ts        # NEW — menu CRUD
-│   ├── item-service.ts        # Unchanged (v2.0)
-│   ├── data-service.ts        # Minor: expose nutrition log write for UnifiedPlan
-│   ├── settings-service.ts    # Extend: add displayName + avatarInitials fields
-│   └── sheets-api.ts          # Unchanged
-└── App.tsx                    # MODIFY — drawer state, updated routes, no bottom nav
+│   ├── MyMenu.tsx              # MODIFIED: gains compose + create-from-scratch modes
+│   └── FoodManager.tsx         # UNCHANGED
+├── components/
+│   ├── SidebarDrawer.tsx       # MODIFIED: label change only
+│   ├── FoodPickerPanel.tsx     # NEW: shared food picker used by MyMenu
+│   └── QuickFoodCreate.tsx     # NEW: inline food creation modal
+└── lib/
+    └── menu-service.ts         # MODIFIED: add update() method
 ```
+
+All other files are **unchanged** in this milestone.
 
 ### Structure Rationale
 
-- **`src/components/`:** Introduced for the first time because `SidebarDrawer` is a true shared layout component, not a page. All other shared sub-components (`TagBadge`, `ItemCard`, etc.) currently live inline in pages — that stays unchanged.
-- **Three retired pages:** `WeightLog`, `NutritionTracker`, `SupplementSchedule` are not deleted immediately — their logic is extracted and re-homed, but they can stay as files until the phase that absorbs them is complete (safety net against regressions).
+- **`FoodPickerPanel` in `components/`:** The food picker is a reusable display widget — not a page. It has no route of its own. Placing it in `components/` is consistent with `SidebarDrawer` and `WeightSection`, which are the existing non-page components.
+- **`QuickFoodCreate` in `components/`:** It wraps a stripped-down nutrition form. Keeping it in `components/` avoids importing across page boundaries and makes the dependency clear: `FoodPickerPanel` uses `QuickFoodCreate`, `MyMenu` uses `FoodPickerPanel`.
+- **No new routes:** All new UI lives inside `/menu` via in-page view state. New routes would require serialising draft state to URL params and would break the drawer's auto-close-on-navigate behaviour (see Anti-Patterns below).
 
 ---
 
 ## Architectural Patterns
 
-### Pattern 1: Drawer-as-Shell in App.tsx
+### Pattern 1: In-Page View State Machine (recommended for MyMenu)
 
-**What:** `App.tsx` owns `drawerOpen: boolean` state and renders `<SidebarDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />` as a sibling to `<Routes>`. A hamburger button in each page header (or in a thin top bar) calls `setDrawerOpen(true)`.
+**What:** `MyMenu` adds a `MenuViewState` discriminated union to switch between `list`, `compose`, and `pick-food` modes without creating new routes. The same pattern already exists in `FoodManager` (`type ViewState = "list" | "add" | "edit" | "compose"`).
 
-**When to use:** The drawer is an app-level concern. Pages do not manage it.
+**When to use:** Sub-views that are not bookmarkable, that belong conceptually to one page, and where the in-progress data context (the menu being composed) must survive without URL params or global state.
 
-**Trade-offs:** Pages need a way to open the drawer. Options: (a) pass `onOpenDrawer` prop to every page — verbose; (b) use a shared context — one valid exception to the no-Context rule; (c) put a fixed top bar in `App.tsx` with the hamburger — cleanest, zero prop threading.
+**Trade-offs:** Simple, zero router changes, consistent with the codebase. Cannot deep-link to "edit menu X" directly — acceptable for a personal single-user app.
 
-**Recommended approach:** Fixed top bar in `App.tsx` (option c). 40px height, contains hamburger left and page title center. No prop drilling.
-
+**Example:**
 ```typescript
-// App.tsx
-const [drawerOpen, setDrawerOpen] = useState(false);
+type MenuViewState =
+  | { mode: "list" }
+  | { mode: "compose"; presetId: string | null }   // null = new menu
+  | { mode: "pick-food"; presetId: string | null }; // opens FoodPickerPanel
 
-return (
-  <div className="min-h-screen bg-slate-950 text-slate-100 max-w-xl mx-auto">
-    <SidebarDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
-    {/* Fixed top bar */}
-    <header className="fixed top-0 left-0 right-0 max-w-xl mx-auto h-10 flex items-center px-4 bg-slate-900/95 z-40">
-      <button onClick={() => setDrawerOpen(true)}>☰</button>
-      <PageTitle /> {/* derived from current route */}
-    </header>
-    <div className="pt-10">
-      <Routes>...</Routes>
-    </div>
-  </div>
-);
+// MyMenu.tsx
+const [view, setView] = useState<MenuViewState>({ mode: "list" });
+const [draft, setDraft] = useState<{ name: string; foodItemIds: string[][] }>({
+  name: "",
+  foodItemIds: SCHEDULE.map(() => []),
+});
 ```
 
-### Pattern 2: SidebarDrawer as Fixed Overlay
+### Pattern 2: headlessui Dialog for QuickFoodCreate
 
-**What:** `SidebarDrawer` renders as a fixed overlay with a semi-transparent backdrop. The drawer panel slides in from the left using a CSS `translate-x` transition driven by the `open` prop.
+**What:** When the user taps "新增食材" inside `FoodPickerPanel`, a `headlessui Dialog` opens over the picker. On save, the dialog calls `ItemService.saveFood()`, the picker re-reads the food list, auto-selects the new item, and the dialog closes.
 
-**When to use:** Standard mobile drawer pattern — no library needed, pure Tailwind.
+**When to use:** When the sub-task (food creation) is short, self-contained, and must not discard the parent context (the menu composition draft).
 
-**Trade-offs:** Requires `z-50` to sit above page content. The backdrop click closes the drawer (call `onClose`). Route changes (via `NavLink` click) must also close the drawer — handle via `useEffect` watching `location.pathname`.
+**Trade-offs:** headlessui `Dialog` provides focus trap + Escape-to-close already used in the project. Two UI layers (`FoodPickerPanel` at `z-30`, `QuickFoodCreate` Dialog at `z-50`) require care. The project already uses `z-50` for all confirmation dialogs in `MyMenu` — keep that convention for `QuickFoodCreate`.
 
+**Example:**
 ```typescript
-// SidebarDrawer.tsx — structure
-export function SidebarDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const location = useLocation();
-  useEffect(() => { onClose(); }, [location.pathname]); // close on nav
+// Inside FoodPickerPanel.tsx
+const [quickCreateOpen, setQuickCreateOpen] = useState(false);
 
-  return (
-    <>
-      {/* Backdrop */}
-      {open && <div className="fixed inset-0 bg-black/50 z-40" onClick={onClose} />}
-      {/* Panel */}
-      <div className={`fixed top-0 left-0 h-full w-64 bg-slate-900 z-50 transform transition-transform duration-200 ${open ? "translate-x-0" : "-translate-x-full"}`}>
-        {/* Nav links */}
-        <nav className="flex-1 px-3 py-6 space-y-1">
-          <NavLink to="/plan">今日方案</NavLink>
-          <NavLink to="/foods">食材管理</NavLink>
-          <NavLink to="/supplements">補品管理</NavLink>
-          <NavLink to="/menu">我的菜單</NavLink>
-          <NavLink to="/weight">體重紀錄</NavLink>
-        </nav>
-        {/* Bottom anchored links */}
-        <div className="absolute bottom-0 left-0 right-0 px-3 py-4 border-t border-slate-800">
-          <NavLink to="/profile">個人資料</NavLink>
-          <NavLink to="/settings">⚙️ 設定</NavLink>
-        </div>
-      </div>
-    </>
-  );
+async function handleQuickSave(food: FoodItem) {
+  await ItemService.saveFood(food);
+  setFoods(await ItemService.getFoods()); // reload so new item appears
+  setSelected((prev) => new Set([...prev, food.id])); // auto-select
+  setQuickCreateOpen(false);
 }
 ```
 
-### Pattern 3: UnifiedPlan — Tabs Within One Page
+### Pattern 3: Slide-up Panel (not Dialog) for FoodPickerPanel
 
-**What:** `UnifiedPlan` (`/plan`) combines three existing views: food plan generation (from `DailyPlan`), nutrition log summary (from `NutritionTracker`), and supplement routine (from `SupplementSchedule`). These are rendered as **tab sections within a single page** rather than separate routes.
+**What:** `FoodPickerPanel` renders as a `position: fixed` bottom-anchored panel inside the page content area — not as a headlessui `Dialog`. It is conditionally shown with a CSS transition on `transform: translateY`.
 
-**When to use:** The three views share a "today" context. Merging them removes the need to navigate between tabs to complete a single daily workflow (check food → check supplements → verify nutrition).
+**When to use:** The picker is a large scrollable list that covers most of the screen. It should feel like a drawer sliding up, not a blocking modal. Using a full `Dialog` here would create headlessui focus-trap conflicts when `QuickFoodCreate` (also a Dialog) needs to open on top.
 
-**Trade-offs:** The page becomes larger. Keep sub-sections as named sub-components within the file (matching existing convention). State for each section stays local to its sub-component where possible.
+**Trade-offs:** Manual focus management is required if accessibility is critical (not a current constraint for this single-user app). The panel does not get a headlessui focus trap, but it has its own close button and captures clicks via the backdrop.
 
-**Checkbox logging pattern:** Checking a food plan item logs it as a `NutritionEntry`. Unchecking removes the log entry. The "lock on check" rule: once any item is checked, the "全部重新隨機" button is hidden; only per-item swap (🔄) remains available.
-
-```typescript
-// Internal tab state — no router involvement
-type PlanTab = "food" | "supplements";
-const [activeTab, setActiveTab] = useState<PlanTab>("food");
+**Implementation:**
+```tsx
+// FoodPickerPanel.tsx — positioning
+<div className={`fixed inset-x-0 bottom-0 top-10 z-30 flex flex-col
+  bg-slate-900 border-t border-slate-700
+  transition-transform duration-300
+  ${isOpen ? "translate-y-0" : "translate-y-full"}`}>
+  {/* search bar, food grid, confirm button */}
+</div>
+{/* backdrop */}
+{isOpen && (
+  <div className="fixed inset-0 z-20 bg-black/40" onClick={onClose} />
+)}
 ```
 
-### Pattern 4: Profile Page — Extracted from WeightLog + New Fields
+### Pattern 4: MenuComposer as Sub-View Inside MyMenu
 
-**What:** `/profile` hosts weight log display (lifted from `WeightLog.tsx`) plus new display-name and avatar-initials fields. The weight log input form that was inline in `WeightLog` moves here.
+**What:** When `view.mode === "compose"`, `MyMenu` renders a "compose" sub-view inline (not in a modal, not a new route). This sub-view shows: a menu name input, a list of time slots (from `SCHEDULE`), food chips per slot with remove buttons, and "新增食物" buttons that trigger `pick-food` mode.
 
-**When to use:** The PRD places "weight log + avatar+name" at the drawer bottom as a profile concept, distinct from Settings (which is technical config).
+**When to use:** The compose view is the primary feature of this page. It needs the full content area.
 
-**Trade-offs:** `SettingsService` must be extended to persist `displayName` and `avatarInitials`. These are profile fields, not BMR configuration, but they live in the same localStorage key (`eat_manager_settings`) under the existing `userProfile` object — cleanest approach, no new key needed.
-
-```typescript
-// Extend UserProfile in types.ts
-export interface UserProfile {
-  // ... existing fields ...
-  displayName?: string;       // "王小明"
-  avatarInitials?: string;    // "王" — shown as avatar circle
-}
-```
-
-### Pattern 5: MyMenu Service
-
-**What:** `MenuService` manages named meal combinations. A menu is a user-created grouping of food IDs with a name. Users can apply a menu to a plan slot, replacing the randomly picked items.
-
-**When to use:** The feature is self-contained enough to warrant its own service module, following the `ItemService` / `DataService` singleton pattern.
-
-**Trade-offs:** Menus are personal config, not logs. They belong in localStorage with optional Sheets sync. `MenuService` mirrors `ItemService` pattern exactly.
-
-```typescript
-export interface MenuItem {
-  id: string;          // "menu_1712345678"
-  name: string;        // "我的早餐套餐"
-  foodIds: string[];   // food item IDs from ItemService
-  notes?: string;
-}
-
-export const MenuService = {
-  async getMenus(): Promise<MenuItem[]>,
-  async saveMenu(menu: MenuItem): Promise<void>,  // upsert by id
-  async deleteMenu(id: string): Promise<void>,
-};
-```
-
-LocalStorage key: `wellness_menus` (under existing `wellness_` prefix).
-Sheets tab: `menus` (optional — add only if user wants cross-device sync).
+**Trade-offs:** `MyMenu.tsx` will grow to ~250-300 LOC — within the established convention (existing pages are 80-160 LOC each, but `FoodManager` already exceeds 400 LOC with its state machine). Consider extracting `MenuComposerView` as a file-local sub-component when the file exceeds 300 LOC.
 
 ---
 
 ## Data Flow
 
-### Request Flow: Drawer Navigation
+### Menu Composition Flow
 
 ```
-User taps hamburger (top bar)
+User taps "建立新菜單"
     ↓
-App.tsx setDrawerOpen(true)
+MyMenu: setView({ mode: "compose", presetId: null })
+        setDraft({ name: "", foodItemIds: SCHEDULE.map(() => []) })
     ↓
-SidebarDrawer renders (open=true → translate-x-0)
+Compose sub-view renders: name input + slot rows + "新增食物" per slot
     ↓
-User taps NavLink → HashRouter navigates
+User taps "新增食物" on slot N
     ↓
-SidebarDrawer useEffect [location.pathname] → onClose()
+MyMenu: setView({ mode: "pick-food", presetId: null })
+        FoodPickerPanel receives slotIdx = N
     ↓
-App.tsx setDrawerOpen(false)
+FoodPickerPanel: ItemService.getFoods() on mount → display list
     ↓
-SidebarDrawer slides out (translate-x-full)
+User selects food(s) → taps "確認"
+    ↓
+FoodPickerPanel: onConfirm(slotIdx, selectedIds)
+    ↓
+MyMenu: draft.foodItemIds[slotIdx] = selectedIds
+        setView({ mode: "compose", presetId: null })
+    ↓
+User taps "儲存"
+    ↓
+presetId === null:
+  MenuService.save({ id: crypto.randomUUID(), name, foodItemIds, createdAt })
+presetId !== null:
+  MenuService.update(presetId, { name, foodItemIds })
+    ↓
+MyMenu: setView({ mode: "list" })
+        setMenus(MenuService.getAll())
 ```
 
-### Request Flow: UnifiedPlan Checkbox → Nutrition Log
+### Inline Food Creation Flow
 
 ```
-User checks food item in UnifiedPlan
+User taps "新增食材" inside FoodPickerPanel
     ↓
-handleCheckFood(itemId, checked)
+FoodPickerPanel: setQuickCreateOpen(true)
     ↓
-if (checked):
-  DataService.logMeal({
-    date: todayStr(),
-    meal: slot.mealType,    // "breakfast" | "lunch" etc.
-    items_json: JSON.stringify([itemId]),
-    calories: item.cal,
-    protein: item.protein,
-    ...
-  })
-  setCheckedIds(prev => new Set([...prev, itemId]))
-  setLocked(true)           // lock full re-random
-else:
-  DataService.removeMealEntry(itemId, todayStr())   // NEW method needed
-  setCheckedIds(prev => { prev.delete(itemId); return new Set(prev) })
-  if (checkedIds.size === 0) setLocked(false)
+QuickFoodCreate Dialog opens (z-50, above panel at z-30)
+    ↓
+User fills: name, serving, cal, protein, fat, carbs, sodium
+    ↓
+QuickFoodCreate: await ItemService.saveFood(food)
+    ↓
+FoodPickerPanel callback: reload foods, auto-select new item id
+    ↓
+Dialog closes — picker panel visible with new item highlighted/selected
 ```
 
-### Request Flow: MyMenu — Apply to Plan Slot
+### Edit Existing Menu Flow
 
 ```
-User opens MyMenu picker from a plan slot
+User taps "編輯" on menu card in list view
     ↓
-MenuService.getMenus() → MenuItem[]
+MyMenu: setView({ mode: "compose", presetId: preset.id })
+        setDraft({ name: preset.name, foodItemIds: preset.foodItemIds })
     ↓
-User selects menu → onApplyMenu(menu)
+Compose sub-view renders pre-populated with existing items
     ↓
-UnifiedPlan replaces slot items with menu.foodIds
-  (resolveItems(menu.foodIds) → ResolvedItem[])
+... same composition flow as above ...
     ↓
-These items are pre-checked (auto-log them)
-setSaved(false)  // plan needs re-save
+User taps "儲存" → MenuService.update(presetId, { name, foodItemIds })
 ```
 
 ### State Management
 
 ```
-App.tsx (shell state)
-  drawerOpen: boolean
-  gasBroken: string | false
+No global state. Read-on-render from services.
 
-UnifiedPlan (page-local state)
-  plan: GeneratedSlot[] | null      ← from DailyPlan
-  checkedIds: Set<string>           ← NEW
-  locked: boolean                   ← NEW (no full re-random when checked)
-  takenStates: Map<string, TakenState>  ← from SupplementSchedule
-  nutritionTargets: ComputedTargets | null  ← from NutritionTracker
+MyMenu local state:
+  view: MenuViewState              — which sub-view is active
+  draft: { name, foodItemIds[][] } — menu being composed (in-memory only)
+  menus: MenuPreset[]              — from MenuService.getAll() on mount + after mutations
 
-Profile (page-local state)
-  entries: WeightEntry[]            ← from WeightLog
-  displayName: string               ← from SettingsService
-  avatarInitials: string            ← from SettingsService
+FoodPickerPanel local state:
+  foods: FoodItem[]                — from ItemService.getFoods() on mount
+  selected: Set<string>           — food IDs selected in this session
+  search: string                   — filter input
+  quickCreateOpen: boolean         — whether QuickFoodCreate Dialog is open
 ```
 
-### Key Data Flows
+---
 
-1. **Plan generation lock:** `locked` state in `UnifiedPlan` prevents full re-random when `checkedIds.size > 0`. Single-item swap (🔄 button on each card) is always available — it only affects one slot, not the full plan.
-2. **Cross-section shared date:** All three sections in `UnifiedPlan` derive from `todayStr()` — computed once at render, passed down to sub-sections. No date sync needed between sections.
-3. **SettingsService read-on-render:** `Profile` and `Settings` read from `SettingsService` synchronously at render time — existing pattern, unchanged. No React state for settings at page level; re-renders happen on form submit which saves then forces re-read.
+## Integration Points
+
+### Modified Files
+
+| File | Change | Risk |
+|------|--------|------|
+| `src/pages/MyMenu.tsx` | Add `MenuViewState`, draft state, compose/pick-food sub-views. Add "建立菜單" button and "編輯" button on cards. | Medium — replaces simple list render with mode router. Existing list + rename + delete + load logic is unchanged. |
+| `src/components/SidebarDrawer.tsx` | Change `label` string `"我的食材"` → `"我的食物"` in `NAV_ITEMS`. Nothing else. | Trivial |
+| `src/lib/menu-service.ts` | Add `update(id, patch)` method. | Minimal — additive only, no existing callers change. |
+
+### New Files
+
+| File | Exports | Depends On |
+|------|---------|------------|
+| `src/components/FoodPickerPanel.tsx` | `FoodPickerPanel` component | `ItemService`, `QuickFoodCreate` |
+| `src/components/QuickFoodCreate.tsx` | `QuickFoodCreate` component | `ItemService`, headlessui `Dialog` |
+
+### MenuService.update() Signature
+
+```typescript
+// Add to menu-service.ts alongside rename() and delete()
+update(id: string, patch: Partial<Pick<MenuPreset, "name" | "foodItemIds">>): void {
+  const updated = this.getAll().map((p) =>
+    p.id === id ? { ...p, ...patch } : p
+  );
+  cacheSet(MENU_KEY, updated);
+},
+```
+
+### NutritionLabelForm: Duplicate vs Extract
+
+`NutritionLabelForm` is currently a file-local sub-component inside `FoodManager.tsx` (~120 LOC). `QuickFoodCreate` needs a smaller version. Two options:
+
+**Option A — Extract to `src/components/NutritionLabelForm.tsx`:** Clean reuse. Requires touching the working `FoodManager.tsx`.
+
+**Option B — Write a stripped-down form in `QuickFoodCreate.tsx`:** Quicker, no refactor risk. The quick-create form intentionally omits tags, source, ingredients — it is not just a smaller version of the full form, it is a different interaction.
+
+**Recommendation: Option B.** The forms diverge in intent. The quick-create form needs only: name, serving, cal, protein, fat, carbs, sodium — all on one screen, no sub-views, no Open Food Facts search. Add `// TODO: consolidate with NutritionLabelForm in FoodManager if forms converge` as a comment.
+
+---
+
+## Anti-Patterns
+
+### Anti-Pattern 1: New Routes for Menu Composition Sub-Views
+
+**What people do:** Add `/menu/compose` and `/menu/compose/:id` as HashRouter routes, use `useParams` to load the preset.
+
+**Why it's wrong for this project:**
+- `App.tsx` contains `useEffect([location.pathname]) → setDrawerOpen(false)`. Adding sub-routes under `/menu` would not trigger this (pathname stays `/menu/compose`), creating silent inconsistency.
+- Draft state (the menu being built) cannot survive a route change without URL serialisation or global state — neither exists in this codebase.
+- The existing `FoodManager` page handles its own four sub-views (`list`, `add`, `edit`, `compose`) via local state with zero router involvement. Consistency matters.
+
+**Do this instead:** View state machine inside `MyMenu` — `type MenuViewState = "list" | "compose" | "pick-food"`.
+
+### Anti-Pattern 2: Loading All Foods on MyMenu Mount (List View)
+
+**What people do:** Call `ItemService.getFoods()` in `MyMenu`'s top-level `useEffect` to have foods ready.
+
+**Why it's wrong:** `ItemService.getFoods()` merges the hardcoded catalog + localStorage and fires a background Sheets fetch. The list view shows no foods — loading them wastes a Sheets call and ~100+ item merge on every visit to the menu list.
+
+**Do this instead:** Load foods only inside `FoodPickerPanel`'s own `useEffect` — triggered only when the picker mounts (i.e., when the user enters pick-food mode).
+
+### Anti-Pattern 3: Opening FoodPickerPanel as a headlessui Dialog
+
+**What people do:** Use `headlessui Dialog` for the picker panel, same as the confirmation dialogs already in `MyMenu`.
+
+**Why it's wrong:** `QuickFoodCreate` also needs to be a Dialog (it needs focus trap and Escape handling). Two nested headlessui Dialogs cause stacking and focus-trap conflicts. headlessui's focus trap attaches to the outermost open Dialog.
+
+**Do this instead:** `FoodPickerPanel` as a manually animated `position: fixed` panel with a backdrop `div`. Only `QuickFoodCreate` uses headlessui `Dialog`. Z-index: backdrop `z-20`, panel `z-30`, Dialog `z-50`.
+
+### Anti-Pattern 4: Storing Draft `foodItemIds` in localStorage
+
+**What people do:** Persist the in-progress menu draft to localStorage so it survives accidental navigation.
+
+**Why it's wrong:** The compose flow is fast (< 2 minutes), single-session. Persisting draft state creates orphan data if the user navigates away intentionally and adds complexity for resume-draft logic.
+
+**Do this instead:** Draft state is `useState` in `MyMenu`. If the user taps "取消" or navigates away, the draft is discarded. The menu list is unchanged until "儲存" is called.
+
+### Anti-Pattern 5: Adding a "pick-food" Button to FoodManager's Compose View
+
+**What people do:** Reuse `FoodManager`'s existing compose logic inside `MyMenu` by linking to `/foods?mode=compose`.
+
+**Why it's wrong:** `FoodManager`'s compose mode is for building a single food item from ingredient foods (e.g., "自製便當 = 雞胸肉 + 白飯 + 青花菜"). `MyMenu`'s composition is for selecting which foods appear in a meal. They are different operations with different UX.
+
+**Do this instead:** Build `FoodPickerPanel` as a separate component purpose-built for "pick foods for a menu slot."
 
 ---
 
@@ -310,186 +350,36 @@ Profile (page-local state)
 
 | Scale | Architecture Adjustments |
 |-------|--------------------------|
-| Single user (current) | App-level `useState` for drawer. No Context needed. |
-| If multiple pages need drawer state | Add a `DrawerContext` — one valid exception to the no-Context rule. But wait until the need is real; the top-bar approach avoids this entirely. |
-| If `UnifiedPlan` becomes too large | Extract `FoodPlanSection`, `SupplementSection`, `NutritionSummary` as named sub-components within the same file — matching existing convention (`TagBadge`, `ItemCard` inline). |
-| If `MenuService` grows | The `MenuItem` model is simple. Scaling concern is only localStorage size — 50 menus × ~500 bytes = ~25 KB, well within limit. |
-
-### Scaling Priorities
-
-1. **First concern:** `UnifiedPlan.tsx` will be the largest page (~250-350 LOC). Keep sub-components inline as per existing convention. Do not split into separate files until it exceeds ~500 LOC.
-2. **Second concern:** Drawer open/close state in `App.tsx` is sufficient. If other pages need to trigger drawer close (e.g., a "back" action in a sub-page), use `useNavigate(-1)` — the drawer auto-closes on route change via the `useEffect`.
+| Single user, offline-first (current) | `localStorage` as primary, Sheets optional. All state local to `MyMenu`. No changes needed. |
+| If menus need Sheets sync | Add Sheets integration to `MenuService` following `ItemService` pattern: `SheetsAPI.upsertById("menus", preset)`. The `update()` method added in this milestone already has the right patch shape. No architectural change required. |
+| If food picker becomes slow | The picker's search filter already reduces visible count. Virtual rendering only needed if catalog exceeds ~500 items. Use a simple `slice` + "載入更多" button before reaching for a virtualisation library. |
+| If `MyMenu.tsx` grows too large | Extract `MenuComposerView` as a file-local sub-component (following the `TagBadge`, `ItemCard` inline convention in `DailyPlan.tsx` and `Section` in `SupplementSchedule.tsx`). Split to a separate file only if it exceeds ~500 LOC. |
 
 ---
 
-## Anti-Patterns
+## Build Order
 
-### Anti-Pattern 1: Separate routes for plan sections
+Dependencies flow strictly downward. Each step must compile and render before the next begins.
 
-**What people do:** Keep `/plan`, `/track`, `/schedule` as separate routes and just replace the tab bar with drawer links pointing to three different URLs.
+| Step | Scope | Files Changed | Gate |
+|------|-------|---------------|------|
+| 1 | **SidebarDrawer label rename** | `SidebarDrawer.tsx` — 1 string | Sidebar shows "我的食物". Zero functional change. |
+| 2 | **MenuService.update()** | `menu-service.ts` — add method | TypeScript compiles. No callers yet. |
+| 3 | **QuickFoodCreate component** | `components/QuickFoodCreate.tsx` — new | Component renders, saves a food via `ItemService`, dialog opens/closes. Can test standalone. |
+| 4 | **FoodPickerPanel component** | `components/FoodPickerPanel.tsx` — new | Panel slides up, shows searchable foods, multi-select works, "確認" fires `onConfirm`, "新增食材" opens QuickFoodCreate. |
+| 5 | **MyMenu view state machine** | `pages/MyMenu.tsx` — modify | "建立菜單" opens compose view. Compose view shows slots + "新增食物". "新增食物" opens picker. Selection updates draft. "儲存" calls `MenuService.save`. Existing list/rename/delete/load is unchanged and still works. Edit flow calls `MenuService.update`. |
 
-**Why it's wrong:** The v3.0 requirement explicitly merges them into a unified checkbox interface. Separate routes mean separate state — checking a food item cannot automatically update the nutrition summary without a full navigation. The cross-section interaction (check food → nutrition bar updates) requires shared component state.
-
-**Do this instead:** Single `/plan` route with `UnifiedPlan` containing internal tab/section state. All three domains share the same component lifecycle and can share state directly.
-
-### Anti-Pattern 2: Drawer state in localStorage
-
-**What people do:** Persist `drawerOpen` to localStorage so the drawer "remembers" its state.
-
-**Why it's wrong:** Drawer open state is transient UI, not user data. Persisting it creates confusing behavior on next app open (drawer starts open). Mobile users expect drawers to be closed on fresh load.
-
-**Do this instead:** `useState(false)` in `App.tsx`. Always starts closed.
-
-### Anti-Pattern 3: WeightLog as a separate route after v3.0
-
-**What people do:** Keep `/weight` as an independent page and add `/profile` as a new page that duplicates or links to it.
-
-**Why it's wrong:** The PRD defines Profile as "weight log + avatar+name at drawer bottom." Weight log is a sub-feature of Profile, not an independent destination. Two routes for the same data causes confusion about where to log weight.
-
-**Do this instead:** `/profile` contains weight log display + input form + avatar/name fields. Remove `/weight` route after `Profile` is complete. Update the `WeightLog` link in the drawer to `/profile`.
-
-### Anti-Pattern 4: Storing re-random lock state in localStorage
-
-**What people do:** Persist the `locked` boolean so the plan stays locked across page reloads.
-
-**Why it's wrong:** Over-engineering. The lock is derived state: `locked = checkedIds.size > 0`. On page reload, `checkedIds` is rehydrated from `DataService.getNutritionLog(todayStr())`. The lock state follows naturally — no need to persist it separately.
-
-**Do this instead:** Derive `locked` from `checkedIds` size. On mount, load today's nutrition log and populate `checkedIds` from it.
-
-### Anti-Pattern 5: Using a CSS library or animation library for the drawer
-
-**What people do:** Install `framer-motion` or `react-spring` for the slide animation.
-
-**Why it's wrong:** The existing codebase uses zero animation libraries. Tailwind's `transition-transform duration-200` is sufficient for a sidebar drawer on mobile. Adding a dependency for a 4-line CSS pattern is not justified.
-
-**Do this instead:** `transform transition-transform duration-200 ease-in-out` with `translate-x-0` vs `-translate-x-full` classes, conditionally applied based on `open` prop.
-
-### Anti-Pattern 6: Checkbox persistence via a new localStorage key
-
-**What people do:** Create a new `wellness_plan_checked_ids` key for checkbox state.
-
-**Why it's wrong:** Checked food items ARE nutrition log entries. They already have a storage home: `DataService.logMeal()` and `wellness_nutrition_log_{date}`. Creating a parallel store duplicates data and creates sync drift.
-
-**Do this instead:** On mount, rehydrate `checkedIds` from `DataService.getNutritionLog(todayStr())`. Check = call `logMeal`. Uncheck = call `removeMealEntry` (new `DataService` method, removes by `itemId + date`).
-
----
-
-## Integration Points
-
-### External Services
-
-| Service | Integration Pattern | Notes |
-|---------|---------------------|-------|
-| Google Apps Script | Unchanged — fire-and-forget via `SheetsAPI` | No new Sheets tabs required for v3.0 unless `MenuService` opts into Sheets sync |
-| USDA FDC API | Unchanged — used only in `FoodManager` ingredient search | Not involved in v3.0 features |
-
-### Internal Boundaries
-
-| Boundary | Communication | Notes |
-|----------|---------------|-------|
-| `App.tsx` ↔ `SidebarDrawer` | Props: `open`, `onClose` | Simple — no context needed |
-| `UnifiedPlan` ↔ `DataService` | Direct import — existing pattern | Add `removeMealEntry()` method to `DataService` |
-| `UnifiedPlan` ↔ `ItemService` | Direct import — supplement routine section | Existing pattern from `SupplementSchedule` |
-| `Profile` ↔ `SettingsService` | Direct import — read `userProfile`, save extended fields | Extend `UserProfile` type with `displayName?`, `avatarInitials?` |
-| `MyMenu` ↔ `MenuService` | Direct import | New module, new page, no cross-page interaction |
-| `SidebarDrawer` ↔ `react-router-dom` | `useLocation()` to auto-close on nav | Single `useEffect` — no side effects beyond closing |
-
----
-
-## File Change Impact Matrix
-
-| File | Change Type | Risk | Notes |
-|------|-------------|------|-------|
-| `src/App.tsx` | Modify — remove bottom nav, add drawer state, add routes `/menu` `/profile` | Medium | Central file; all routes pass through here |
-| `src/components/SidebarDrawer.tsx` | New file | None | First use of `src/components/` directory |
-| `src/pages/UnifiedPlan.tsx` | New file (replaces 3 pages) | High | Most complex change; requires merging logic from `DailyPlan`, `NutritionTracker`, `SupplementSchedule` |
-| `src/pages/Profile.tsx` | New file (absorbs WeightLog) | Low | Mostly extraction from `WeightLog.tsx` + new fields |
-| `src/pages/MyMenu.tsx` | New file | None | New feature, no existing consumers |
-| `src/lib/menu-service.ts` | New file | None | New service, no existing consumers |
-| `src/lib/data-service.ts` | Modify — add `removeMealEntry()` | Low | Additive method only |
-| `src/data/types.ts` | Modify — extend `UserProfile` with `displayName?`, `avatarInitials?` | Low | Optional fields, backward compatible |
-| `src/pages/DailyPlan.tsx` | Retire (keep as file until UnifiedPlan ships) | Low | Keep for rollback safety; remove route when ready |
-| `src/pages/NutritionTracker.tsx` | Retire (keep as file until UnifiedPlan ships) | Low | Same |
-| `src/pages/SupplementSchedule.tsx` | Retire (keep as file until UnifiedPlan ships) | Low | Same |
-| `src/pages/WeightLog.tsx` | Retire (keep as file until Profile ships) | Low | Same |
-
----
-
-## Suggested Build Order
-
-Dependencies flow strictly downward. Each phase must compile and render before the next begins.
-
-### Phase 1: Drawer Shell (no page changes)
-
-Scope: Replace bottom nav with sidebar drawer in `App.tsx`. Pages are unchanged.
-
-Files:
-- `src/components/SidebarDrawer.tsx` — new component (links to existing routes)
-- `src/App.tsx` — remove `tabs` array, remove `<nav>` bottom bar, add `<SidebarDrawer>`, add fixed top bar with hamburger, add placeholder routes for `/menu` and `/profile` pointing to stub components
-
-Gate: App renders with working drawer on all 7 existing routes. No regression on GAS check, routing, or page content.
-
-Produces: Working drawer navigation. Zero page logic changes — this phase has the smallest blast radius.
-
-### Phase 2: Profile Page (replaces WeightLog route)
-
-Scope: Extract `WeightLog` content into `Profile.tsx`, add avatar/name fields.
-
-Files:
-- `src/pages/Profile.tsx` — new, absorbs `WeightLog` logic + adds name/initials fields
-- `src/data/types.ts` — extend `UserProfile` with `displayName?`, `avatarInitials?`
-- `src/lib/settings-service.ts` — save/read new profile fields
-- `src/App.tsx` — add `/profile` route, update drawer link
-
-Gate: Profile page shows weight log history, accepts name and avatar initials, persists to `SettingsService`. WeightLog route kept alive in parallel until phase completes.
-
-Produces: Profile feature complete. `/weight` route can now be retired.
-
-### Phase 3: UnifiedPlan — Supplement Section
-
-Scope: Merge `SupplementSchedule` into `/plan` as a tab within `UnifiedPlan`.
-
-Files:
-- `src/pages/UnifiedPlan.tsx` — new, starts as a copy of `DailyPlan.tsx`, adds internal tab navigation, embeds supplement routine section (extracted from `SupplementSchedule`)
-
-Gate: `/plan` shows both food plan and supplement routine tabs. Supplement taken/skipped state works correctly. `/items` route (old `SupplementSchedule`) kept alive in parallel until verified.
-
-Produces: Supplement section merged into plan page.
-
-### Phase 4: UnifiedPlan — Nutrition Summary + Checkbox Logging
-
-Scope: Add nutrition budget bar (from `NutritionTracker`) to `UnifiedPlan`, wire food plan checkboxes to `DataService.logMeal`.
-
-Files:
-- `src/pages/UnifiedPlan.tsx` — add checkedIds state, locked state, nutrition summary section
-- `src/lib/data-service.ts` — add `removeMealEntry()` method
-
-Gate: Checking a food item logs it as a nutrition entry. Unchecking removes it. Nutrition budget bar updates in real time. Full re-random locks when any item is checked; per-item swap (🔄) always works. On page reload, checked state rehydrates from today's nutrition log.
-
-Produces: Unified plan with checkbox logging. `/track` and `/schedule` old routes can be retired.
-
-### Phase 5: My Menu
-
-Scope: Build `MyMenu` feature — create, name, save, and apply meal combinations.
-
-Files:
-- `src/lib/menu-service.ts` — new CRUD service
-- `src/pages/MyMenu.tsx` — list + create + edit + delete menus
-- `src/pages/UnifiedPlan.tsx` — add "套用菜單" button on plan slots
-
-Gate: User can create a named menu, apply it to a plan slot, and the slot items are replaced with menu items. Menus persist across reload.
-
-Produces: My Menu feature complete.
+Step 3 can be tested in isolation before step 4 is built (render `QuickFoodCreate` directly). Step 4 can be wired into a test harness before step 5 is complete.
 
 ---
 
 ## Sources
 
-- Direct codebase analysis: `src/App.tsx`, `src/pages/DailyPlan.tsx`, `src/pages/NutritionTracker.tsx`, `src/pages/SupplementSchedule.tsx`, `src/pages/WeightLog.tsx`, `src/pages/Settings.tsx`, `src/lib/data-service.ts`, `src/lib/settings-service.ts`, `src/lib/item-service.ts`
-- Project requirements: `.planning/PROJECT.md` (v3.0, 2026-04-06)
-- Previous architecture research: `.planning/research/ARCHITECTURE.md` (v2.0, 2026-03-30)
-- Confidence: HIGH — all integration decisions derived from direct source file inspection. No external library research required; drawer animation uses existing Tailwind CSS v4 utilities already in the project.
+- Direct inspection: `src/pages/MyMenu.tsx`, `src/pages/FoodManager.tsx`, `src/App.tsx`, `src/components/SidebarDrawer.tsx`, `src/lib/menu-service.ts`, `src/lib/item-service.ts`, `src/data/types.ts`, `src/data/schedule.ts`
+- Pattern: `FoodManager` ViewState machine (`"list" | "add" | "edit" | "compose"`) — confirms this is the established pattern for in-page sub-views
+- Pattern: headlessui Dialog usage in `MyMenu.tsx` (load-confirm dialog, delete-confirm dialog) — confirms Dialog is the right tool for QuickFoodCreate
+- Prior architecture research: `.planning/research/ARCHITECTURE.md` (v3.0, 2026-04-06) — valid baseline, this file extends it for v4.0 scope
 
 ---
-*Architecture research for: Eat Manager v3.0 — Sidebar Navigation & Page Consolidation*
-*Researched: 2026-04-06*
+*Architecture research for: Eat Manager v4.0 — Menu Composition & Navigation Refinement*
+*Researched: 2026-04-08*

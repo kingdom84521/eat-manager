@@ -1,173 +1,151 @@
 # Pitfalls Research
 
-**Domain:** Sidebar drawer navigation + multi-page consolidation + checkbox-based logging — React mobile-first SPA (React 19, Tailwind v4, HashRouter, localStorage-first)
-**Researched:** 2026-04-06
-**Confidence:** HIGH (based on direct codebase audit + verified community patterns)
-**Scope:** Adding sidebar drawer to replace bottom tab nav, merging DailyPlan + NutritionTracker + SupplementSchedule into a unified view, adding checkbox-based logging with lock/re-random mechanics, and introducing My Menu as a new data type. Previous milestone pitfalls (CRUD, API, inventory) remain valid and are not repeated here.
+**Domain:** Menu composition + inline food creation — adding edit/build flows to an existing React meal planning SPA
+**Researched:** 2026-04-08
+**Confidence:** HIGH (direct codebase audit + verified patterns)
+**Scope:** v4.0 — adding menu editing, menu creation from scratch, and inline food creation to the existing system. Previous milestone pitfalls (iOS scroll lock, stale checked IDs, monolithic component, bottom nav padding) remain valid and are not repeated here. This file covers only pitfalls introduced by the v4.0 feature set.
 
 ---
 
 ## Critical Pitfalls
 
-Mistakes that force rewrites, create silent data corruption, or permanently break mobile UX.
+Mistakes that force rewrites, create silent data corruption, or break the user flow irreparably.
 
 ---
 
-### Pitfall 1: Drawer Overlay Does Not Lock Body Scroll on iOS Safari
+### Pitfall 1: Menu Stores Food IDs That Resolve to Nothing
 
 **What goes wrong:**
-When the sidebar drawer opens, the body behind the overlay continues to scroll on iOS Safari. The user intends to scroll the drawer's nav links but instead scrolls the page content behind it. This is a decade-old iOS Safari behaviour: `overflow: hidden` on `<body>` does not prevent scroll on iOS when touch events are active.
+`MenuPreset.foodItemIds` stores string IDs. When those IDs are fed to `reconstructSlots()`, each ID is passed to `resolveItem()`, which looks up only `FOOD_MAP` (hardcoded static catalog) and `SUPPLEMENT_MAP` (also static). User-created foods live in `localStorage` under `wellness_foods_catalog` and are never in `FOOD_MAP`. Result: every user-created food in a saved menu silently resolves to `null`, is filtered out, and the menu loads as a truncated plan with no error.
 
 **Why it happens:**
-iOS Safari applies a "rubber-band" overscroll to the document scroll container independently of `overflow` CSS. The standard desktop fix (`document.body.style.overflow = 'hidden'`) has no effect on iOS. This is intentional Apple behaviour, not a bug, so it will not be fixed by the browser vendor.
+`resolveItem()` in `src/data/resolver.ts` only reads static compile-time maps. `ItemService.getFoods()` is async and returns a merged list (`[...FOODS, ...cached]`), but `reconstructSlots()` calls the synchronous `resolveItem()` directly. The resolver has no access to the runtime localStorage catalog.
 
 **How to avoid:**
-When the drawer opens, add `position: fixed; width: 100%; top: -${scrollY}px` to the body (capture `window.scrollY` before applying). When the drawer closes, remove `position: fixed`, restore `top: 0`, and manually set `window.scrollTo(0, savedScrollY)`. This is the only reliable pure-CSS/JS solution confirmed across iOS 15–17. Alternatively, use the `overscroll-behavior: contain` CSS property on the drawer's scroll container — this is now supported in Safari 16+ and prevents scroll chaining from the drawer to the body.
+Before the menu composition feature is built, extend the resolution path so user-created foods are resolvable. Two concrete options:
+
+1. **Preferred — async reconstructSlots:** Make `reconstructSlots` async and supply the full food list from `ItemService.getFoods()`. Pass the food list to reconstruction rather than relying on the global `FOOD_MAP`.
+2. **Alternative — populate FOOD_MAP at startup:** On app init, read `ItemService.getFoods()` and merge the result into a runtime map used by `resolveItem()`. Requires changing the resolver to accept a runtime catalog, which is a larger refactor.
+
+Option 1 is the safer, smaller change. The menu load call in `MyMenu.tsx` becomes async and waits for foods to load before calling `reconstructSlots`.
 
 **Warning signs:**
-- Page content scrolls while the drawer is open on a real iPhone
-- `document.body.style.overflow = 'hidden'` is the only scroll lock applied
-- No `savedScrollY` variable before applying body `position: fixed`
+- A menu containing user-created food IDs loads with fewer items than were saved
+- No console error, no UI error — items just disappear
+- `resolveItem()` called with `food_${timestamp}` style IDs (user-created ID format from `FoodManager.tsx` line 124: `` id: `food_${Date.now()}` ``)
 
-**Phase to address:** Sidebar drawer implementation phase (first phase of this milestone). Verify on real device or BrowserStack iOS before marking done.
+**Phase to address:** Menu editing phase — before any menu loading code is written. Audit `reconstructSlots` and fix the resolution gap first.
 
 ---
 
-### Pitfall 2: Drawer State Is Local to App.tsx — Navigation Collapses Between Page Transitions
+### Pitfall 2: Inline Food Creation Navigates Away and Loses Menu Draft State
 
 **What goes wrong:**
-If the drawer `isOpen` state is kept in a component that unmounts during navigation (e.g., inside a page component rather than `App.tsx`), the drawer closes on every route change. Alternatively, if the drawer is in `App.tsx` but its open/close state is passed as props through the router tree, every route change triggers a re-render of every page due to changed props, causing visible flicker.
-
-More subtly: with HashRouter, navigating from `/plan` to `/menu` is a full route replacement. If the unified "today" page mounts fresh on each visit, all generated plan state (the randomised food slots, checked items) is lost. The user opens the drawer, navigates to settings, returns to `/plan`, and finds an empty unchecked plan.
+The user is composing a new menu (selecting food items slot by slot). They realise a needed food does not exist. They tap "新增食材" to create it inline. If inline creation is implemented as a route change (`navigate('/foods')`, then `navigate(-1)`), the entire menu composition state is lost — all slots built so far are gone because the `/menu` route unmounts and its `useState` resets.
 
 **Why it happens:**
-React Router's `<Routes>` unmounts the exiting route component and mounts the new one. Any `useState` inside that component resets to initial state. The app currently uses no global state, relying on localStorage reads on each mount — which works for persistent data but loses ephemeral in-session state (which items are checked, the generated plan for today).
+React Router's `<Routes>` unmounts the exiting component on every navigation. No global state store exists in this app. The menu composition form is page-level `useState`. Navigating away destroys it.
 
 **How to avoid:**
-- Keep drawer `isOpen` state in `App.tsx` (the persistent shell), not in any page component.
-- For the unified today page: on mount, read today's plan from localStorage (previously generated plan persisted by date key). If no plan for today exists, generate one. This way navigation away and back restores the plan and checked state — provided checked state is also persisted. Checked items must be written to localStorage on every toggle, not held only in component state.
-- Do not pass drawer-open state as props into routed page components. Use a `DrawerContext` or a top-level state in `App.tsx` that page components can access via a shared hook if needed.
+Implement inline food creation as an in-page view transition, not a route change. The `FoodManager` component already uses a `ViewState = "list" | "add" | "edit" | "compose"` pattern where `view === "add"` renders the form without leaving the route. Apply the same pattern to `MyMenu`: add a local `view` state to `MyMenu` such as `"list" | "compose-menu" | "add-food"`. When `view === "add-food"`, render a food creation form inline within the `/menu` route. The menu draft state survives because the page never unmounts.
+
+Do not use a `headlessui Dialog` (modal) for the inline creation form. The creation form is a full nutrition label form with 8+ input fields across a 2-column grid — it does not fit in a `max-w-sm` dialog on mobile without heavy scrolling inside the modal, which causes z-index and iOS scroll interference. A sub-page view transition is the correct pattern here.
 
 **Warning signs:**
-- `isOpen` state lives inside a page component file
-- Navigating away from `/plan` and returning shows an empty plan
-- Checked checkboxes reset after drawer navigation
+- "新增食材" button calls `navigate('/foods')`
+- Menu composition state is in component-level `useState`, and a route navigation is involved in the food creation path
+- After food creation, the user is back on the menu list (not the composition form)
 
-**Phase to address:** Sidebar drawer implementation phase. Establish drawer state placement before any page work begins.
+**Phase to address:** Inline food creation phase — define the in-page view transition approach in the design before writing any navigation code.
 
 ---
 
-### Pitfall 3: Merging Three Pages Causes a Single Monolithic Component That Is Unmaintainable
+### Pitfall 3: Modal Stacking — Dialog on Top of Sidebar Drawer
 
 **What goes wrong:**
-DailyPlan (~160 LOC), NutritionTracker (~120 LOC), and SupplementSchedule (~200 LOC) are each substantial components. Naively merging them into a single `TodayPage` component produces a 500+ LOC file with interleaved concerns: plan generation state, nutrition budget state, supplement timing state, checkbox log state, and lock/re-random mechanics. This becomes unmaintainable within the first phase and forces a refactor before the second.
+The sidebar drawer uses `headlessui Dialog` at `z-50`. The confirmation dialogs in `MyMenu` (delete confirm, load-with-checked confirm) also use `headlessui Dialog` at `z-50`. If a new inline creation dialog is added at the same z-level, opening the sidebar drawer while a dialog is open produces two overlapping focus traps. `headlessui` provides a focus trap portal, but two concurrent dialogs fighting for focus can leave keyboard focus in an indeterminate state and cause the Escape key to close the wrong dialog.
 
 **Why it happens:**
-"Merge the three pages" sounds like a single task. The path of least resistance is to copy all three components' JSX and state into one file. The complexity of the interactions between the three subsystems (checking a food item updates the nutrition budget; checking a supplement updates inventory) is only visible after the merge is complete.
+The drawer and the confirmation dialogs are both `headlessui Dialog` components. headlessui uses a single global focus trap manager. When two Dialog components are open simultaneously (e.g., drawer open + confirm dialog open), the library's focus trap priority is first-opened, which may not be the outermost visible overlay.
 
 **How to avoid:**
-Decompose the unified page into sub-components with well-defined interfaces before writing any merging code:
-- `<FoodPlanSection>` — generates and displays food slots, emits check/uncheck events
-- `<NutritionBudgetBar>` — receives `checkedItems[]` as props, computes and displays budget
-- `<SupplementRoutineSection>` — displays supplement timing groups, emits check/skip events
-- `<TodayPage>` — orchestrates shared state (checked item IDs, lock flag), delegates rendering
-
-State that crosses sub-components (which items are checked) lives in `TodayPage`; UI state that does not cross boundaries (which accordion is expanded) lives in the sub-component. This decomposition must be designed before writing code, not extracted after.
+Close the sidebar drawer before any confirmation dialog is triggered. In `MyMenu.tsx`, the delete and confirm dialogs are triggered by user action within the page — the drawer is already closed when the user is on the page. Do not add `Dialog` for inline food creation (see Pitfall 2 — use in-page view transition instead). If a `Dialog` is genuinely needed (e.g., a lightweight "quick add" panel, not the full form), assign it `z-60` so it visually stacks above the `z-50` drawer backdrop, and use headlessui's recommended pattern of rendering all dialogs inside a `DialogProvider` to control stacking order.
 
 **Warning signs:**
-- A single file exceeds 350 LOC during the merge phase
-- `useState` calls for food plan, nutrition, and supplement state all appear at the top of the same component function
-- Sub-component boundaries are not defined in the design doc before coding begins
+- Multiple `<Dialog open={...}>` components can be `open={true}` simultaneously
+- Pressing Escape closes the drawer instead of the foreground dialog
+- A `Dialog` for food creation is nested inside a component that itself renders inside another `Dialog`
 
-**Phase to address:** Design sub-component boundaries as an explicit deliverable at the start of the page consolidation phase, before any code is written.
+**Phase to address:** Inline food creation phase — verify z-index and focus trap strategy before adding any new dialog.
 
 ---
 
-### Pitfall 4: Checkbox State and Generated Plan Stored Separately — Stale Combination Bug
+### Pitfall 4: Menu Draft State Not Synced to localStorage — Lost on Accidental Navigation
 
 **What goes wrong:**
-The plan is generated (random item selection) and the checked state (which items were consumed) are stored as two separate localStorage entries. If the plan is regenerated (user taps "全部重新隨機") after items have been checked, the stale checked IDs no longer correspond to the new plan's item IDs. The next load reads the old check IDs against the new plan items — some items appear pre-checked that were never consumed, while newly generated items appear unchecked even if they match previously consumed items from earlier in the day.
+Menu composition (selecting 8–15 food items across multiple meal slots) is a multi-step task that takes 2–5 minutes. If the user accidentally taps the hamburger icon, the drawer opens and they navigate away — the entire draft is discarded. With no auto-save or draft persistence, the user must start from scratch. This is a significant UX regression from the existing experience where daily plan state is auto-saved.
 
 **Why it happens:**
-Developers store generated plan and checked state independently because they seem like separate concerns. The dependency — checks only make sense relative to a specific plan generation — is invisible until a re-random event happens.
+Menu drafts are held only in component `useState`. The `MenuService` only writes complete, named presets — there is no "in-progress draft" concept. The pattern of writing to localStorage on every meaningful change (established by the daily plan's `saveTodayPlan` on each checkbox toggle) is not applied to the menu draft.
 
 **How to avoid:**
-Store the checked state as part of the same persisted plan record:
-```ts
-interface TodayPlanRecord {
-  date: string;
-  generatedAt: number;    // unix timestamp of generation
-  slots: GeneratedSlot[]; // the plan output, serialised
-  checkedIds: string[];   // IDs confirmed consumed in this plan instance
-}
-```
-When the plan is regenerated, a new `TodayPlanRecord` is written with an empty `checkedIds`. The previous record is overwritten. There is no possibility of stale checked IDs crossing plan generations because they share a single atomic record.
+Persist menu drafts to localStorage under a key like `wellness_menu_draft`. Write on every slot change during composition. On mount, check for an existing draft and offer to restore it ("你有一份未儲存的草稿，要繼續嗎？"). Clear the draft key when the menu is saved or the user explicitly discards it. This follows the same pattern as `TodayPlanRecord` — ephemeral in-progress state that survives navigation.
+
+Alternatively: accept draft loss and add a confirmation dialog before navigating away from an in-progress composition ("你的菜單草稿尚未儲存，確定要離開？"). This is simpler to implement but worse UX. Only acceptable for an MVP phase if the draft persistence is planned as a follow-up.
 
 **Warning signs:**
-- `daily_plan` and `checked_items` are stored under two separate localStorage keys for the same date
-- Re-randomising the plan does not clear the checked state
+- Menu composition state is in `useState` with no corresponding `localStorage.setItem` call
+- No "unsaved changes" guard on the route or navigation
+- The confirmation dialog approach is missing for discardable state
 
-**Phase to address:** Data model design for the unified today page — before any checkbox or re-random logic is implemented.
+**Phase to address:** Menu creation/editing phase — design draft persistence before building the composition UI.
 
 ---
 
-### Pitfall 5: Full Re-Random Lock Uses Boolean Flag That Resets on Refresh
+### Pitfall 5: Food Item IDs Are Not Stable — `food_${Date.now()}` Collides on Rapid Creation
 
 **What goes wrong:**
-The lock mechanic ("cannot do full re-random when any item is checked") is gated on whether `checkedIds.length > 0`. If `checkedIds` is stored only in `useState` and not persisted, the lock state disappears on page refresh. The user checks an item, refreshes (or navigates away and back), then is able to re-random the full plan — even though they have already consumed items from it.
+User-created food items use `id: \`food_${Date.now()}\`` (see `FoodManager.tsx` line 124). `Date.now()` returns milliseconds. If a user creates two food items within the same millisecond (e.g., via keyboard shortcut or a double-tap), both items get the same ID. `ItemService.saveFood` performs an upsert by ID — the second save overwrites the first. The first food is silently lost.
+
+More relevantly for inline creation: when a food is created inline from within the menu composition flow and immediately added as an ingredient, the ID must remain stable. If the ID generation is called twice (e.g., once in the form and once in the save handler), the IDs will differ and the menu's reference to the food breaks.
 
 **Why it happens:**
-The lock logic is implemented as a derived boolean from component state. It works in-session but has no persistence, so it does not survive navigation.
+`Date.now()` is not a UUID. It is a reasonable quick ID for development but produces collisions under concurrent or rapid use. The pattern is established in the existing code — it will be copy-pasted into the inline creation flow and inherited.
 
 **How to avoid:**
-The lock is not a separate flag — it is derived at render time from the persisted `checkedIds` field in the `TodayPlanRecord`. If `checkedIds.length > 0` after reading from localStorage on mount, the full re-random button is disabled. No additional state is needed; persistence of `checkedIds` (addressed in Pitfall 4) automatically provides persistence of the lock.
+Replace `food_${Date.now()}` with `crypto.randomUUID()` for all user-created food IDs. `crypto.randomUUID()` is available in all modern browsers and is already used in `MenuService` for menu preset IDs (`crypto.randomUUID()` is the documented approach in the `MenuPreset` interface comment). Apply consistently across both `FoodManager.tsx` and any new inline creation form.
 
 **Warning signs:**
-- A `isLocked` boolean state exists independently of `checkedIds`
-- Refreshing the page re-enables the full re-random button even when items were checked
+- `` id: `food_${Date.now()}` `` appears in new food creation code
+- The same timestamp-based ID pattern is present in the inline creation form
+- A unit test that creates two items in rapid succession (even manually) produces a collision
 
-**Phase to address:** Same phase as Pitfall 4 — lock is a UI property of the persistent record, not a separate feature.
+**Phase to address:** Inline food creation phase — use `crypto.randomUUID()` from the start; do not inherit the timestamp pattern.
 
 ---
 
-### Pitfall 6: Single-Item Re-Random Swaps the Item Out of the Slot But Does Not Update Nutrition Budget
+### Pitfall 6: Full Food List Not Re-Fetched After Inline Creation — Stale Ingredient Picker
 
 **What goes wrong:**
-Each food item in the plan carries calorie and macro data. The nutrition budget bar (remaining calories, protein, etc.) is derived from checked items. When a single item is re-randomised and swapped for a different item, the new item has different calorie/macro values. If the slot was already checked (consumed), the budget display still reflects the old item's values because the checked record stores the old item ID — the ID that was swapped out.
+The menu composition form needs to display a list of available foods for the user to select. This list is fetched once on component mount. When the user creates a new food via the inline creation form (in-page view transition), returns to the composition form, and tries to add that new food to a slot, the new food does not appear in the picker — because the list was loaded before the food was created and is now stale.
 
 **Why it happens:**
-Single-item re-random is implemented as a visual swap (update the displayed item) without considering whether the old item was already checked. The checked ID becomes orphaned: it points to an item no longer in the plan.
+`useEffect(() => { ItemService.getFoods().then(setFoods) }, [])` runs once on mount. Adding a food via inline form writes to `localStorage` but does not trigger the effect to re-run. The in-memory `foods` state array in the parent component remains as it was when the component mounted.
 
 **How to avoid:**
-Define the invariant: a single-item re-random is only allowed on unchecked items. Disable the swap button on items that are checked. If this restriction is not acceptable (the user wants to swap a checked item), uncheck the item automatically on swap, remove its contribution from the nutrition budget, and require the user to re-check the new item. Document this behaviour explicitly in the design.
+After inline food creation completes and the view returns to the composition form, refresh the foods list. Two approaches:
+
+1. Pass a `onFoodCreated` callback from the composition form to the inline creation form. When `onFoodCreated` is called, re-run `ItemService.getFoods()` and update the `foods` state.
+2. Pass a `refreshTrigger` counter that increments after creation; the `useEffect` has `refreshTrigger` as a dependency.
+
+Option 1 is more explicit and matches the existing `onAddFromOff` callback pattern in `ComposeForm` (see `FoodManager.tsx` lines 529–530).
 
 **Warning signs:**
-- The swap button is visible and active on checked items
-- `checkedIds` can contain IDs that no longer exist in the current plan's slot list
-- The nutrition budget is not recalculated after a single-item swap
+- `useEffect` for food loading has an empty dependency array `[]` with no explicit refresh mechanism
+- Inline creation exits to the composition form and the new food is not immediately selectable
+- The food list state is not updated in the parent component after inline creation
 
-**Phase to address:** Single-item re-random implementation. Enforce the unchecked-only swap invariant before building the swap UI.
-
----
-
-### Pitfall 7: Bottom Nav `pb-20` Padding Remains After Removing the Bottom Nav
-
-**What goes wrong:**
-The current `App.tsx` wraps all content in `<div className="... pb-20 ...">` to prevent the bottom nav from overlapping content. When the bottom nav is removed and replaced with a sidebar drawer, this padding remains. The result is 80px of empty space at the bottom of every page, which is especially noticeable on the unified today page (long scroll list). The fix seems trivial but requires auditing every page for hardcoded bottom padding.
-
-**Why it happens:**
-Bottom nav padding is applied at the shell level (`App.tsx`) and in some page components as additional `pb-*` classes. It becomes invisible once the nav is gone — the space is just empty rather than causing a visible bug — so it is easy to miss in a review.
-
-**How to avoid:**
-- Remove `pb-20` from `App.tsx`'s outer div at the same time the bottom nav markup is removed — same commit, not later.
-- Search for `pb-16`, `pb-20`, `pb-24` across all page components and remove or convert them to a standard bottom safe-area inset (`pb-safe` or `env(safe-area-inset-bottom)`).
-- The new sidebar layout likely needs a header bar for the hamburger icon — add `pt-14` or equivalent to account for the fixed header, not `pb-` anything.
-
-**Warning signs:**
-- `pb-20` present in `App.tsx` after bottom nav markup is removed
-- Empty whitespace at the bottom of every page visible in DevTools box model
-
-**Phase to address:** Sidebar drawer implementation phase. Handle nav removal and padding cleanup atomically.
+**Phase to address:** Inline food creation phase — design the refresh callback before wiring up the view transition.
 
 ---
 
@@ -175,12 +153,11 @@ Bottom nav padding is applied at the shell level (`App.tsx`) and in some page co
 
 | Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
 |----------|-------------------|----------------|-----------------|
-| Inline all three pages' state into TodayPage | Faster initial merge | 500+ LOC file, impossible to test sub-features independently | Never — decompose first |
-| Store checked IDs in separate localStorage key from plan | Simpler per-concern code | Stale checked IDs after re-random (Pitfall 4) | Never |
-| Implement drawer as a position:fixed div with no scroll lock | Works on desktop/Android | Body scrolls under drawer on iOS Safari (Pitfall 1) | Never for production |
-| Hardcode bottom padding everywhere instead of using CSS variable | No abstraction needed yet | Must manually hunt 5+ files when nav layout changes | MVP only — add TODO comment |
-| Implement "My Menu" as a flat array in localStorage without a schema version | Fast to ship | Impossible to migrate when fields change (existing lesson from SettingsService) | Never — use schema version from day one |
-| Use a single `useEffect` for plan generation, check-restore, and budget calculation | Fewer hooks | Infinite re-render loops from interdependent deps arrays | Never — separate concerns into separate effects |
+| Keep `resolveItem()` static and only fix the MyMenu loading path | Smaller change scope | Every future consumer of `resolveItem()` with user-created IDs silently drops items | MVP only if the full resolver fix is planned as the next task |
+| Use `food_${Date.now()}` IDs in inline creation form | No code change needed | ID collisions on rapid creation; breaks food references in menus | Never — `crypto.randomUUID()` is one-word change |
+| Implement inline creation as `navigate('/foods')` + back button | Reuse existing FoodManager page | Menu draft state lost on every food creation | Never |
+| Skip draft persistence for menu composition | Faster to ship | User frustration on accidental navigation during multi-step composition | MVP only if a "confirm leave" guard is added |
+| Load food list once on mount with no refresh | Simple `useEffect` | New inline-created food not selectable in picker immediately | Never for inline creation — always wire the refresh callback |
 
 ---
 
@@ -188,12 +165,12 @@ Bottom nav padding is applied at the shell level (`App.tsx`) and in some page co
 
 | Integration | Common Mistake | Correct Approach |
 |-------------|----------------|------------------|
-| SettingsService in merged TodayPage | Call `SettingsService.getComputedTargets()` in every sub-component separately | Call once in TodayPage, pass `targets` as a prop — avoids repeated localStorage reads |
-| Supplement routine + checkbox log | Run routine generator and checkbox restore as separate effects that both write state, causing render-loop | Generate plan once on mount, restore checked state from same persisted record atomically |
-| My Menu data type + existing DataService | Add menu CRUD directly to `data-service.ts` alongside weight/nutrition | Create `menu-service.ts` following the singleton object pattern — keeps data-service.ts focused |
-| Drawer + React Router NavLink | NavLink `isActive` class applies correctly, but drawer does not close after tap | Add `onClick={() => setDrawerOpen(false)}` on each NavLink, or listen to `location` changes in a `useEffect` to close drawer |
-| GAS version check in App.tsx + drawer shell | GAS check triggers `navigate('/settings')` which fires even on first render before drawer is set up | Keep existing GAS check; it navigates to `/settings`, which is already a valid route — no change needed |
-| WeightLog (now in Profile page) | WeightLog reads `DataService` directly; moving it inside a Profile page component means its `useEffect` data fetch fires only when Profile is visited | This is correct behaviour — no action needed, but verify Profile route exists before removing `/weight` route |
+| `reconstructSlots` + user-created foods | Call synchronous `resolveItem()` which only reads static `FOOD_MAP` | Make `reconstructSlots` async, pass full food list from `ItemService.getFoods()` |
+| Inline creation form + composition form state | Treat as two separate components with separate state | Parent component holds draft state; creation form is a child view that calls `onSave` and returns control |
+| `headlessui Dialog` for creation + drawer `Dialog` | Two concurrent `Dialog` opens fight for focus trap | Use in-page view transition for creation, not a dialog; keep only one Dialog open at a time |
+| `MenuService.save` + draft key | Save the preset but forget to clear the draft key | `MenuService.save` should also call `localStorage.removeItem('wellness_menu_draft')` or wrap both in a single commit function |
+| `ItemService.saveFood` from inline creation + food picker in parent | Food saved to localStorage but parent `foods` state not updated | Call `onFoodCreated` callback after save completes; parent re-fetches and updates state |
+| `food_${Date.now()}` IDs + `MenuPreset.foodItemIds` | IDs generated at form render time instead of at save time | Generate ID once at form submit in `handleSubmit`; do not call `Date.now()` in JSX render |
 
 ---
 
@@ -201,10 +178,9 @@ Bottom nav padding is applied at the shell level (`App.tsx`) and in some page co
 
 | Trap | Symptoms | Prevention | When It Breaks |
 |------|----------|------------|----------------|
-| Re-rendering all three merged sections on every checkbox toggle | Perceptible lag on checkbox tap on mid-range Android devices | `React.memo` on `NutritionBudgetBar`; pass stable callbacks via `useCallback` for check handlers | At ~20+ items in the list with frequent toggles |
-| Generating the full plan on every render of TodayPage | Plan re-randomises unexpectedly on state updates | Generate plan once in a `useState` initializer (`useState(() => generatePlan(…))`) or in a single mount-only `useEffect` — never in render body | Immediately — any state change triggers visible re-random |
-| Reading all supplement inventory from localStorage on every drawer open | Slow drawer animation while JS is synchronously reading | Load supplement data once on app init, not on drawer toggle | At ~30+ supplement records |
-| Persisting checked state on every checkbox toggle with full plan serialisation | Sluggish checkbox response | Write only the `checkedIds` array on toggle, not the entire plan record | At ~50+ items in plan |
+| Re-fetching full food list on every slot change in composition | Slow UI on each food selection | Fetch once on mount + targeted refresh only after inline creation | At ~200+ food records in localStorage |
+| Re-rendering the full slot list when one slot's food selection changes | Lag when switching food in a slot picker | `React.memo` on per-slot row component; pass stable `onChange` via `useCallback` | At ~10+ slots with complex cards |
+| Persisting full menu draft on every keystroke in the name field | Excessive localStorage writes during name input | Debounce draft persistence by 300ms, or persist only on slot changes and on blur of name field | No breakage, but wasteful; noticeable on older devices |
 
 ---
 
@@ -212,26 +188,24 @@ Bottom nav padding is applied at the shell level (`App.tsx`) and in some page co
 
 | Pitfall | User Impact | Better Approach |
 |---------|-------------|-----------------|
-| Drawer hamburger icon placed at top-left, thumb cannot reach on large phones | User must stretch thumb to open nav, abandons feature | Place hamburger in a bottom-left or bottom-right FAB, or use a swipe gesture (swipe right from left edge opens drawer) |
-| Drawer does not indicate the currently active page | User cannot tell where they are after opening drawer | Use React Router `useLocation` to apply active styles (same pattern as existing bottom nav's NavLink) |
-| Full page re-random confirmation is a JavaScript `window.confirm()` | Looks like a browser alert, breaks the app's visual language, and is blocked by some mobile browsers | Use an inline confirmation UI (a "確認重新隨機？" button that replaces the shuffle button for 2 seconds, then reverts) |
-| Supplement check → "skipped" three-state toggle migrated into unified view confuses users who expect binary checked/unchecked | Users accidentally skip instead of check | In the unified view, use a long-press or swipe-to-skip gesture for "skipped" state; the primary tap is always "checked" (consumed) |
-| My Menu save confirmation is silent (no visual feedback) | User unsure if save succeeded; taps save multiple times | Optimistic inline confirmation ("已儲存" label replaces save button for 1.5s) — matches existing app style |
+| "新增食材" inside menu composition opens the full FoodManager with its FAB and compose/edit views | User is dropped into food management, loses context of menu composition | Inline creation shows only the NutritionLabelForm — no FAB, no food list, no compose form |
+| Menu composition for a new menu starts empty with no guidance | User doesn't know how many slots to fill or what order to use | Default to the same slot structure as the daily plan (breakfast, lunch, dinner, snack); pre-populate with empty placeholders |
+| Save button on menu composition visible without a name entered | User saves an unnamed menu; list becomes confusing | Disable save button until a non-empty name is entered; show placeholder text "菜單名稱" in red if save attempted without name |
+| Food picker in slot shows all foods including the same food already in another slot | User accidentally adds the same food to two slots | This is acceptable; do not prevent it — adding the same food twice is a valid use case (e.g., chicken breast for both lunch and dinner) |
+| Inline food creation sub-page has no back button visible | User is stuck in creation form with no obvious exit | Sub-page header must include a visible "‹ 返回" button that returns to the composition form without saving |
 
 ---
 
 ## "Looks Done But Isn't" Checklist
 
-- [ ] **Sidebar drawer:** Verify body scroll lock on a real iOS device — desktop browser DevTools mobile emulation does NOT reproduce this bug
-- [ ] **Checkbox state persistence:** Navigate away from `/plan`, return, and confirm checked items are still checked
-- [ ] **Full re-random lock:** Check an item, refresh the page (hard reload), confirm re-random button is still disabled
-- [ ] **Single-item swap:** Swap an unchecked item and verify nutrition budget is unchanged; attempt to swap a checked item and verify the button is disabled
-- [ ] **Nutrition budget:** Check three food items, verify the budget bar updates correctly; uncheck one, verify the bar decreases
-- [ ] **Bottom padding:** Inspect every page in DevTools for unexpected empty space at the bottom after removing the bottom nav
-- [ ] **My Menu schema version:** Write a menu entry, bump the schema version constant, reload, and confirm migration does not crash
-- [ ] **Profile page WeightLog:** Confirm weight log data loads correctly when WeightLog is rendered inside the Profile page (not as a standalone route)
-- [ ] **Drawer active state:** Open drawer on each page and confirm the correct nav item is highlighted
-- [ ] **Drawer close on navigate:** Tap a drawer nav link and confirm the drawer closes before the new page renders
+- [ ] **Menu loading with user-created foods:** Create a food via FoodManager, add it to a menu, save the menu. Reload the app. Load the menu from My Menu. Verify the user-created food appears in the loaded plan — not silently dropped.
+- [ ] **Inline creation preserves draft:** Start building a menu (select 3+ foods across slots). Tap "新增食材". Create a food and return. Verify all previously selected foods are still in their slots.
+- [ ] **Inline-created food is immediately selectable:** After returning from inline creation to the composition form, verify the new food appears in the food picker.
+- [ ] **Draft persistence:** Start building a menu, open the sidebar drawer and navigate to another page, return to `/menu`. Verify draft is restored (or a "confirm leave" dialog prevented accidental navigation).
+- [ ] **No stale IDs in saved menu:** Save a menu containing a user-created food. Rename that food in FoodManager (edit its name). Load the menu again. Verify the loaded plan uses the updated food name (data is resolved at load time from the live catalog, not stored as snapshots).
+- [ ] **ID uniqueness:** Create two food items within 1 second. Verify they have different IDs and both appear in the food list.
+- [ ] **z-index and focus trap:** Open a confirmation dialog within MyMenu. Try to open the sidebar drawer. Verify the drawer does not open while a dialog is active (or if it can, verify focus is in the correct dialog).
+- [ ] **Empty menu slot handling:** Save a menu where some slots have no foods selected. Load it. Verify empty slots do not crash reconstruction and are represented as empty in the plan.
 
 ---
 
@@ -239,12 +213,11 @@ Bottom nav padding is applied at the shell level (`App.tsx`) and in some page co
 
 | Pitfall | Recovery Cost | Recovery Steps |
 |---------|---------------|----------------|
-| iOS scroll lock missing (shipped to production) | LOW | Add `position: fixed` body scroll lock in a hotfix; no data changes required |
-| Stale checked IDs from separate storage keys | MEDIUM | Write a migration in `TodayPlanRecord` loader: if old keys found, merge into new unified record and delete old keys |
-| Monolithic TodayPage (built as one 500-LOC component) | HIGH | Extract sub-components in a dedicated refactor phase; must rewrite state lifting and prop interfaces |
-| Bottom nav padding left in (cosmetic only) | LOW | Single CSS class removal across 4 files |
-| My Menu without schema version | MEDIUM | Add schema version + migration on first conflict; requires cache invalidation affecting all users |
-| Lock not persisted (state only) | LOW | Move lock derivation to read from persisted `checkedIds` on mount — 3-line change |
+| User-created foods silently dropped on menu load | MEDIUM | Fix `reconstructSlots` to use async food list; add a migration that re-saves any menu with unresolvable IDs as a flagged "incomplete" entry |
+| Menu draft lost on navigation (shipped without persistence) | LOW | Add draft persistence as a follow-up; no data migration needed (no existing drafts to migrate) |
+| Timestamp ID collision discovered after foods created | MEDIUM | Migrate existing `food_${timestamp}` IDs to UUIDs; rewrite any `MenuPreset.foodItemIds` entries that reference the old IDs; one-time migration script |
+| Focus trap conflict between drawer and creation dialog | LOW | Remove dialog; replace with in-page view transition; no data changes required |
+| Stale food list in composition form (food not showing) | LOW | Add `onFoodCreated` callback and re-fetch — 5-line change |
 
 ---
 
@@ -252,26 +225,25 @@ Bottom nav padding is applied at the shell level (`App.tsx`) and in some page co
 
 | Pitfall | Prevention Phase | Verification |
 |---------|------------------|--------------|
-| iOS body scroll lock (P1) | Sidebar drawer implementation | Test on real iOS device before phase complete |
-| Drawer state placement (P2) | Sidebar drawer implementation, before page work | Navigate to settings and back; confirm plan still rendered |
-| Monolithic component (P3) | Design sub-component boundaries before coding | Design doc lists sub-components with props interface before any TSX is written |
-| Stale checked IDs from split storage (P4) | Data model design for TodayPage | Re-random after checking; confirm checked state clears |
-| Lock reset on refresh (P5) | Same phase as P4 — unified plan record | Check item, hard refresh, confirm lock persists |
-| Swap on checked item corrupts budget (P6) | Single-item re-random implementation | Attempt to swap a checked item; confirm button disabled |
-| Bottom nav padding residue (P7) | Sidebar drawer implementation — remove nav and padding atomically | Inspect bottom of every page for whitespace |
+| Stale food IDs in menu (P1) | Menu editing phase — fix `reconstructSlots` first | Load a menu containing user-created foods; verify all items appear |
+| Inline creation destroys draft (P2) | Inline food creation phase — design in-page view before coding | Create food inline; verify composition state intact on return |
+| Modal stacking / z-index conflict (P3) | Inline food creation phase — verify Dialog strategy before adding new dialogs | Open creation form + existing confirm dialog simultaneously; verify one focus trap |
+| Draft not persisted (P4) | Menu creation phase — add draft persistence or confirm-leave guard | Navigate away mid-composition; verify draft recoverable |
+| Timestamp ID collisions (P5) | Inline food creation phase — use `crypto.randomUUID()` | Create two items rapidly; verify distinct IDs |
+| Stale food list after inline creation (P6) | Inline food creation phase — wire `onFoodCreated` refresh | Create food inline, return to picker; verify new food selectable immediately |
 
 ---
 
 ## Sources
 
-- Direct codebase audit: `src/App.tsx`, `src/pages/DailyPlan.tsx`, `src/pages/NutritionTracker.tsx`, `src/pages/SupplementSchedule.tsx`, `src/lib/data-service.ts` — HIGH confidence
-- iOS Safari body scroll lock: [PQINA blog — prevent scrolling on iOS Safari 15](https://pqina.nl/blog/how-to-prevent-scrolling-the-page-on-ios-safari/) — HIGH confidence (cross-referenced with multiple community sources)
-- iOS 100vh viewport units: [DEV Community — 100vh problem with iOS Safari](https://dev.to/maciejtrzcinski/100vh-problem-with-ios-safari-3ge9) — HIGH confidence
-- React state persistence with localStorage: [Josh W. Comeau — Persisting React State in localStorage](https://www.joshwcomeau.com/react/persisting-react-state-in-localstorage/) — HIGH confidence
-- React Context re-render pitfall: WebSearch — "main problem with merging all states under a single context provider" — MEDIUM confidence (multiple sources agree)
-- React Router v7 route unmounting behaviour: Known React Router behaviour; verified against existing project's `HashRouter` usage — HIGH confidence
-- Mobile navigation patterns: [Material Design 3 — Navigation drawer guidelines](https://m3.material.io/components/navigation-drawer/guidelines) — MEDIUM confidence (design guidance, not technical)
+- Direct codebase audit: `src/pages/MyMenu.tsx`, `src/pages/FoodManager.tsx`, `src/lib/menu-service.ts`, `src/lib/item-service.ts`, `src/data/resolver.ts`, `src/App.tsx` — HIGH confidence
+- `resolveItem()` static-only limitation confirmed by reading `src/data/resolver.ts` lines 38–75 — HIGH confidence
+- `food_${Date.now()}` ID pattern confirmed at `src/pages/FoodManager.tsx` line 124 — HIGH confidence
+- `crypto.randomUUID()` usage in `MenuPreset` interface confirmed at `src/lib/menu-service.ts` line 42 — HIGH confidence
+- React Router route unmounting behaviour: established pattern from v3.0 pitfall research + `HashRouter` in `src/App.tsx` — HIGH confidence
+- headlessui Dialog focus trap stacking: [headlessui Dialog docs — nested dialogs](https://headlessui.com/react/dialog) — MEDIUM confidence (official docs describe single-dialog-at-a-time as intended pattern)
+- React `useEffect` stale closure / stale state after async operation: known React pattern, verified in existing codebase — HIGH confidence
 
 ---
-*Pitfalls research for: Sidebar drawer navigation + page consolidation — Eat Manager v3.0*
-*Researched: 2026-04-06*
+*Pitfalls research for: Menu composition + inline food creation — Eat Manager v4.0*
+*Researched: 2026-04-08*

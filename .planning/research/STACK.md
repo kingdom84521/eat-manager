@@ -1,191 +1,152 @@
 # Stack Research
 
-**Domain:** React SPA — Sidebar Drawer Navigation, Checkbox Plan UI, Menu Management
-**Researched:** 2026-04-06
-**Confidence:** HIGH (versions verified via npm registry, peer deps confirmed live)
+**Domain:** React SPA — Menu Composition UI, Inline Food Creation, Food Picker
+**Researched:** 2026-04-08
+**Confidence:** HIGH (all dependencies already installed and in use; no new packages required)
 
 ---
 
 ## Scope
 
-This research covers ONLY what is new for milestone v3.0. The existing fixed stack
-(React 19.1, TypeScript ~5.8, Vite 6, Tailwind v4, React Router v7, HashRouter,
-localStorage + Google Sheets sync, SettingsService, react-hook-form, zod) is validated
-and NOT re-evaluated here.
+This research covers ONLY what is new for milestone v4.0. The full fixed stack
+(React 19.1, TypeScript ~5.8, Vite 6.3, Tailwind v4, React Router DOM 7.13,
+@headlessui/react 2.2.9, HashRouter, localStorage + Google Sheets sync via GAS,
+ItemService, MenuService, DataService, SettingsService) is validated from prior
+milestones and NOT re-evaluated here.
 
 ---
 
-## Core Decision: Drawer Component Strategy
+## Core Decision: Sub-page Routing vs In-page View State Machine
 
-**Recommendation: `@headlessui/react` Dialog used as a left sidebar, styled with Tailwind v4 CSS transitions. No JS animation runtime.**
+**Recommendation: Extend the existing `ViewState` string-union state machine inside `MyMenu.tsx`, NOT new React Router routes.**
 
 ### Options Evaluated
 
-| Option | Version | React 19 | Bundle Impact | Verdict |
-|--------|---------|----------|---------------|---------|
-| `@headlessui/react` Dialog as drawer | 2.2.9 | Yes — `^18 \|\| ^19` | ~10 kb gzip | **USE** |
-| Pure Tailwind CSS only (no headlessui) | — | — | 0 kb | Skip — no focus trap, no keyboard close |
-| `vaul` | 1.1.2 | Yes — `^19.0.0` | ~5 kb | Skip — wrong UX model (bottom-sheet, not sidebar) |
-| `motion/react` (animation) | 12.38.0 | Yes — `^18 \|\| ^19` | 34 kb min | Skip — overkill for a single-axis slide |
+| Approach | Router Impact | URL Changes | Back Button | Complexity | Verdict |
+|----------|--------------|-------------|-------------|------------|---------|
+| In-page `ViewState` (existing FoodManager pattern) | None | No | Not applicable | Low — mirrors existing code | **USE** |
+| Sub-routes under `/menu/:action` | New `<Route>` entries | Yes (HashRouter) | Browser back works | Medium — requires URL state marshaling | Skip |
+| Modal/Dialog over the list | Headlessui Dialog already in project | No | Dialog Escape | Low — less screen real estate | Skip for editor; use for food picker |
+| Separate top-level route `/menu/edit/:id` | New `<Route>` + `useParams` | Yes | Browser back works | Medium | Skip |
 
-Versions confirmed via `npm info` against live npm registry (2026-04-06).
+**Why `ViewState` wins:**
 
-### Why @headlessui/react
-
-- Maintained by Tailwind Labs — first-class Tailwind v4 integration
-- `DialogPanel` with the `transition` prop emits `data-closed` / `data-enter` / `data-leave`
-  attributes, which Tailwind v4 can target with `data-[closed]:-translate-x-full`
-- Built-in focus trapping, `Escape` to close, `role="dialog"` ARIA — accessibility correct
-  with no extra work
-- `DialogBackdrop` provides the overlay/scrim with its own independent transition
-- `TransitionChild` allows panel and backdrop to animate independently (backdrop fades,
-  panel slides) within the same open/close lifecycle
-- No JS animation runtime — transitions are pure CSS driven by `data-*` attributes
-- Already React 19 compatible: peer dep `"react": "^18 || ^19 || ^19.0.0-rc"` confirmed
-
-### Why vaul is skipped
-
-vaul's UX contract is a drag-responsive bottom-sheet with snap points. This project needs
-a fixed left sidebar opened by a hamburger button — a fundamentally different interaction
-model. vaul's defaults (drag-to-dismiss, snap positions, scaling) would work against the
-sidebar nav pattern and require significant override fighting.
-
-### Why motion/react is skipped
-
-34 kb gzip for a single `translate-x` slide animation is unjustifiable. Tailwind's CSS
-`transition-transform duration-300 ease-in-out` combined with `data-[closed]:-translate-x-full`
-produces identical visual output at zero bundle cost. motion/react adds value for staggered
-lists, spring physics, or gesture-driven interactions — none of which appear in this milestone.
-
----
-
-## Recommended Stack Additions
-
-### New Runtime Dependencies
-
-| Library | Version | Purpose | Why |
-|---------|---------|---------|-----|
-| `@headlessui/react` | ^2.2.9 | Sidebar drawer (Dialog), accessible overlay | Only library providing focus trap + keyboard close + Tailwind `data-*` transition hooks without a JS animation runtime |
-
-### No Other New Dependencies Needed
-
-| Feature | Approach | Rationale |
-|---------|----------|-----------|
-| Sidebar slide animation | Tailwind `translate-x-full` + `data-[closed]:-translate-x-full transition duration-300 ease-in-out` | Pure CSS, zero bundle cost, sufficient for a single-axis translate |
-| Backdrop fade | `DialogBackdrop transition` + `data-[closed]:opacity-0 transition duration-200` | Built into headlessui |
-| Checkbox-based daily plan | Native `<input type="checkbox">` + Tailwind | Checked state = `Set<string>` in `useState`; no library needed |
-| Lock full re-random | Derived boolean: `checkedIds.size > 0` | Pure React state, no library |
-| Menu save/load (我的菜單) | `localStorage` via existing `DataService` pattern | New key `"my_menus"`, `SavedMenu[]` shape — follows codebase conventions exactly |
-| Profile page (avatar + name) | `SettingsService` extension | Consistent read-on-render pattern; no new state management |
-
----
-
-## Supporting Libraries (no change from v2.0)
-
-The `react-hook-form` + `zod` + `@hookform/resolvers` stack added in v2.0 remains appropriate
-for any new forms (Profile, Menu creation). No version changes needed.
-
----
-
-## Installation
-
-```bash
-# Single new runtime dependency
-npm install @headlessui/react
-```
-
-No dev dependency changes.
-
----
-
-## Integration Points
-
-### Sidebar Drawer Pattern
-
-```tsx
-// src/components/Sidebar.tsx
-import { Dialog, DialogBackdrop, DialogPanel } from "@headlessui/react";
-
-interface Props {
-  open: boolean;
-  onClose: () => void;
-}
-
-export function Sidebar({ open, onClose }: Props) {
-  return (
-    <Dialog open={open} onClose={onClose} className="relative z-50">
-      <DialogBackdrop
-        transition
-        className="fixed inset-0 bg-black/50 data-[closed]:opacity-0 transition duration-200 ease-in-out"
-      />
-      <DialogPanel
-        transition
-        className="fixed inset-y-0 left-0 w-72 bg-slate-900 flex flex-col
-                   data-[closed]:-translate-x-full transition duration-300 ease-in-out"
-      >
-        {/* nav items */}
-      </DialogPanel>
-    </Dialog>
-  );
-}
-```
-
-The `transition` prop on `DialogPanel` makes headlessui emit `data-closed` when closing,
-which drives the Tailwind `data-[closed]:-translate-x-full` class. No framer-motion needed.
-
-### Checkbox Daily Plan State
-
-```tsx
-// Checked IDs as a Set — O(1) lookup, serializable to JSON array for localStorage
-const [checkedIds, setCheckedIds] = useState<Set<string>>(() => {
-  const saved = localStorage.getItem("today_checked");
-  return new Set<string>(saved ? (JSON.parse(saved) as string[]) : []);
-});
-
-// Persist on change
-useEffect(() => {
-  localStorage.setItem("today_checked", JSON.stringify([...checkedIds]));
-}, [checkedIds]);
-
-// Lock re-random when any item is checked
-const isLocked = checkedIds.size > 0;
-
-function toggle(id: string) {
-  setCheckedIds((prev) => {
-    const next = new Set(prev);
-    next.has(id) ? next.delete(id) : next.add(id);
-    return next;
-  });
-}
-```
-
-All existing-stack capability — no new library.
-
-### Menu Management Data Shape
+FoodManager already uses `type ViewState = "list" | "add" | "edit" | "compose"` with a single `view` state variable controlling which sub-component renders. This is the established codebase pattern for multi-step flows within a single page. Menu editing (show food picker, add/remove items, confirm) maps exactly to this pattern:
 
 ```typescript
-// Extends existing DataService with new localStorage key: "my_menus"
-interface SavedMenu {
-  id: string;        // crypto.randomUUID() — available natively, no uuid package
-  name: string;      // user-provided name (Traditional Chinese)
-  itemIds: string[]; // existing item IDs from FOOD_MAP / REMEDY_MAP
-  createdAt: string; // ISO date string
-}
+type MenuViewState = "list" | "new" | "edit";
 ```
 
-Persists as `SavedMenu[]` under `"my_menus"` in localStorage, synced to a `menus` Sheets
-tab via the existing `SheetsAPI.upsert` pattern.
+- `"list"` — current MyMenu grid with create/load/rename/delete
+- `"new"` — blank food picker + name input for building a menu from scratch
+- `"edit"` — food picker pre-populated with an existing preset's items
+
+No new routes, no URL parameters to unmarshal, no `useNavigate` calls needed inside the component, no back-button state management to implement.
+
+**Why sub-routes are skipped:**
+
+HashRouter URLs are `/#/menu`, `/#/menu/edit/:id`, etc. React Router v7 `<Route>` with `useParams` works, but it requires serializing menu ID into the URL, reading it back on render, and handling the "no menu found" case if the ID is stale. The `ViewState` pattern avoids all of this at no readability cost since the editor is a transient UI state, not a shareable/bookmarkable URL.
 
 ---
 
-## Alternatives Considered
+## Core Decision: Inline Food Creation — Slide-in Panel vs Modal
 
-| Recommended | Alternative | When Alternative Is Better |
-|-------------|-------------|---------------------------|
-| `@headlessui/react` Dialog as sidebar | Pure Tailwind `translate-x` (no headlessui) | Prototypes, or if accessibility/focus management is not a concern |
-| `@headlessui/react` Dialog as sidebar | `vaul` | If the UI is a mobile bottom-sheet drawer, not a sidebar (e.g., item detail sheet) |
-| CSS `transition` via Tailwind v4 | `motion/react` | If multiple orchestrated animations needed — stagger, spring physics, gesture drag |
-| `localStorage` + `DataService` extension | Zustand / Jotai | Only if cross-component state becomes unmanageable — not the case at current 3K LOC scale |
+**Recommendation: Headlessui `Dialog` as a full-screen slide-in panel (bottom-up on mobile), reusing the existing Dialog import already in `MyMenu.tsx`.**
+
+### Options Evaluated
+
+| Option | Interaction Model | Screen Coverage | Depth | Verdict |
+|--------|------------------|-----------------|-------|---------|
+| Full-screen `Dialog` panel (slide up from bottom) | Covers menu editor, user perceives "new screen" | 100% | 2 levels deep | **USE** |
+| Inline `ViewState` nesting (menu editor → food form) | Same page, nested views | 100% | 3 levels deep | Acceptable but adds view state complexity |
+| Small-height `Dialog` (centered modal) | Overlays menu editor | ~60% | 2 levels deep | Loses too much screen context for a multi-field form |
+
+**Why full-screen Dialog panel:**
+
+The inline food creation form (NutritionLabelForm from FoodManager) is a multi-field form (~10 inputs). Rendering it in a small centered modal creates scrolling issues on mobile. A full-screen slide-up panel:
+
+- Uses the `@headlessui/react Dialog` already imported in `MyMenu.tsx` — zero new code surface
+- Drives the slide animation via `data-[closed]:translate-y-full` on `DialogPanel` — pure Tailwind, same pattern as SidebarDrawer
+- Communicates depth to the user (they are now inside food creation, not menu editing)
+- On cancel or save, `Dialog.onClose()` triggers, returns user to menu editor
+
+**Integration point:** Extract `NutritionLabelForm` from `FoodManager.tsx` into `src/components/NutritionLabelForm.tsx` (or `src/components/FoodFormPanel.tsx`) so `MyMenu.tsx` can import it directly without coupling to `FoodManager`.
+
+---
+
+## Core Decision: Food Picker Component
+
+**Recommendation: Inline search + scrollable list rendered directly in the menu editor view — NO new library needed.**
+
+### What "Food Picker" Needs
+
+1. Text input filtering `ItemService.getFoods()` results by `f.name.includes(query)` — identical to the existing FoodManager list filter at line 811
+2. A scrollable list of matching foods with tap-to-add
+3. A selected-foods area showing currently chosen items with tap-to-remove
+4. Calorie total derived from selected items
+
+All four are achievable with existing React `useState` + `useMemo` + Tailwind. No combobox library (Downshift, React Select, Headlessui Combobox) is needed because:
+
+- The list items are simple name strings, not multi-attribute records
+- No async typeahead is needed — the full food list is already in localStorage and loaded synchronously by `ItemService.getFoods()`
+- The existing pattern (`const filteredFoods = searchTerm ? foods.filter(f => f.name.includes(searchTerm)) : foods`) is already in use twice in the codebase and is sufficient
+
+---
+
+## Recommended Stack Additions for v4.0
+
+**Zero new dependencies.** Every v4.0 feature is buildable with the existing package.json.
+
+| Feature | Mechanism | Existing Code to Reuse |
+|---------|-----------|------------------------|
+| Menu view state machine | `type MenuViewState = "list" \| "new" \| "edit"` in `MyMenu.tsx` | `ViewState` pattern in `FoodManager.tsx` |
+| Food picker search | `useState` + `useMemo` filter | Lines 801–813 in `FoodManager.tsx` |
+| Inline food creation panel | `@headlessui/react Dialog` with `data-[closed]:translate-y-full` | Dialog already imported in `MyMenu.tsx` |
+| Food form in panel | Extract `NutritionLabelForm` to shared component | Lines 48–400 in `FoodManager.tsx` |
+| Menu item collection (add/remove) | `useState<string[]>` for selected food IDs | `ingredients` state in FoodManager compose view |
+| Rename sidebar label | String change in `SidebarDrawer.tsx` | No logic change |
+| `MenuService.update()` | New method mirroring existing `rename()` pattern | `MenuService` in `menu-service.ts` |
+
+---
+
+## Component Extraction Required
+
+The one structural change needed is extracting `NutritionLabelForm` out of `FoodManager.tsx` into a shared location so both `FoodManager` and the inline panel in `MyMenu` can use it without duplicating 350+ lines.
+
+**Target location:** `src/components/NutritionLabelForm.tsx`
+
+**Interface stays the same:**
+
+```typescript
+interface NutritionLabelFormProps {
+  food?: FoodItem;
+  allFoods: FoodItem[];
+  onSave: (food: FoodItem) => void;
+  onCancel: () => void;
+}
+```
+
+`FoodManager.tsx` imports from `../components/NutritionLabelForm`.
+`MyMenu.tsx` imports from `../components/NutritionLabelForm` and wraps it in a `Dialog`.
+
+---
+
+## MenuService Changes Required
+
+`MenuService` currently has: `getAll`, `save`, `rename`, `delete`.
+
+v4.0 needs `update` (replace a preset's `foodItemIds` after editing):
+
+```typescript
+update(id: string, foodItemIds: string[][]): void {
+  const updated = this.getAll().map((p) =>
+    p.id === id ? { ...p, foodItemIds } : p
+  );
+  cacheSet(MENU_KEY, updated);
+}
+```
+
+This follows the exact same pattern as `rename`. No schema migration needed — `MenuPreset.foodItemIds` is already `string[][]`.
 
 ---
 
@@ -193,36 +154,56 @@ tab via the existing `SheetsAPI.upsert` pattern.
 
 | Avoid | Why | Use Instead |
 |-------|-----|-------------|
-| `motion/react` (framer-motion) | 34 kb gzip for a single translate animation | Tailwind `translate-x` + `data-[closed]` CSS transitions |
-| `vaul` | Bottom-sheet drag UX conflicts with fixed sidebar nav interaction model | `@headlessui/react` Dialog |
-| `@radix-ui/react-dialog` | Direct Radix UI primitive — headlessui wraps the same accessibility patterns with better Tailwind integration | `@headlessui/react` |
-| `zustand` / `jotai` | No cross-component state sharing problem at this scale | `useState` per page + `SettingsService` read-on-render |
-| `react-spring` | Same overkill as motion; adds CSS-in-JS patterns inconsistent with Tailwind-only codebase | Tailwind CSS transitions |
-| shadcn/ui component collection | Adds opinionated component boilerplate on top of a codebase with its own established conventions | Direct `@headlessui/react` primitives |
-| `uuid` npm package | Native `crypto.randomUUID()` available in all modern browsers | `crypto.randomUUID()` built-in |
+| `@headlessui/react Combobox` | Combobox is for autocomplete selection UX; simple filter-list is sufficient and already present in the codebase | `useState` + `useMemo` filter on `ItemService.getFoods()` |
+| `react-select` / `downshift` | External combobox libraries; adds bundle weight and styling conflicts with Tailwind v4 dark theme | Native `<input>` + filtered `<ul>` |
+| New React Router routes for menu editing | URL state marshaling adds complexity for a transient editor UI; HashRouter SPA URLs are not shareable anyway | `ViewState` in-page state machine |
+| `motion/react` (framer-motion) | 34 kb gzip; single `translate-y` slide is handled by Tailwind `data-[closed]:translate-y-full` for free | Tailwind CSS transitions on `DialogPanel` |
+| Global state (Context, Zustand, Jotai) | No cross-page state sharing needed; food list loaded from `ItemService` per render; menu list from `MenuService` per render | `useState` + service singletons |
+| Separate `FoodPickerModal` component library pattern | Over-engineering; the picker is a ~60-line view state inside `MyMenu` | Inline render in `MenuViewState = "new" \| "edit"` |
+
+---
+
+## Integration Map
+
+```
+MyMenu.tsx
+├── MenuViewState = "list"  → existing preset grid + new "建立菜單" button
+├── MenuViewState = "new"   → FoodPicker (inline) + name input
+│   └── "新增食物" button   → Dialog open → NutritionLabelForm (extracted component)
+└── MenuViewState = "edit"  → FoodPicker pre-populated with preset.foodItemIds.flat()
+    └── "新增食物" button   → Dialog open → NutritionLabelForm (extracted component)
+
+src/components/
+└── NutritionLabelForm.tsx  (extracted from FoodManager.tsx)
+    └── used by: FoodManager.tsx (existing), MyMenu.tsx (new)
+
+src/lib/menu-service.ts
+└── add: update(id, foodItemIds)  (new method, same pattern as rename)
+```
 
 ---
 
 ## Version Compatibility
 
-| Package | Compatible With | Verified |
-|---------|-----------------|---------|
-| `@headlessui/react@2.2.9` | `react@^19.1.0` | Yes — peer dep `^18 \|\| ^19 \|\| ^19.0.0-rc` |
-| `@headlessui/react@2.2.9` | `tailwindcss@^4.1.7` | Yes — `data-[closed]:` variant syntax is Tailwind v4 standard |
-| `@headlessui/react@2.2.9` | `react-router-dom@^7.6.0` | Yes — no routing dependencies in headlessui |
+All versions already installed and in active use. No compatibility research needed.
+
+| Package | Installed Version | Status |
+|---------|------------------|--------|
+| `@headlessui/react` | 2.2.9 | Dialog used in `MyMenu.tsx`, `SidebarDrawer.tsx` |
+| `react` | 19.1.0 | Active |
+| `react-router-dom` | 7.13.2 | HashRouter, `useNavigate` in `MyMenu.tsx` |
+| `tailwindcss` | 4.1.7 | `data-[closed]:` variants confirmed working |
 
 ---
 
 ## Sources
 
-- npm registry live query: `npm info @headlessui/react version peerDependencies` — 2.2.9, `"react": "^18 || ^19 || ^19.0.0-rc"` confirmed
-- npm registry live query: `npm info vaul version peerDependencies` — 1.1.2, `"react": "^16.8 || ^17.0 || ^18.0 || ^19.0.0 || ^19.0.0-rc"` confirmed
-- npm registry live query: `npm info motion version peerDependencies` — 12.38.0, `"react": "^18.0.0 || ^19.0.0"` confirmed
-- [Headless UI Dialog docs](https://headlessui.com/react/dialog) — `data-closed` transition API and sidebar panel pattern
-- [Headless UI v2.1 release notes](https://tailwindcss.com/blog/2024-06-21-headless-ui-v2-1) — simplified transition API with `data-*` attributes
-- [motion.dev bundle reduction guide](https://motion.dev/docs/react-reduce-bundle-size) — 34 kb full, 4.6 kb LazyMotion minimum confirmed
-- [vaul GitHub](https://github.com/emilkowalski/vaul) — drawer-sheet UX model confirmed (not sidebar nav)
+- `/home/ubuntu/works/eat-manager/src/pages/FoodManager.tsx` — ViewState pattern, NutritionLabelForm component boundary, search filter implementation (lines 34, 801–813)
+- `/home/ubuntu/works/eat-manager/src/pages/MyMenu.tsx` — existing Dialog imports, MenuPreset data shape, headlessui usage pattern
+- `/home/ubuntu/works/eat-manager/src/lib/menu-service.ts` — MenuPreset interface, existing CRUD methods
+- `/home/ubuntu/works/eat-manager/src/App.tsx` — route registry, confirms no sub-routes exist under `/menu`
+- `/home/ubuntu/works/eat-manager/package.json` — confirmed zero new dependencies needed
 
 ---
-*Stack research for: Eat Manager v3.0 — Sidebar Drawer, Checkbox Plan, Menu Management*
-*Researched: 2026-04-06*
+*Stack research for: Eat Manager v4.0 — Menu Composition & Inline Food Creation*
+*Researched: 2026-04-08*
