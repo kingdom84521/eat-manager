@@ -44,7 +44,8 @@ Users can manage their food and supplement items, generate a unified daily plan 
 **Goal:** 讓使用者可以直接在菜單頁面組合食物、新增食材，並整理 sidebar 命名。
 
 **Target features:**
-- Rename sidebar "我的食材" → "我的食物"
+- ✓ Rename sidebar "我的食材" → "我的食物" — Phase 14
+- ✓ resolveItem() resolves user-created foods from localStorage — Phase 14
 - Menu editing: open a saved menu and add/remove food items
 - Menu creation: build a new menu from scratch (not only from 今日方案)
 - Inline food creation: add new food items from within the menu flow (sub-page/modal that doesn't compete with menu UI)
