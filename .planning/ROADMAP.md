@@ -62,7 +62,9 @@ See: `.planning/milestones/v3.0-ROADMAP.md` for full details
   1. Sidebar navigation item reads "我的食物" (not "我的食材")
   2. User opens a saved menu preset that contains user-created food IDs and all items load with their correct names and macros (not "unknown" or blank)
   3. User-created food items added to FOOD_MAP (or equivalent lookup) so resolveItem() returns them alongside static catalog foods
-**Plans**: TBD
+**Plans**: 1 plan
+Plans:
+- [ ] 14-01-PLAN.md — Rename sidebar label + resolveItem() user-food fallback
 
 ### Phase 15: Menu Composition Editor
 **Goal**: Users can build and edit menus slot-by-slot, see live nutritional totals, and persist changes
@@ -74,7 +76,9 @@ See: `.planning/milestones/v3.0-ROADMAP.md` for full details
   3. User types a keyword in the food picker search field and the list filters to matching foods only
   4. The menu editor displays calorie, protein, fat, and carb totals that update as items are added or removed
   5. Saved changes persist across page navigation and page reload (MenuService.update() called on save)
-**Plans**: TBD
+**Plans**: 1 plan
+Plans:
+- [ ] 14-01-PLAN.md — Rename sidebar label + resolveItem() user-food fallback
 **UI hint**: yes
 
 ### Phase 16: Inline Food Creation
@@ -85,7 +89,9 @@ See: `.planning/milestones/v3.0-ROADMAP.md` for full details
   1. From within the food picker panel, user taps a "快速新增食物" action and a form appears (name + serving size + calories + protein + fat + carbs) without navigating away from the menu page
   2. After submitting the quick-create form, the new food appears at the top of the food picker list in the same session without any page reload
   3. The quick-created food is saved to ItemService and is available in the full food list (我的食物) after the user navigates there
-**Plans**: TBD
+**Plans**: 1 plan
+Plans:
+- [ ] 14-01-PLAN.md — Rename sidebar label + resolveItem() user-food fallback
 **UI hint**: yes
 
 ## Progress
