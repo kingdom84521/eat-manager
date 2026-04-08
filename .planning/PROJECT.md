@@ -1,4 +1,4 @@
-# Eat Manager — Sidebar Navigation & Page Consolidation
+# Eat Manager — Menu Composition & Navigation Refinement
 
 ## What This Is
 
@@ -38,6 +38,17 @@ Users can manage their food and supplement items, generate a unified daily plan 
 ### Active
 
 - [ ] Settings page accessible via icon at drawer bottom (wired but not redesigned)
+
+## Current Milestone: v4.0 Menu Composition & Navigation Refinement
+
+**Goal:** 讓使用者可以直接在菜單頁面組合食物、新增食材，並整理 sidebar 命名。
+
+**Target features:**
+- Rename sidebar "我的食材" → "我的食物"
+- Menu editing: open a saved menu and add/remove food items
+- Menu creation: build a new menu from scratch (not only from 今日方案)
+- Inline food creation: add new food items from within the menu flow (sub-page/modal that doesn't compete with menu UI)
+- Standalone food list page (我的食物) remains for browsing and editing all foods
 
 ### Out of Scope
 
@@ -87,7 +98,7 @@ Users can manage their food and supplement items, generate a unified daily plan 
 | Sub-component decomposition before merge | FoodPlanSection, NutritionBudgetBar, SupplementRoutineSection prevent monolithic UnifiedPlan | ✓ v3.0 |
 
 ---
-*Last updated: 2026-04-07 after v3.0 milestone*
+*Last updated: 2026-04-08 — milestone v4.0 started*
 
 ## Evolution
 

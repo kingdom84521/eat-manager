@@ -1,36 +1,36 @@
 ---
 gsd_state_version: 1.0
-milestone: v3.0
-milestone_name: Sidebar Navigation & Page Consolidation
-status: completed
-stopped_at: Milestone v3.0 completed and archived
-last_updated: "2026-04-07"
-last_activity: 2026-04-07
+milestone: v4.0
+milestone_name: Menu Composition & Navigation Refinement
+status: active
+stopped_at: null
+last_updated: "2026-04-08"
+last_activity: 2026-04-08
 progress:
-  total_phases: 4
-  completed_phases: 4
-  total_plans: 6
-  completed_plans: 6
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-04-07)
+See: .planning/PROJECT.md (updated 2026-04-08)
 
 **Core value:** Users can manage food/supplement items, generate unified daily plans with checkbox logging, save/load meal presets, and track supplement inventory — all from a static site synced to Google Sheets
-**Current focus:** Planning next milestone
+**Current focus:** Defining requirements for v4.0
 
 ## Current Position
 
-Phase: All complete (v3.0 shipped)
-Plan: N/A
-Status: Milestone v3.0 archived — ready for next milestone
-Last activity: 2026-04-07
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-04-08 — Milestone v4.0 started
 
-Progress: [██████████] 100%
+Progress: [░░░░░░░░░░] 0%
 
 ## Performance Metrics
 
@@ -60,7 +60,7 @@ Decisions are logged in PROJECT.md Key Decisions table.
 | 260407-2ol | Remove backporting redirect routes (/track, /items, /weight) | 2026-04-07 | 5e1109b | [260407-2ol-remove-backporting-redirect-routes-since](./quick/260407-2ol-remove-backporting-redirect-routes-since/) |
 | 260405-o1t | Add copy-to-clipboard button for gas-api.js in Settings step 3 | 2026-04-05 | 11eb028 | - |
 | 260407-laf | Fix hamburger icon to upper-left corner of whole page | 2026-04-07 | 3b45369 | [260407-laf-hamburger-icon](./quick/260407-laf-hamburger-icon-should-locate-at-the-uppe/) |
-| 260408-ft3 | Fix 營養補充 nav pointing to /plan instead of /supplements | 2026-04-08 | pending | [260408-ft3-fix-supplements-nav](./quick/260408-ft3-fix-supplements-nav-item-pointing-to-pla/) |
+| 260408-ft3 | Fix 營養補充 nav pointing to /plan instead of /supplements | 2026-04-08 | 0470e39 | [260408-ft3-fix-supplements-nav](./quick/260408-ft3-fix-supplements-nav-item-pointing-to-pla/) |
 
 ### Blockers/Concerns
 
