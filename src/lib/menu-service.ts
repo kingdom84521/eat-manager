@@ -62,6 +62,18 @@ export const MenuService = {
     cacheSet(MENU_KEY, existing);
   },
 
+  /** 依 id 更新菜單預設的完整內容 */
+  update(preset: MenuPreset): void {
+    const existing = this.getAll();
+    const idx = existing.findIndex((p) => p.id === preset.id);
+    if (idx >= 0) {
+      existing[idx] = preset;
+    } else {
+      existing.unshift(preset);
+    }
+    cacheSet(MENU_KEY, existing);
+  },
+
   /** 依 id 重新命名預設 */
   rename(id: string, name: string): void {
     const updated = this.getAll().map((p) =>
