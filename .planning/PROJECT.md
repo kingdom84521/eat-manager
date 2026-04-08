@@ -46,8 +46,8 @@ Users can manage their food and supplement items, generate a unified daily plan 
 **Target features:**
 - ✓ Rename sidebar "我的食材" → "我的食物" — Phase 14
 - ✓ resolveItem() resolves user-created foods from localStorage — Phase 14
-- Menu editing: open a saved menu and add/remove food items
-- Menu creation: build a new menu from scratch (not only from 今日方案)
+- ✓ Menu editing: open a saved menu and add/remove food items — Phase 15
+- ✓ Menu creation: build a new menu from scratch with food picker and nutritional totals — Phase 15
 - Inline food creation: add new food items from within the menu flow (sub-page/modal that doesn't compete with menu UI)
 - Standalone food list page (我的食物) remains for browsing and editing all foods
 
@@ -97,9 +97,11 @@ Users can manage their food and supplement items, generate a unified daily plan 
 | TodayPlanRecord stores checkedIds + plan atomically | Prevents stale checked IDs after plan regeneration | ✓ v3.0 |
 | My Menu localStorage-only | Sheets sync deferred; simpler MVP | ✓ v3.0 |
 | Sub-component decomposition before merge | FoodPlanSection, NutritionBudgetBar, SupplementRoutineSection prevent monolithic UnifiedPlan | ✓ v3.0 |
+| FoodPickerPanel as plain CSS panel (not Dialog) | Avoids headlessui Dialog nesting conflict with sidebar drawer | ✓ v4.0 |
+| Totals computed from raw FoodItem, not ResolvedItem | ResolvedItem only carries cal; need protein/fat/carbs from source | ✓ v4.0 |
 
 ---
-*Last updated: 2026-04-08 — milestone v4.0 started*
+*Last updated: 2026-04-08 — Phase 15 (Menu Composition Editor) complete*
 
 ## Evolution
 
